@@ -1,5 +1,10 @@
 #!/gnuplot
 
+set terminal svg size 1024,600 fname 'Verdana' fsize 10
+set output 'TRPL4.SA.svg'
+
+set title "TRPL4.SA.csv"
+
 set timefmt x "%Y-%m-%d"
 set format x "%Y-%m-%d"
 
@@ -29,7 +34,8 @@ fit [ "2006-01-01":"2011-12-31" ] f(x) "CPFE3.SA.csv" using 1:(($3+$4+$5)/3) via
 
 stddev_y = sqrt(FIT_WSSR / (FIT_NDF + 1 ))
 
-plot [ "2006-01-01":"2012-12-31" ] "CPFE3.SA.csv" using 1:2:3:4:5 with financebars, f(x) + stddev_y, f(x), f(x) - stddev_y
+plot [ "2006-01-01":"2012-12-31" ] "CPFE3.SA.csv" using 1:2:3:4:5 with financebars, f(x) + stddev_y, f(x), f(x) - stddev_y, \
+"CPFE3.SA.csv" u 1:((($2+$3+$4)/3) > (a*(($2+$3+$4)/3)**2 + b*(($2+$3+$4)/3) + c) ? (($2+$3+$4)/3) : 1/0) with points
 
 #fit f(x) "ELET6.SA.csv" using 1:(($3+$4+$5)/3) via a, b, c
 ##fit f(x) "ELET6.SA.csv" using 1:(($3+$4+$5)/3) via a, b, c, d
