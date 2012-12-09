@@ -21,7 +21,7 @@ o = order(x)
 
 x <- as.Date(index(CPFE3.SA))
 
-plot( y~x )
+#plot( y~x )
 
 x <- as.integer(index(CPFE3.SA))
 
@@ -29,8 +29,10 @@ r <- lm(y~poly(x,2))
 
 yp <- predict(r)
 
-lines( yp[o] ~ x[o], col="green", lwd=2 )
+yr <- xts(yp, as.Date(x))
 
-lines( yp[o]-(summary(r)$sigma) ~ x[o], col="red", lwd=2 )
-
-lines( yp[o]+(summary(r)$sigma) ~ x[o], col="red", lwd=2 )
+chartSeries(CPFE3.SA,
+  TA=c(addTA(yr,on=1,col=3),
+  addTA(yr+(summary(r)$sigma),on=1,col=7),
+  regm <- addTA(yr-(summary(r)$sigma),on=1,col=7))
+)
