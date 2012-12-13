@@ -1,16 +1,66 @@
-"getSymbolsMySQL" <- function (Symbols, env = .GlobalEnv, user = NULL, 
-                                password = NULL, dbname = NULL, return.class = "xts",
-                                b.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume"), ...) 
+convert.time.series <- function (fr, return.class) 
 {
+  if ("quantmod.OHLC" %in% return.class) {
+    class(fr) <- c("quantmod.OHLC", "zoo")
+    return(fr)
+  }
+  else if ("xts" %in% return.class) {
+    return(fr)
+  }
+  if ("zoo" %in% return.class) {
+    return(as.zoo(fr))
+  }
+  else if ("ts" %in% return.class) {
+    fr <- as.ts(fr)
+    return(fr)
+  }
+  else if ("data.frame" %in% return.class) {
+    fr <- as.data.frame(fr)
+    return(fr)
+  }
+  else if ("matrix" %in% return.class) {
+    fr <- as.data.frame(fr)
+    return(fr)
+  }
+  else if ("its" %in% return.class) {
+    if ("package:its" %in% search() || suppressMessages(require("its", 
+                                                                quietly = TRUE))) {
+      fr.dates <- as.POSIXct(as.character(index(fr)))
+      fr <- its::its(coredata(fr), fr.dates)
+      return(fr)
+    }
+    else {
+      warning(paste("'its' from package 'its' could not be loaded:", 
+                    " 'xts' class returned"))
+    }
+  }
+  else if ("timeSeries" %in% return.class) {
+    if ("package:timeSeries" %in% search() || suppressMessages(require("timeSeries", 
+                                                                       quietly = TRUE))) {
+      fr <- timeSeries(coredata(fr), charvec = as.character(index(fr)))
+      return(fr)
+    }
+    else {
+      warning(paste("'timeSeries' from package 'timeSeries' could not be loaded:", 
+                    " 'xts' class returned"))
+    }
+  }
+}
+
+getSymbolsMySQL <- function (Symbols, env = .GlobalEnv, user = NULL, 
+                                password = NULL, dbname = NULL, ...) 
+{
+  return.class = "xts"
+  db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
   #importDefaults("getSymbolsMySQL")
   this.env <- environment()
   for (var in names(list(...))) {
     assign(var, list(...)[[var]], this.env)
   }
-  #if (missing(verbose)) 
-  verbose <- FALSE
-  #if (missing(auto.assign)) 
-  auto.assign <- TRUE
+  if (missing(verbose)) 
+    verbose <- FALSE
+  if (missing(auto.assign)) 
+    auto.assign <- TRUE
   if (require("DBI", quietly = TRUE)) {
     if ("package:RMySQL" %in% search() || require("RMySQL", 
                                                        quietly = TRUE)) {
