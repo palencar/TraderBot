@@ -52,14 +52,14 @@ getSymbolsMySQL <- function (Symbols, env = .GlobalEnv, user = NULL,
 {
   return.class = "xts"
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
-  #importDefaults("getSymbolsMySQL")
+
   this.env <- environment()
   for (var in names(list(...))) {
     assign(var, list(...)[[var]], this.env)
   }
-  if (missing(verbose)) 
+  #if (missing(verbose)) 
     verbose <- FALSE
-  if (missing(auto.assign)) 
+  #if (missing(auto.assign)) 
     auto.assign <- TRUE
   if (require("DBI", quietly = TRUE)) {
     if ("package:RMySQL" %in% search() || require("RMySQL", 
@@ -79,7 +79,7 @@ getSymbolsMySQL <- function (Symbols, env = .GlobalEnv, user = NULL,
   con <- dbConnect(MySQL(), user = user, password = password, 
                    dbname = dbname)
   
-  db.Symbols <- dbListTables(con)
+  #db.Symbols <- dbListTables(con)
   #if (length(Symbols) != sum(Symbols %in% db.Symbols)) {
   #  missing.db.symbol <- Symbols[!Symbols %in% db.Symbols]
   #  warning(paste("could not load symbol(s): ", paste(missing.db.symbol, 
