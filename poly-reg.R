@@ -17,15 +17,34 @@ polyRegression <- function (Symbol)
 
   yr <- xts(yp, as.Date(x))
   
-  chartSeries(Symbol)
-  
-  sigma <- summary(r)$sigma  
-  plot(addTA(yr, on=1, col=3))
-  plot(addTA(yr+sigma, on=1, col=7))
-  plot(addTA(yr-sigma, on=1, col=7))
-  
   diffReg <- diff(yr)
   diffVal <- xts(y-yp, as.Date(x))
 
-  return(list(diffReg=diffReg, diffVal=diffVal, sigma=sigma))
+  return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=summary(r)$sigma))
 }
+
+findBestCurve <- function(SymbolName, minDays, maxDays)
+{
+  minSigmaPeriod <- minDays
+  minSigmaValue  <- Inf
+  
+  for(i in minDays:maxDays)
+  {
+    periodString <- sprintf("%d days", i)
+    lista <- polyRegression(last(get(SymbolName), periodString))
+    if(lista$sigma < minSigmaValue)
+    {
+      minSigmaPeriod <- i
+      minSigmaValue  <- lista$sigma
+    }
+  }
+  
+  result <- sprintf("Minimo %s %s", minSigmaPeriod, minSigmaValue)
+  print(result)  
+  
+  periodString <- sprintf("%d days", minSigmaPeriod)
+  lista <- polyRegression(last(get(SymbolName), periodString))
+  periodString2 <- sprintf("%d days", minSigmaPeriod*2)
+  plotPolyReg(last(get(SymbolName), periodString2), lista$regression, 2*lista$sigma)
+}
+

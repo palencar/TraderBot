@@ -1,6 +1,7 @@
 source("startProbe.R")
 source("filters.R")
 source("poly-reg.R")
+source("plot.R")
 
 fsmState <- "startProbe"
 
