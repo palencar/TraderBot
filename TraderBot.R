@@ -9,20 +9,24 @@ while(fsmState != "end")
 {
   if(fsmState == "startProbe")
   {
-    SYMBOLS <- startProbe()
+    Symbols <- startProbe()
     fsmState <- "loadFilters"
   }
   else if(fsmState == "loadFilters")
   {
-    loadFilters(SYMBOLS, c("polyreg"))
+    loadFilters(Symbols, c("polyreg"))
     fsmState <- "applyFilters"
   }
   else if(fsmState == "applyFilters")
   {
-    #busca bloco de informacao (um dado de algum simbolo)
-    #para o simbolo
-    quoteName <- SYMBOLS[2]
-    paranguaricutirimiruaru <- get(quoteName)
+    alertas <- filterPolyReg(Symbols, 100, 400, 2)
+    for(i in 1:length(alertas))
+    {
+      imageName <- sprintf("%s.png", alertas[[i]]$name)
+      png(filename = imageName, width = 1200, height = 480)
+      plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*2.0)
+      dev.off()
+    }
     fsmState <- "end"
   }
 }

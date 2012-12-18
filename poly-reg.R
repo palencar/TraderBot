@@ -40,11 +40,11 @@ findBestCurve <- function(SymbolName, minDays, maxDays)
   }
   
   result <- sprintf("Minimo %s %s", minSigmaPeriod, minSigmaValue)
-  print(result)  
   
   periodString <- sprintf("%d days", minSigmaPeriod)
   lista <- polyRegression(last(get(SymbolName), periodString))
-  periodString2 <- sprintf("%d days", minSigmaPeriod*2)
-  plotPolyReg(last(get(SymbolName), periodString2), lista$regression, 2*lista$sigma)
-}
+  lista$name <- SymbolName
+  lista$period <- minSigmaPeriod
 
+  return(lista)
+}

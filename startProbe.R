@@ -1,10 +1,9 @@
 library('quantmod')
 source('mysql_stocks.R')
 
-startProbe <-
-function()
+startProbe <- function()
 {
-  system("beancounter update")
+  system("beancounter update 2> /dev/null")
 
   symbolNames <- getSymbolNamesMySQL(user = 'paulo', dbname = 'beancounter')
   
