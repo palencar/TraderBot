@@ -3,7 +3,7 @@ source('mysql_stocks.R')
 
 startProbe <- function()
 {
-  system("beancounter update 2> /dev/null")
+  system("beancounter update --forceupdate today 2> /dev/null")
 
   symbolNames <- getSymbolNamesMySQL(user = 'paulo', dbname = 'beancounter')
   
