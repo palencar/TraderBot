@@ -21,61 +21,33 @@ while(fsmState != "end")
   {
     FilterSymbols <- filterIncomplete(Symbols)
     
-    alertas <- filterPolyReg(FilterSymbols, 100, 400, 1.0)
+    alertas <- filterPolyReg(FilterSymbols, 90, 360, minSigma=-2.0, maxSigma=2.0)
     
-    for(i in 1:length(alertas))
-    {
-      imageName <- sprintf("%s-poly-1-sigma.png", alertas[[i]]$name)
-      png(filename = imageName, width = 1200, height = 480)
-      plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
-      dev.off()
-    }
-    
-    alertas <- filterPolyReg(FilterSymbols, 100, 400, 2.0)
-    
-    for(i in 1:length(alertas))
+    for(i in 1:length(alertas$names))
     {
       imageName <- sprintf("%s-poly-2-sigma.png", alertas[[i]]$name)
       png(filename = imageName, width = 1200, height = 480)
       plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*2.0)
-      dev.off()
+      dev.off()  
     }
     
-    alertas <- filterRevert(FilterSymbols, 100, 400, trend="r_up")
+    trends <- c("r_up", "r_down")
+    alertas <- filterRevert(FilterSymbols, 90, 360, trends)
     
-    for(i in 1:length(alertas))
+    for(i in 1:length(alertas$names))
     {
-      imageName <- sprintf("%s-r_up.png", alertas[[i]]$name)
+      imageName <- sprintf("%s-%s.png", alertas[[i]]$name, alertas[[i]]$trend)
       png(filename = imageName, width = 1200, height = 480)
       plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
       dev.off()
     }
     
-    alertas <- filterRevert(FilterSymbols, 100, 400, trend="r_down")
-    
-    for(i in 1:length(alertas))
+    Wallet <- c("CESP6.SA", "CMIG4.SA", "CPFE3.SA", "ELET3.SA", "EQTL3.SA")
+    alertas <- filterPolyReg(Wallet, 90, 360)
+
+    for(i in 1:length(alertas$names))
     {
-      imageName <- sprintf("%s-r_down.png", alertas[[i]]$name)
-      png(filename = imageName, width = 1200, height = 480)
-      plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
-      dev.off()
-    }
-    
-    alertas <- filterRevert(FilterSymbols, 100, 400, trend="up")
-    
-    for(i in 1:length(alertas))
-    {
-      imageName <- sprintf("%s-up.png", alertas[[i]]$name)
-      png(filename = imageName, width = 1200, height = 480)
-      plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
-      dev.off()
-    }
-    
-    alertas <- filterRevert(FilterSymbols, 100, 400, trend="down")
-    
-    for(i in 1:length(alertas))
-    {
-      imageName <- sprintf("%s-down.png", alertas[[i]]$name)
+      imageName <- sprintf("%s-wallet.png", alertas[[i]]$name)
       png(filename = imageName, width = 1200, height = 480)
       plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
       dev.off()

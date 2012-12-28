@@ -15,25 +15,47 @@ loadFilters <- function(Symbols = NULL, Filters = NULL)
   }
 }
 
-filterPolyReg <- function(SymbolNames, minDays, maxDays, Sigma)
+filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0)
 {
   j <- 1
   lista <- list()
+  names <- c()
+  
   for(i in 1:length(SymbolNames))
   {
     reg <- findBestCurve(SymbolNames[i], minDays, maxDays)
     
     lastDayDate <- time(last(reg$regression))
     
-    if((Lo(get(SymbolNames[i])[lastDayDate] ) < last(reg$regression[lastDayDate])-(Sigma*reg$sigma))
-       ||
-       (Lo(get(SymbolNames[i])[lastDayDate] ) > last(reg$regression[lastDayDate])+(Sigma*reg$sigma)))
+    if(minSigma != 0)
+    {
+      if(Lo(get(SymbolNames[i])[lastDayDate] ) < last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
+      {
+        lista[[j]] <- reg
+        names[[j]] <- reg$name
+        j <- j + 1
+      }
+    }
+    
+    if(maxSigma != 0)
+    {
+      if(Lo(get(SymbolNames[i])[lastDayDate] ) > last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
+      {
+        lista[[j]] <- reg
+        names[[j]] <- reg$name
+        j <- j + 1
+      }
+    }
+    
+    if(minSigma == 0 && maxSigma == 0)
     {
       lista[[j]] <- reg
+      names[[j]] <- reg$name
       j <- j + 1
     }
   }
 
+  lista$names <- names
   return(lista)
 }
 
@@ -69,27 +91,31 @@ revertTrend <- function(TimeSeries, n=10)
   return(trend)
 }
 
-filterRevert <- function(SymbolNames, minDays, maxDays, trend="r_up")
+filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL)
 {
   j <- 1
   lista <- list()
+  names <- c()
+  
   for(i in 1:length(SymbolNames))
   {
     reg <- findBestCurve(SymbolNames[i], minDays, maxDays)
     
     treg <- reg$regression
     
-    dtrend <- revertTrend(treg, n=10)
-    
-    str(trend)
-    str(dtrend)
+    dtrend <- revertTrend(treg, n=20)
       
-    if( trend == dtrend )
+    if( dtrend %in% trend)
     {
       lista[[j]] <- reg
+      names[[j]] <- reg$name
+      lista[[j]]$trend <- dtrend
+      
       j <- j + 1 
     }
   }
+  
+  lista$names <- names
   
   return(lista)
 }
