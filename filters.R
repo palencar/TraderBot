@@ -91,7 +91,7 @@ revertTrend <- function(TimeSeries, n=10)
   return(trend)
 }
 
-filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL)
+filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL)
 {
   j <- 1
   lista <- list()
@@ -102,8 +102,14 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL)
     reg <- findBestCurve(SymbolNames[i], minDays, maxDays)
     
     treg <- reg$regression
-    
-    dtrend <- revertTrend(treg, n=20)
+    if(is.null(period))
+    {
+      dtrend <- revertTrend(treg, n=maxDays)
+    }
+    else
+    {
+      dtrend <- revertTrend(treg, n=period) 
+    }
       
     if( dtrend %in% trend)
     {
@@ -138,6 +144,37 @@ filterIncomplete <- function(SymbolNames)
   }
   
   return (symbols)
+}
+
+filterMultiple <- function(SymbolNames, Filters)
+{
+  
+  filterSymbols <- SymbolNames
+  
+  for(i in 1:length(Filters))
+  {
+    symbols <- c()
+    k <- 0
+    
+    for(j in 1:length(SymbolNames))
+    {
+      #if(Filters = "1sigma")
+      #{
+      #  symbols[k] <- filterPolyReg(Wallet, 60, 180, maxSigma=1.0)
+      #  k++
+      #}
+      #else if(Filters = "2sigma")
+      #{
+      #  
+      #}
+      #else if(Filters = )
+      #{
+      #  
+      #}     
+    }
+    
+    filterSymbols <- symbols
+  }
 }
 
 filterTrendLine <- function()
