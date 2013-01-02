@@ -34,12 +34,13 @@ while(fsmState != "end")
       dev.off()  
     }
     
+    alertas <- filterPolyReg(FilterSymbols, 90, 360, minSigma=-1.0)
     trends <- c("r_up")
-    alertas <- filterRevert(FilterSymbols, 90, 360, trends)
+    alertas <- filterRevert(alertas$names, 90, 360, trends, 30)
     
     for(i in 1:length(alertas$names))
     {
-      imageName <- sprintf("%s/%s-%s.png", chartDir, alertas[[i]]$name, alertas[[i]]$trend)
+      imageName <- sprintf("%s/%s-1sigma_%s.png", chartDir, alertas[[i]]$name, alertas[[i]]$trend)
       png(filename = imageName, width = 1200, height = 480)
       plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
       dev.off()
@@ -47,34 +48,33 @@ while(fsmState != "end")
     
     #args <- commandArgs(trailingOnly=TRUE)
     #print(args)
-    
-    #Wallet <- FilterSymbols
+
     Wallet <- c("CESP6.SA", "CMIG4.SA", "CPFE3.SA", "ELET3.SA", "EQTL3.SA")
-    alertas <- filterPolyReg(Wallet, 60, 180, maxSigma=1.0)
+    alertas <- filterPolyReg(Wallet, 90, 150)
     if(length(alertas$names) >= 1)
     {
       for(i in 1:length(alertas$names))
       {
-        imageName <- sprintf("%s/%s+1sigma-wallet.png", chartDir, alertas[[i]]$name)
+        imageName <- sprintf("%s/%s_wallet.png", chartDir, alertas[[i]]$name)
         png(filename = imageName, width = 1200, height = 480)
         plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
         dev.off()
       }
     }
     
-    trends <- c("r_down")
-    alertas <- filterRevert(Wallet, 60, 180, trends)
-    
-    if(length(alertas$names) >= 1)
-    {
-      for(i in 1:length(alertas$names))
-      {
-        imageName <- sprintf("%s/%s-%s-wallet.png", chartDir, alertas[[i]]$name, alertas[[i]]$trend)
-        png(filename = imageName, width = 1200, height = 480)
-        plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
-        dev.off()
-      }
-    }
+    #trends <- c("r_down")
+    #alertas <- filterRevert(Wallet, 90, 150, trends, 20)
+    #
+    #if(length(alertas$names) >= 1)
+    #{
+    #  for(i in 1:length(alertas$names))
+    #  {
+    #    imageName <- sprintf("%s/%s-wallet.png", chartDir, alertas[[i]]$name)
+    #    png(filename = imageName, width = 1200, height = 480)
+    #    plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
+    #    dev.off()
+    #  }
+    #}
     
     fsmState <- "end"
   }
