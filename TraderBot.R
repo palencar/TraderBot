@@ -46,10 +46,20 @@ while(fsmState != "end")
       dev.off()
     }
     
+    trends <- c("r_up")
+    alertas <- filterRevert(FilterSymbols, 90, 360, trends, 30)
+    
+    for(i in 1:length(alertas$names))
+    {
+      imageName <- sprintf("%s/%s_%s.png", chartDir, alertas[[i]]$name, alertas[[i]]$trend)
+      png(filename = imageName, width = 1200, height = 480)
+      plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma*1.0)
+      dev.off()
+    }
     #args <- commandArgs(trailingOnly=TRUE)
     #print(args)
 
-    Wallet <- c("CESP6.SA", "CMIG4.SA", "CPFE3.SA", "ELET3.SA", "EQTL3.SA")
+    Wallet <- c("CESP6.SA", "CMIG4.SA", "CPFE3.SA", "ELET3.SA", "EQTL3.SA", "LIGT3.SA")
     alertas <- filterPolyReg(Wallet, 90, 150)
     if(length(alertas$names) >= 1)
     {
