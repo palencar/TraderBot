@@ -15,7 +15,7 @@ loadFilters <- function(Symbols = NULL, Filters = NULL)
   }
 }
 
-filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0)
+filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0, dateLimit="")
 {
   j <- 1
   lista <- list()
@@ -23,7 +23,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0)
   
   for(i in 1:length(SymbolNames))
   {
-    reg <- findBestCurve(SymbolNames[i], minDays, maxDays)
+    reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
     
     lastDayDate <- time(last(reg$regression))
     
@@ -91,7 +91,7 @@ revertTrend <- function(TimeSeries, n=10)
   return(trend)
 }
 
-filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL)
+filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL, dateLimit="")
 {
   j <- 1
   lista <- list()
@@ -99,7 +99,7 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL)
   
   for(i in 1:length(SymbolNames))
   {
-    reg <- findBestCurve(SymbolNames[i], minDays, maxDays)
+    reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
     
     treg <- reg$regression
     if(is.null(period))
@@ -126,13 +126,20 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterIncomplete <- function(SymbolNames)
+filterIncomplete <- function(SymbolNames, dateLimit="")
 {
   symbols <- c()
   j <- 1
   for(i in 1:length(SymbolNames))
   {
-    period <- sprintf("%s::%s", as.Date(Sys.Date() - 30 ), as.Date(Sys.Date()))
+    if(dateLimit == "")
+    {
+      period <- sprintf("%s::%s", as.Date(Sys.Date() - 30 ), as.Date(Sys.Date()))
+    }
+    else
+    {
+      period <- sprintf("%s::%s", as.Date(as.Date(dateLimit) - 30 ), as.Date(dateLimit))
+    }
     lastMonth <- get(SymbolNames[[i]])[period]
     
     lastMonthDays <- length(lastMonth[,1])

@@ -5,7 +5,14 @@ polyRegression <- function (Symbol)
   this.env <- environment()
   
   x <- as.integer(index(Symbol))
-  y <- as.double((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
+  if(is.HLC(Symbol))
+  {
+    y <- as.double((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
+  }
+  else
+  {
+    y <- as.double(Symbol[,1])
+  }
 
   o = order(x)
 
@@ -23,15 +30,21 @@ polyRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=summary(r)$sigma))
 }
 
-findBestCurve <- function(SymbolName, minDays, maxDays)
+findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
 {
   minSigmaPeriod <- minDays
   minSigmaValue  <- Inf
   
+  if(dateLimit == "")
+  {
+    dateLimit <- sprintf("::%s", format(Sys.time(), "%Y-%m-%d"))
+  }
+  
   for(i in minDays:maxDays)
   {
     periodString <- sprintf("%d days", i)
-    lista <- polyRegression(last(get(SymbolName), periodString))
+
+    lista <- polyRegression(last(get(SymbolName)[dateLimit], periodString))
     if(lista$sigma < minSigmaValue)
     {
       minSigmaPeriod <- i
@@ -42,7 +55,7 @@ findBestCurve <- function(SymbolName, minDays, maxDays)
   result <- sprintf("Minimo %s %s", minSigmaPeriod, minSigmaValue)
   
   periodString <- sprintf("%d days", minSigmaPeriod)
-  lista <- polyRegression(last(get(SymbolName), periodString))
+  lista <- polyRegression(last(get(SymbolName)[dateLimit], periodString))
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
 
