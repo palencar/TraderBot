@@ -126,8 +126,13 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL,
   return(lista)
 }
 
-filterIncomplete <- function(SymbolNames, dateLimit="")
+filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
 {
+  if(is.null(SymbolNames))
+  {
+    return
+  }
+  
   symbols <- c()
   j <- 1
   for(i in 1:length(SymbolNames))
@@ -182,6 +187,77 @@ filterMultiple <- function(SymbolNames, Filters)
     
     filterSymbols <- symbols
   }
+}
+
+filterAge <- function(SymbolNames, dateLimit="", age="6 months")
+{
+  if(dateLimit == "")
+  {
+    dt = as.Date(Sys.Date())
+  }
+  else
+  {
+    dt = as.Date(dateLimit)
+  }
+  
+  dc = sprintf("-%s", age)
+  
+  ds = seq(dt, length=2, by=dc)[2]
+  
+  symbols <- c()
+  
+  i <- 1
+  for(symb in SymbolNames)
+  {
+    period <- sprintf("::%s", ds)
+
+    print(period)
+    if(length(get(symb)[period]) > 0)
+    {
+      print(period)
+      print(symb)
+      
+      symbols[i] <- symb
+      i <- i+1
+    }
+  }
+  
+  return(symbols)
+}
+
+filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months")
+{
+  if(dateLimit == "")
+  {
+    dt = as.Date(Sys.Date())
+  }
+  else
+  {
+    dt = as.Date(dateLimit)
+  }
+  
+  dc = sprintf("-%s", age)
+  
+  ds = seq(dt, length=2, by=dc)
+  
+  symbols <- c()
+  
+  i <- 1
+  for(symb in SymbolNames)
+  {
+    period <- sprintf("%s::%s", ds[2], ds[1])
+    
+    if(length(get(symb)[period]) > 0)
+    {
+      print(period)
+      print(symb)
+      
+      symbols[i] <- symb
+      i <- i+1
+    }
+  }
+  
+  return(symbols)
 }
 
 filterTrendLine <- function()
