@@ -1,7 +1,13 @@
 source('poly-reg.R')
+source('startProbe.R')
 
 plotSymbol <- function(SymbolName, minDays=90, maxDays=150, sigma=1, dateLimit="")
 {
+  if(exists(Symbols) == FALSE)
+  {
+    Symbols <- startProbe()
+  }
+  
   reg <- findBestCurve(SymbolName, minDays, maxDays, dateLimit)
   
   plotPolyReg(reg$name, reg$regression, sigma)
