@@ -23,13 +23,20 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
   
   for(i in 1:length(SymbolNames))
   {
-    reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
+    #if(is.null(regressions))
+    #{
+      reg <- findBestCurve(SymbolName=SymbolNames[i], minDays=minDays, maxDays=maxDays, dateLimit=dateLimit)
+    #}
+    #else
+    #{
+    #  reg <- regressions[[i]]
+    #}
     
     lastDayDate <- time(last(reg$regression))
     
     if(minSigma != 0)
     {
-      if(Lo(get(SymbolNames[i])[lastDayDate] ) < last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
+      if(Lo(get(SymbolNames[i])[lastDayDate]) < last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
       {
         lista[[j]] <- reg
         names[[j]] <- reg$name
@@ -39,7 +46,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
     
     if(maxSigma != 0)
     {
-      if(Lo(get(SymbolNames[i])[lastDayDate] ) > last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
+      if(Lo(get(SymbolNames[i])[lastDayDate]) > last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
       {
         lista[[j]] <- reg
         names[[j]] <- reg$name
@@ -56,6 +63,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
   }
 
   lista$names <- names
+  
   return(lista)
 }
 
@@ -99,7 +107,14 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL,
   
   for(i in 1:length(SymbolNames))
   {
-    reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
+    #if(is.null(regressions))
+    #{
+      reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
+    #}
+    #else
+    #{
+    #  reg <- regressions[[i]]
+    #}
     
     treg <- reg$regression
     if(is.null(period))
@@ -111,7 +126,7 @@ filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL,
       dtrend <- revertTrend(treg, n=period) 
     }
       
-    if( dtrend %in% trend)
+    if(dtrend %in% trend)
     {
       lista[[j]] <- reg
       names[[j]] <- reg$name
@@ -139,11 +154,11 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
   {
     if(dateLimit == "")
     {
-      period <- sprintf("%s::%s", as.Date(Sys.Date() - 30 ), as.Date(Sys.Date()))
+      period <- sprintf("%s::%s", as.Date(Sys.Date() - 30), as.Date(Sys.Date()))
     }
     else
     {
-      period <- sprintf("%s::%s", as.Date(as.Date(dateLimit) - 30 ), as.Date(dateLimit))
+      period <- sprintf("%s::%s", as.Date(as.Date(dateLimit) - 30), as.Date(dateLimit))
     }
     lastMonth <- get(SymbolNames[[i]])[period]
     
