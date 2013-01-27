@@ -21,6 +21,12 @@ polyRegression <- function (Symbol)
   r <- lm(y~poly(x,2))
 
   yp <- predict(r)
+  
+  lastDay <- as.Date(last(index(Symbol)))
+  next10Day <- as.Date(lastDay + 10)
+  dataextra<-data.frame(x=seq(lastDay,next10Day,1))
+  
+  ep <- predict(lm(y~poly(x,2)),dataextra) 
 
   yr <- xts(yp, as.Date(x))
   
@@ -35,29 +41,42 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   minSigmaPeriod <- minDays
   minSigmaValue  <- Inf
   
-  if(dateLimit == "")
-  {
-    dateLimit <- sprintf("::%s", format(Sys.time(), "%Y-%m-%d"))
-  }
-  
   for(i in minDays:maxDays)
   {
-    periodString <- sprintf("%d days", i)
-
-    lista <- polyRegression(last(get(SymbolName)[dateLimit], periodString))
+    if(dateLimit == "")
+    {
+      dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+      
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    else
+    {
+      dt = as.Date(dateLimit)
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+      
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    
+    lista <- polyRegression(get(SymbolName)[dateInterval])
     if(lista$sigma < minSigmaValue)
     {
       minSigmaPeriod <- i
       minSigmaValue  <- lista$sigma
+      minSigmaInterval <- dateInterval
     }
   }
   
-  result <- sprintf("Minimo %s %s", minSigmaPeriod, minSigmaValue)
+  result <- sprintf("Minimo %d [%s] %.4f", minSigmaPeriod, minSigmaInterval, minSigmaValue)
+  #print(result)
   
-  periodString <- sprintf("%d days", minSigmaPeriod)
-  lista <- polyRegression(last(get(SymbolName)[dateLimit], periodString))
+  lista <- polyRegression(get(SymbolName)[minSigmaInterval])
+  
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
+  lista$interval <- minSigmaInterval
 
   return(lista)
 }
