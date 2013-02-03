@@ -14,10 +14,10 @@ if(length(args_cmd) == 2)
   args <- args_cmd
 }
 
-if(exists(Symbols) == FALSE)
-{
-  Symbols <- startProbe()
-}
+#if(exists(Symbols) == FALSE)
+#{
+#  Symbols <- startProbe()
+#}
 
 trends <- c("r_down")
 
