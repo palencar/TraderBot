@@ -72,20 +72,9 @@ getSymbolsMySQL <- function (Symbols, env = .GlobalEnv, user = NULL,
   else {
     stop(paste("package:", dQuote("DBI"), "cannot be loaded."))
   }
-  #if (is.null(user) || is.null(password) || is.null(dbname)) {
-  #    stop(paste("At least one connection argument (", sQuote("user"), 
-  #        sQuote("password"), sQuote("dbname"), ") is not set"))
-  #}
+
   con <- dbConnect(MySQL(), user = user, password = password, 
                    dbname = dbname)
-  
-  #db.Symbols <- dbListTables(con)
-  #if (length(Symbols) != sum(Symbols %in% db.Symbols)) {
-  #  missing.db.symbol <- Symbols[!Symbols %in% db.Symbols]
-  #  warning(paste("could not load symbol(s): ", paste(missing.db.symbol, 
-  #                                                    collapse = ", ")))
-  #  Symbols <- Symbols[Symbols %in% db.Symbols]
-  #}
   for (i in 1:length(Symbols)) {
     if (verbose) {
       cat(paste("Loading ", Symbols[[i]], paste(rep(".", 
