@@ -66,17 +66,72 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
       minSigmaPeriod <- i
       minSigmaValue  <- lista$sigma
       minSigmaInterval <- dateInterval
+      minPolyRegression <- lista
     }
   }
   
   result <- sprintf("Minimo %d [%s] %.4f", minSigmaPeriod, minSigmaInterval, minSigmaValue)
   #print(result)
   
-  lista <- polyRegression(get(SymbolName)[minSigmaInterval])
+  lista <- minPolyRegression
   
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
   lista$interval <- minSigmaInterval
 
+  return(lista)
+}
+
+findRevertCurves <- function(FilterSymbols, minDays, maxDays, trend=c("r_up", "r_down"), period=3, dateLimit="")
+{
+  lista <- c()
+  
+  minSigmaPeriod <- minDays
+  minSigmaValue  <- Inf
+  
+  k <- 0
+  
+  for(j in 1:length(FilterSymbols))
+  {
+    SymbolName <- FilterSymbols[j]
+
+    for(i in minDays:maxDays)
+    {
+      if(dateLimit == "")
+      {
+        dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
+        dc = sprintf("-%d days", i)
+        ds = seq(dt, length=2, by=dc)
+        
+        dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+      }
+      else
+      {
+        dt = as.Date(dateLimit)
+        dc = sprintf("-%d days", i)
+        ds = seq(dt, length=2, by=dc)
+        
+        dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+      }
+      
+      reg <- polyRegression(get(SymbolName)[dateInterval])
+      dtrend <- revertTrend(reg$regression, n=period)
+
+      if(dtrend %in% trend)
+      {
+        k <- k + 1
+        
+        lista[[k]]          <- reg
+        lista[[k]]$name     <- SymbolName
+        lista[[k]]$interval <- dateInterval
+        lista[[k]]$trend    <- dtrend
+        lista[[k]]$period   <- i
+        
+        result <- sprintf("%s %s %d", lista[[k]]$name, lista[[k]]$trend, lista[[k]]$period)
+        print(result)
+      }
+    }
+  }
+  
   return(lista)
 }

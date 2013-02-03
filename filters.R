@@ -99,27 +99,20 @@ revertTrend <- function(TimeSeries, n=10)
   return(trend)
 }
 
-filterRevert <- function(SymbolNames, minDays, maxDays, trend=NULL, period=NULL, dateLimit="")
+filterRevert <- function(Regressions, trend=NULL, period=NULL, dateLimit="")
 {
   j <- 1
   lista <- list()
   names <- c()
   
-  for(i in 1:length(SymbolNames))
+  for(i in 1:length(Regressions))
   {
-    #if(is.null(regressions))
-    #{
-      reg <- findBestCurve(SymbolNames[i], minDays, maxDays, dateLimit=dateLimit)
-    #}
-    #else
-    #{
-    #  reg <- regressions[[i]]
-    #}
+    reg <- Regressions[i]
     
     treg <- reg$regression
     if(is.null(period))
     {
-      dtrend <- revertTrend(treg, n=maxDays)
+      dtrend <- revertTrend(treg, n=length(treg))
     }
     else
     {
