@@ -32,21 +32,33 @@ for(dt in seq(as.Date(args[2]), as.Date(args[1]), by = "-1 day"))
   
   for(SymbolName in FilterSymbols)
   {
-    alertas <- findRevertCurves(c(SymbolName), minDays=k1, maxDays=k2, trend=trends, dateLimit=dt)
-    if(length(alertas) >= 1)
+    for(trend in trends)
     {
-      for(i in 1:length(alertas))
+      alertas <- findRevertCurves(c(SymbolName), minDays=k1, maxDays=k2, trend=trend, dateLimit=dt)
+      if(length(alertas) >= 1)
       {
-        objectName <- sprintf("teste/%s-%s_%d_%s.Robj", chartDate, alertas[[i]]$name,
-                              alertas[[i]]$period, alertas[[i]]$trend)
-        print(objectName)
-        dput(alertas[[i]], objectName)
-        
-        imageName <- sprintf("teste/%s-%s_%d_%s.png", chartDate, alertas[[i]]$name,
-                             alertas[[i]]$period, alertas[[i]]$trend)
-        png(filename = imageName, width = 1900, height = 1080)
-        plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma, alertas[[i]]$interval)
-        dev.off()
+        if(length(alertas) >= 1)
+        {
+          best <- 1
+          
+          for(i in 1:length(alertas))
+          {
+            if(alertas[[i]]$sigma < alertas[[best]]$sigma)
+            {
+              best <- i
+            }
+          }
+          objectName <- sprintf("teste/%s-%s_%d_%s.Robj", chartDate, alertas[[best]]$name,
+                                alertas[[best]]$period, alertas[[best]]$trend)
+          print(objectName)
+          dput(alertas[[best]], objectName)
+          
+          imageName <- sprintf("teste/%s-%s_%d_%s.png", chartDate, alertas[[best]]$name,
+                               alertas[[best]]$period, alertas[[best]]$trend)
+          png(filename = imageName, width = 1900, height = 1080)
+          plotPolyReg(alertas[[best]]$name, alertas[[best]]$regression, alertas[[best]]$sigma, alertas[[best]]$interval)
+          dev.off()
+        }
       }
     }
   }
