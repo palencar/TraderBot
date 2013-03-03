@@ -30,7 +30,34 @@ plotObject <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
   }
 }
 
-plotPolyReg <- function (SymbolName, polyReg, sigma, dateLimit="", startDate="")
+plotObjectSet <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
+{
+  #objects <- dget(FileName)
+  objects <- readRDS(file=FileName)
+  
+  if(dev == "png")
+  {
+    for(i in 1:length(1:length(objects$names)))
+    {
+      object <- objects[[i]]
+      suffix <- sprintf("_%d.png", object$period)
+      imageName <- gsub(".rds", suffix, x=FileName)
+      png(filename = imageName, width=xres, height=yres)
+      plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
+      dev.off()
+    }
+  }
+  else
+  {
+    for(i in 1:length(objects$names))
+    {
+      object <- objects[[i]]
+      plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
+    }
+  }
+}
+
+plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="")
 {
   #buscar datas das ordens executadas
   

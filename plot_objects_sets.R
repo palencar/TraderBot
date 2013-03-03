@@ -5,7 +5,7 @@ source("plot.R")
 
 #if(exists(Symbols) == FALSE)
 #{
-  Symbols <- startProbe()
+Symbols <- startProbe()
 #}
 
 args_cmd <- commandArgs(trailingOnly=TRUE)
@@ -13,5 +13,5 @@ args_cmd <- commandArgs(trailingOnly=TRUE)
 for(name in args_cmd)
 {
   #print(name)
-  plotObject(name, dev="png")
+  plotObjectSet(name, dev="png")
 }

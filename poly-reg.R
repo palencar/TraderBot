@@ -22,7 +22,7 @@ polyRegression <- function (Symbol)
 
   yp <- predict(r)
   
-  lastDay <- as.Date(last(index(Symbol)))
+  lastDay <- as.Date(xts::last(index(Symbol)))
   next10Day <- as.Date(lastDay + 10)
   dataextra<-data.frame(x=seq(lastDay,next10Day,1))
   
@@ -34,6 +34,56 @@ polyRegression <- function (Symbol)
   diffVal <- xts(y-yp, as.Date(x))
 
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=summary(r)$sigma))
+}
+
+findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
+{
+  lista <- c()
+  k <- 1
+  
+  for(i in minDays:maxDays)
+  {
+    if(dateLimit == "")
+    {    
+      dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    else
+    { 
+      dt = as.Date(dateLimit)
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+      
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    
+    #strOut <- sprintf("polyRegression(%s, %s)", SymbolName, dateInterval)
+    #print(strOut)
+    
+    if(length(get(SymbolName)[dateInterval]) <= 30)
+      next
+    
+    reg <- polyRegression(get(SymbolName)[dateInterval])
+    reg$name <- SymbolName
+    
+    dtrend <- revertTrend(reg$regression, n=3)
+    
+    lista[[k]]          <- reg
+    lista[[k]]$name     <- SymbolName
+    lista[[k]]$interval <- dateInterval
+    lista[[k]]$trend    <- dtrend
+    lista[[k]]$period   <- i
+    
+    result <- sprintf("%s %s %d", lista[[k]]$name, lista[[k]]$trend, lista[[k]]$period)
+    print(result)
+    
+    k <- k+1
+  }
+  
+  return(lista)
 }
 
 findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
@@ -78,6 +128,48 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
   lista$interval <- minSigmaInterval
+
+  return(lista)
+}
+
+findBestCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
+{
+  regressions <- c()
+  
+  for(i in minDays:maxDays)
+  {
+    if(dateLimit == "")
+    {
+      dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+      
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    else
+    {
+      dt = as.Date(dateLimit)
+      dc = sprintf("-%d days", i)
+      ds = seq(dt, length=2, by=dc)
+      
+      dateInterval <- sprintf("%s::%s", ds[2], ds[1])
+    }
+    
+    lista <- polyRegression(get(SymbolName)[dateInterval])
+    lista$name <- SymbolName
+    lista$period <- i
+    lista$interval <- dateInterval
+    
+    regressions[[i]] <- lista
+  }
+
+  sigmas <- c()
+  j <- 1
+  for(i in minDays:maxDays)
+  {
+    sigmas[[j]] <- c(index=as.integer(i), value=regressions[[i]]$sigma)
+    j <- j + 1
+  }
 
   return(lista)
 }

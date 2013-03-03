@@ -32,11 +32,11 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
     #  reg <- regressions[[i]]
     #}
     
-    lastDayDate <- time(last(reg$regression))
+    lastDayDate <- time(xts::last(reg$regression))
     
     if(minSigma != 0)
     {
-      if(Lo(get(SymbolNames[i])[lastDayDate]) < last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
+      if(Lo(get(SymbolNames[i])[lastDayDate]) < xts::last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
       {
         lista[[j]] <- reg
         names[[j]] <- reg$name
@@ -46,7 +46,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
     
     if(maxSigma != 0)
     {
-      if(Lo(get(SymbolNames[i])[lastDayDate]) > last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
+      if(Lo(get(SymbolNames[i])[lastDayDate]) > xts::last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
       {
         lista[[j]] <- reg
         names[[j]] <- reg$name
@@ -67,9 +67,9 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
   return(lista)
 }
 
-revertTrend <- function(TimeSeries, n=10)
+revertTrend <- function(TimeSeries, n=3)
 {
-  lastValues <- last(TimeSeries, n)
+  lastValues <- xts::last(TimeSeries, n)
   
   trend <- "none"
   
@@ -99,15 +99,15 @@ revertTrend <- function(TimeSeries, n=10)
   return(trend)
 }
 
-filterRevert <- function(Regressions, trend=NULL, period=NULL, dateLimit="")
+filterRevert <- function(Regressions, trend=NULL, period=NULL)
 {
   j <- 1
-  lista <- list()
+  lista <- c()
   names <- c()
   
   for(i in 1:length(Regressions))
   {
-    reg <- Regressions[i]
+    reg <- Regressions[[i]]
     
     treg <- reg$regression
     if(is.null(period))
@@ -271,4 +271,17 @@ filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months"
 filterTrendLine <- function()
 {
   
+}
+
+localMaxima <- function(x)
+{
+  # Use -Inf instead if x is numeric (non-integer)
+  y <- diff(c(-.Machine$integer.max, x)) > 0L
+  rle(y)$lengths
+  y <- cumsum(rle(y)$lengths)
+  y <- y[seq.int(1L, length(y), 2L)]
+  if (x[[1]] == x[[2]]) {
+    y <- y[-1]
+  }
+  y
 }
