@@ -11,3 +11,17 @@ startProbe <- function()
   
   return (symbolNamesObj)
 }
+
+positions <- function(symbol = NULL)
+{
+  if(is.null(symbol))
+  {
+    pos <- getPositions(user = 'paulo', dbname = 'beancounter');
+  }
+  else
+  {
+    pos <- getPositions(user = 'paulo', dbname = 'beancounter', symbol=symbol);
+  }
+  
+  return (pos)
+}

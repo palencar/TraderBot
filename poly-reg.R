@@ -1,7 +1,7 @@
 polyRegression <- function (Symbol)
 {
   require(quantmod)
-
+  
   this.env <- environment()
   
   x <- as.integer(index(Symbol))
@@ -13,13 +13,13 @@ polyRegression <- function (Symbol)
   {
     y <- as.double(Symbol[,1])
   }
-
+  
   o = order(x)
-
+  
   x <- as.Date(index(Symbol))
-
+  
   r <- lm(y~poly(x,2))
-
+  
   yp <- predict(r)
   
   lastDay <- as.Date(xts::last(index(Symbol)))
@@ -27,12 +27,12 @@ polyRegression <- function (Symbol)
   dataextra<-data.frame(x=seq(lastDay,next10Day,1))
   
   ep <- predict(lm(y~poly(x,2)),dataextra) 
-
+  
   yr <- xts(yp, as.Date(x))
   
   diffReg <- diff(yr)
   diffVal <- xts(y-yp, as.Date(x))
-
+  
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=summary(r)$sigma))
 }
 
@@ -48,7 +48,7 @@ findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
       dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
       dc = sprintf("-%d days", i)
       ds = seq(dt, length=2, by=dc)
-
+      
       dateInterval <- sprintf("%s::%s", ds[2], ds[1])
     }
     else
@@ -128,7 +128,7 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
   lista$interval <- minSigmaInterval
-
+  
   return(lista)
 }
 
@@ -162,7 +162,7 @@ findBestCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
     
     regressions[[i]] <- lista
   }
-
+  
   sigmas <- c()
   j <- 1
   for(i in minDays:maxDays)
@@ -170,7 +170,7 @@ findBestCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
     sigmas[[j]] <- c(index=as.integer(i), value=regressions[[i]]$sigma)
     j <- j + 1
   }
-
+  
   return(lista)
 }
 
@@ -186,7 +186,7 @@ findRevertCurves <- function(FilterSymbols, minDays, maxDays, trend=c("r_up", "r
   for(j in 1:length(FilterSymbols))
   {
     SymbolName <- FilterSymbols[j]
-
+    
     for(i in minDays:maxDays)
     {
       if(dateLimit == "")
@@ -208,7 +208,7 @@ findRevertCurves <- function(FilterSymbols, minDays, maxDays, trend=c("r_up", "r
       
       reg <- polyRegression(get(SymbolName)[dateInterval])
       dtrend <- revertTrend(reg$regression, n=period)
-
+      
       if(dtrend %in% trend)
       {
         k <- k + 1

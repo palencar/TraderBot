@@ -25,7 +25,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
   {
     #if(is.null(regressions))
     #{
-      reg <- findBestCurve(SymbolName=SymbolNames[i], minDays=minDays, maxDays=maxDays, dateLimit=dateLimit)
+    reg <- findBestCurve(SymbolName=SymbolNames[i], minDays=minDays, maxDays=maxDays, dateLimit=dateLimit)
     #}
     #else
     #{
@@ -61,7 +61,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
       j <- j + 1
     }
   }
-
+  
   lista$names <- names
   
   return(lista)
@@ -110,6 +110,12 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
     reg <- Regressions[[i]]
     
     treg <- reg$regression
+    if(length(treg) == 0)
+    {
+      print("zero")
+      print(reg$name)
+    }
+    
     if(is.null(period))
     {
       dtrend <- revertTrend(treg, n=length(treg))
@@ -118,7 +124,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
     {
       dtrend <- revertTrend(treg, n=period) 
     }
-      
+    
     if(dtrend %in% trend)
     {
       lista[[j]] <- reg

@@ -10,7 +10,7 @@ plotSymbol <- function(SymbolName, minDays=90, maxDays=150, dateLimit="", startD
   
   reg <- findBestCurve(SymbolName, minDays, maxDays, dateLimit="")
   
-  plotPolyReg(reg$name, reg$regression, reg$sigma, startDate=startDate, dateLimit=dateLimit)
+  plotPolyReg(reg$name, reg$regression, reg$sigma, startDate=startDate, dateLimit=dateLimit, showPositions=TRUE)
 }
 
 plotObject <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
@@ -21,46 +21,46 @@ plotObject <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
   {
     imageName <- gsub(".Robj", ".png", x=FileName)
     png(filename = imageName, width=xres, height=yres)
-    plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
+    plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate, showPositions=TRUE)
     dev.off()
   }
   else
   {
-    plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
+    plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate, showPositions=TRUE)
   }
 }
 
-plotObjectSet <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
+plotObjectSet <- function(FileNames, xres=1900, yres=1080, dev="", startDate="")
 {
-  #objects <- dget(FileName)
-  objects <- readRDS(file=FileName)
-  
-  if(dev == "png")
+  for(name in FileNames)
   {
-    for(i in 1:length(1:length(objects$names)))
+    objects <- readRDS(file=FileName)
+    
+    if(dev == "png")
     {
-      object <- objects[[i]]
-      suffix <- sprintf("_%d.png", object$period)
-      imageName <- gsub(".rds", suffix, x=FileName)
-      png(filename = imageName, width=xres, height=yres)
-      plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
-      dev.off()
+      for(i in 1:length(1:length(objects$names)))
+      {
+        object <- objects[[i]]
+        suffix <- sprintf("_%d.png", object$period)
+        imageName <- gsub(".rds", suffix, x=FileName)
+        png(filename = imageName, width=xres, height=yres)
+        plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate, showPositions=TRUE)
+        dev.off()
+      }
     }
-  }
-  else
-  {
-    for(i in 1:length(objects$names))
+    else
     {
-      object <- objects[[i]]
-      plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate)
+      for(i in 1:length(objects$names))
+      {
+        object <- objects[[i]]
+        plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate, showPositions=TRUE)
+      }
     }
   }
 }
 
-plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="")
+plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="", showPositions=FALSE)
 {
-  #buscar datas das ordens executadas
-  
   if(startDate == "")
   {
     st <- format(as.Date(index(first(polyReg))) - 2*length(polyReg), "%Y-%m-%d")
@@ -87,6 +87,73 @@ plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="")
   plot(addTA(polyReg, on=1, col=3))
   plot(addTA(polyReg+sigma, on=1, col=7))
   plot(addTA(polyReg-sigma, on=1, col=7))
+  
+  if(showPositions == TRUE)
+  {
+    addOrders(Symbol, SymbolName)
+  }
+}
+
+plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=1080, dev="")
+{ 
+  object <- Objects[[1]]
+  SymbolName <- object$name
+  st <-  format(as.Date(index(first(object$regression))))
+  
+  for(object in Objects)
+  {
+    polyReg <- object$regression
+    
+    if(startDate == "")
+    {
+      stNew <- format(as.Date(index(first(polyReg))) - 2*length(polyReg), "%Y-%m-%d")
+    }
+    else
+    {
+      stNew <- startDate
+    }
+    
+    if(stNew < st)
+    {
+      st <- stNew
+    }
+  }
+  
+  if(dateLimit == "")
+  {
+    ed <- format(Sys.time(), "%Y-%m-%d")
+  }
+  else
+  {
+    ed <- dateLimit
+  }
+  
+  dateLimit <- sprintf("%s::%s", st, ed)
+  
+  Symbol <- get(SymbolName)[dateLimit]
+  
+  if(dev == "png")
+  {
+    imageName <- sprintf("plots/%s.png", SymbolName)
+    png(filename = imageName, width=xres, height=yres)
+  }
+  
+  chartSeries(Symbol, name=SymbolName)
+  
+  for(object in Objects)
+  {
+    polyReg <- object$regression
+    sigma <- object$sigma
+    
+    plot(addTA(polyReg, on=1, col=3))
+    plot(addTA(polyReg+sigma, on=1, col=7))
+    plot(addTA(polyReg-sigma, on=1, col=7))
+  }
+  
+  if(dev == "png")
+  {
+    dev.off()
+  }
 }
 
 plotLinearReg <- function (SymbolName, linReg, sigma, dateLimit="", startDate="")
