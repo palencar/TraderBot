@@ -2,6 +2,7 @@ source("startProbe.R")
 source("filters.R")
 source("poly-reg.R")
 source("plot.R")
+source("orders.R")
 
 require(compiler)
 enableJIT(3)
@@ -46,6 +47,6 @@ for(symbol in Symbols)
   
   if(length(Objects) > 0)
   {
-    plotPolyRegs(Objects, dev="png")
+    plotPolyRegs(Objects, dev="png", showPositions=TRUE)
   }
 }

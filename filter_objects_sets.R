@@ -38,13 +38,6 @@ for(dt in seq(as.Date(args[2]), as.Date(args[1]), by = "-1 day"))
     objectName <- sprintf("backtest/%s-%s_%d_%d.rds", chartDate, symbol, k1, k2)
     alertas <- readRDS(file=objectName)
     
-    #if(length(alertas) > 0)
-    #{
-    #  objectName <- sprintf("backtest/%s-%s_%d_%d.rds", chartDate, symbol, k1, k2)
-    #  
-    #  #dput(alertas, objectName)
-    #  saveRDS(alertas, file=objectName)
-    #}
     if(length(alertas) == 0)
     {
       next
@@ -55,8 +48,7 @@ for(dt in seq(as.Date(args[2]), as.Date(args[1]), by = "-1 day"))
     if(length(alertas) > 0)
     {
       objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints.rds", chartDate, symbol, k1, k2)
-      
-      #dput(alertas, objectName)
+
       saveRDS(alertas, file=objectName)
     }
     if(length(alertas) == 0)
@@ -69,30 +61,12 @@ for(dt in seq(as.Date(args[2]), as.Date(args[1]), by = "-1 day"))
     if(length(alertas) > 0)
     {
       objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints_r_up.rds", chartDate, symbol, k1, k2)
-      
-      #dput(alertas, objectName)
+
       saveRDS(alertas, file=objectName)
     }
     if(length(alertas) == 0)
     {
       next
     }
-    
-    #if(length(alertas$names) >= 1)
-    #{
-    #  for(i in 1:length(alertas$names))
-    #  {
-    #    objectName <- sprintf("backtest/%s-%s_%d_%d_%s.Robj", chartDate, alertas[[i]]$name,
-    #                          k1, k2, alertas[[i]]$trend)
-    #    print(objectName)
-    #    dput(alertas[[i]], objectName)
-    #    
-    #    imageName <- sprintf("backtest/%s-%s_%d_%d_%s.png", chartDate, alertas[[i]]$name,
-    #                         k1, k2, alertas[[i]]$trend)
-    #    png(filename = imageName, width = 1900, height = 1080)
-    #    plotPolyReg(alertas[[i]]$name, alertas[[i]]$regression, alertas[[i]]$sigma)
-    #    dev.off()
-    #  }
-    #}
   }
 }

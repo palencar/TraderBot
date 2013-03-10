@@ -1,14 +1,21 @@
 library(xts)
 library(pastecs)
 
-turnPoints <- function(object, maxTpoints=3)
+turnPoints <- function(object, maxTpoints=4)
 {
   sigmas <- c()
   for(i in 1:length(object))
   {
     reg <- object[[i]]
-    sigmas[[i]] <- reg$sigma
-    #print(reg$sigma)
+    
+    if(is.na(reg$sigma))
+    {
+      sigmas[[i]] <- Inf
+    }
+    else
+    {
+      sigmas[[i]] <- reg$sigma 
+    }
   }
   
   if(length(sigmas) < maxTpoints)
@@ -43,8 +50,6 @@ turnPoints <- function(object, maxTpoints=3)
   {
     if(tp[i] == 1)
     {
-      #plotPolyReg(object[[i]]$name, object[[i]]$regression, object[[i]]$sigma)
-      #Sys.sleep(2)
       lista[[k]] <- object[[i]]
       k <- k+1
     }

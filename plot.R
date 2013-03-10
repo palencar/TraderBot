@@ -94,7 +94,7 @@ plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="", 
   }
 }
 
-plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=1080, dev="")
+plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=1080, dev="", showPositions=FALSE)
 { 
   object <- Objects[[1]]
   SymbolName <- object$name
@@ -148,6 +148,11 @@ plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=10
     plot(addTA(polyReg, on=1, col=3))
     plot(addTA(polyReg+sigma, on=1, col=7))
     plot(addTA(polyReg-sigma, on=1, col=7))
+  }
+  
+  if(showPositions == TRUE)
+  {
+    addOrders(Symbol, SymbolName)
   }
   
   if(dev == "png")
