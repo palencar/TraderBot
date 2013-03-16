@@ -1,5 +1,7 @@
 source('poly-reg.R')
 source('startProbe.R')
+source('orders.R')
+
 
 plotSymbol <- function(SymbolName, minDays=90, maxDays=150, dateLimit="", startDate="")
 {
@@ -34,7 +36,7 @@ plotObjectSet <- function(FileNames, xres=1900, yres=1080, dev="", startDate="")
 {
   for(name in FileNames)
   {
-    objects <- readRDS(file=FileName)
+    objects <- readRDS(file=name)
     
     if(dev == "png")
     {
@@ -42,7 +44,7 @@ plotObjectSet <- function(FileNames, xres=1900, yres=1080, dev="", startDate="")
       {
         object <- objects[[i]]
         suffix <- sprintf("_%d.png", object$period)
-        imageName <- gsub(".rds", suffix, x=FileName)
+        imageName <- gsub(".rds", suffix, x=name)
         png(filename = imageName, width=xres, height=yres)
         plotPolyReg(object$name, object$regression, object$sigma, startDate=startDate, showPositions=TRUE)
         dev.off()
@@ -119,6 +121,8 @@ plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=10
     }
   }
   
+  #stLimit <- seq(as.Date(st), length=2, by="-3 years")[2]
+  
   if(dateLimit == "")
   {
     ed <- format(Sys.time(), "%Y-%m-%d")
@@ -191,4 +195,40 @@ plotLinearReg <- function (SymbolName, linReg, sigma, dateLimit="", startDate=""
   plot(addTA(linReg, on=1, col=3))
   plot(addTA(linReg+sigma, on=1, col=7))
   plot(addTA(linReg-sigma, on=1, col=7))
+}
+
+plotRegressions <- function(Symbols, dev="png")
+{
+  for(symbol in Symbols)
+  {
+    ptrnStr <- sprintf(".*%s.*r_.*rds", symbol)
+    objFiles <- list.files("backtest", pattern=ptrnStr)
+    
+    print(symbol)
+    
+    Objects <- c()
+    
+    k <- 1
+    
+    for(name in objFiles)
+    {
+      fileName <- sprintf("backtest/%s", name)
+      print(fileName)
+      alertas <- readRDS(file=fileName)
+      
+      if(length(alertas) > 0)
+      {
+        for(i in 1:(length(alertas)-1))
+        {
+          Objects[[k]] <- alertas[[i]]
+          k <- k+1
+        }
+      }
+    }
+    
+    if(length(Objects) > 0)
+    {
+      plotPolyRegs(Objects, dev=dev, showPositions=TRUE)
+    }
+  }
 }

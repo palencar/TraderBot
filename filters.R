@@ -1,4 +1,6 @@
 source('poly-reg.R')
+source('utils.R')
+
 
 loadFilters <- function(Symbols = NULL, Filters = NULL)
 {
@@ -23,14 +25,7 @@ filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0,
   
   for(i in 1:length(SymbolNames))
   {
-    #if(is.null(regressions))
-    #{
     reg <- findBestCurve(SymbolName=SymbolNames[i], minDays=minDays, maxDays=maxDays, dateLimit=dateLimit)
-    #}
-    #else
-    #{
-    #  reg <- regressions[[i]]
-    #}
     
     lastDayDate <- time(xts::last(reg$regression))
     
@@ -274,20 +269,88 @@ filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months"
   return(symbols)
 }
 
-filterTrendLine <- function()
+filterObjectsSets <- function(Symbols, startDate, endDate)
 {
+  k1 <- 10
+  k2 <- 730
   
-}
-
-localMaxima <- function(x)
-{
-  # Use -Inf instead if x is numeric (non-integer)
-  y <- diff(c(-.Machine$integer.max, x)) > 0L
-  rle(y)$lengths
-  y <- cumsum(rle(y)$lengths)
-  y <- y[seq.int(1L, length(y), 2L)]
-  if (x[[1]] == x[[2]]) {
-    y <- y[-1]
+  k <- 1
+  symbolList <- c()
+  
+  for(dt in seq(as.Date(endDate), as.Date(startDate), by = "-1 day"))
+  {
+    chartDate <- sprintf("%s", as.Date(dt))
+    
+    filterSymbols <- filterIncomplete(Symbols)
+    
+    for(symbol in filterSymbols)
+    {
+      if(length(get(symbol)[chartDate]) == 0)
+        next
+      
+      strOut <- sprintf("filterRevert %s %d %d %s", symbol, k1, k2, chartDate)
+      print(strOut)
+      
+      objectName <- sprintf("backtest/%s-%s_%d_%d.rds", chartDate, symbol, k1, k2)
+      
+      if(file.exists(fileName=objectName) == FALSE)
+      {
+        next
+      }
+      
+      alertas <- readRDS(file=objectName)
+      
+      if(length(alertas) == 0)
+      {
+        next
+      }
+      
+      alertas <- turnPoints(alertas)
+      
+      if(length(alertas) > 0)
+      {
+        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints.rds", chartDate, symbol, k1, k2)
+        
+        saveRDS(alertas, file=objectName)
+      }
+      if(length(alertas) == 0)
+      {
+        next
+      }
+      
+      trends <- c("r_up")
+      alertas_r_up <- filterRevert(alertas, trends, 3)
+      
+      if(length(alertas_r_up) > 0)
+      {
+        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints_r_up.rds", chartDate, symbol, k1, k2)
+        
+        if((symbol %in% symbolList) == FALSE)
+        {
+          symbolList[k] <- symbol
+          k <- k+1
+        }
+        
+        saveRDS(alertas_r_up, file=objectName)
+      }
+      
+      trends <- c("r_down")
+      alertas_r_dow <- filterRevert(alertas, trends, 3)
+      
+      if(length(alertas_r_dow) > 0)
+      {
+        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints_r_down.rds", chartDate, symbol, k1, k2)
+        
+        if((symbol %in% symbolList) == FALSE)
+        {
+          symbolList[k] <- symbol
+          k <- k+1
+        }
+        
+        saveRDS(alertas_r_dow, file=objectName)
+      }
+    }
   }
-  y
+  
+  return(symbolList)
 }

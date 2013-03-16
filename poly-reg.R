@@ -227,3 +227,35 @@ findRevertCurves <- function(FilterSymbols, minDays, maxDays, trend=c("r_up", "r
   
   return(lista)
 }
+
+processRegressions <- function(Symbols, StartDate, EndDate)
+{
+  k1 <- 10
+  k2 <- 730
+  
+  for(dt in seq(as.Date(EndDate), as.Date(StartDate), by = "-1 day"))
+  {
+    chartDate <- sprintf("%s", as.Date(dt))
+    
+    filterSymbols <- filterIncomplete(Symbols)
+    
+    for(symbol in filterSymbols)
+    {
+      if(length(get(symbol)[chartDate]) == 0)
+        next
+      
+      strOut <- sprintf("findCurves %s %d %d %s", symbol, k1, k2, chartDate)
+      print(strOut)
+      
+      alertas <- findCurves(symbol, k1, k2, dateLimit=chartDate)
+      
+      if(length(alertas) > 0)
+      {
+        objectName <- sprintf("backtest/%s-%s_%d_%d.rds", chartDate, symbol, k1, k2)
+        
+        saveRDS(alertas, file=objectName)
+      }
+    }
+  }
+}
+

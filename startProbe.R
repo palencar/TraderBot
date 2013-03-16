@@ -1,6 +1,7 @@
 library('quantmod')
 source('mysql_stocks.R')
 
+
 startProbe <- function()
 {
   system("beancounter update today 2> /dev/null")
