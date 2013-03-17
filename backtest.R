@@ -12,8 +12,7 @@ args_cmd <- commandArgs(trailingOnly=TRUE)
 
 for(name in args_cmd)
 {
-  #print(name)
-  objects <- dget(name)
+  objects <- readRDS(file=name)
   
   for(i in 1:length(objects$names))
   {
@@ -34,7 +33,7 @@ for(name in args_cmd)
     diffVal  <- as.double(maxHiVal) - as.double(lastDayVal)
     changeRate <- as.double(diffVal/lastDayVal)*100
     
-    strOut <- sprintf("%s %s %d %f %f", object$name, object$interval, diffDays, diffVal, changeRate)
+    strOut <- sprintf("%s,%s,%d,%f,%f", object$name, object$interval, diffDays, diffVal, changeRate)
     print(strOut)
   }
 }

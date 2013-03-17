@@ -197,7 +197,7 @@ plotLinearReg <- function (SymbolName, linReg, sigma, dateLimit="", startDate=""
   plot(addTA(linReg-sigma, on=1, col=7))
 }
 
-plotRegressions <- function(Symbols, dev="png")
+plotRegressions <- function(Symbols, startDate="", dateLimit="", dev="png")
 {
   for(symbol in Symbols)
   {
@@ -228,7 +228,7 @@ plotRegressions <- function(Symbols, dev="png")
     
     if(length(Objects) > 0)
     {
-      plotPolyRegs(Objects, dev=dev, showPositions=TRUE)
+      plotPolyRegs(Objects, startDate=startDate, dateLimit=dateLimit, dev=dev, showPositions=TRUE)
     }
   }
 }
