@@ -3,7 +3,7 @@ source('startProbe.R')
 source('orders.R')
 
 
-plotSymbol <- function(SymbolName, minDays=90, maxDays=150, dateLimit="", startDate="")
+plotSymbol <- function(SymbolName, minDays=90, maxDays=150, dateLimit="", startDate="", xres=1900, yres=1080, dev="")
 {
   if(exists(Symbols) == FALSE)
   {
@@ -12,7 +12,18 @@ plotSymbol <- function(SymbolName, minDays=90, maxDays=150, dateLimit="", startD
   
   reg <- findBestCurve(SymbolName, minDays, maxDays, dateLimit="")
   
+  if(dev == "png")
+  {
+    imageName <- sprintf("plots/%s.png", SymbolName)
+    png(filename = imageName, width=xres, height=yres)
+  }
+
   plotPolyReg(reg$name, reg$regression, reg$sigma, startDate=startDate, dateLimit=dateLimit, showPositions=TRUE)
+
+  if(dev == "png")
+  {
+    dev.off()  
+  }
 }
 
 plotObject <- function(FileName, xres=1900, yres=1080, dev="", startDate="")
@@ -65,7 +76,8 @@ plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="", 
 {
   if(startDate == "")
   {
-    st <- format(as.Date(index(first(polyReg))) - 2*length(polyReg), "%Y-%m-%d")
+    #st <- format(as.Date(index(first(polyReg))) - 2*length(polyReg), "%Y-%m-%d")
+    st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-730 days")[2]
   }
   else
   {
@@ -98,31 +110,22 @@ plotPolyReg <- function(SymbolName, polyReg, sigma, dateLimit="", startDate="", 
 
 plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=1080, dev="", showPositions=FALSE)
 { 
-  object <- Objects[[1]]
-  SymbolName <- object$name
-  st <-  format(as.Date(index(first(object$regression))))
-  
-  for(object in Objects)
+  if(length(Objects) > 0)
   {
-    polyReg <- object$regression
-    
-    if(startDate == "")
-    {
-      stNew <- format(as.Date(index(first(polyReg))) - 2*length(polyReg), "%Y-%m-%d")
-    }
-    else
-    {
-      stNew <- startDate
-    }
-    
-    if(stNew < st)
-    {
-      st <- stNew
-    }
+    object <- Objects[[1]]
+    SymbolName <- object$name
+    st <-  format(as.Date(index(first(object$regression))))
   }
   
-  #stLimit <- seq(as.Date(st), length=2, by="-3 years")[2]
-  
+  if(startDate == "")
+  {
+    st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-730 days")[2]
+  }  
+  else
+  {
+    st <- startDate
+  }
+    
   if(dateLimit == "")
   {
     ed <- format(Sys.time(), "%Y-%m-%d")
@@ -142,7 +145,8 @@ plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=10
     png(filename = imageName, width=xres, height=yres)
   }
   
-  chartSeries(Symbol, name=SymbolName)
+  candleChart(Symbol, name=SymbolName)
+  #chartSeries(Symbol, name=SymbolName)
   
   for(object in Objects)
   {
@@ -150,9 +154,12 @@ plotPolyRegs <- function(Objects, dateLimit="", startDate="", xres=1900, yres=10
     sigma <- object$sigma
     
     plot(addTA(polyReg, on=1, col=3))
-    plot(addTA(polyReg+sigma, on=1, col=7))
-    plot(addTA(polyReg-sigma, on=1, col=7))
+    plot(addTA(polyReg+sigma, , on=1, col=7))
+    plot(addTA(polyReg-sigma, , on=1, col=7))
   }
+  
+  #plot(addEVWMA(n=50))
+  #plot(addSMA(n=50))
   
   if(showPositions == TRUE)
   {
@@ -171,7 +178,8 @@ plotLinearReg <- function (SymbolName, linReg, sigma, dateLimit="", startDate=""
   
   if(startDate == "")
   {
-    st <- format(as.Date(index(first(linReg))) - 2*length(linReg), "%Y-%m-%d")
+    #st <- format(as.Date(index(first(linReg))) - 2*length(linReg), "%Y-%m-%d")
+    st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-730 days")[2]
   }
   else
   {
@@ -202,17 +210,18 @@ plotRegressions <- function(Symbols, startDate="", dateLimit="", dev="png")
   for(symbol in Symbols)
   {
     ptrnStr <- sprintf(".*%s.*r_.*rds", symbol)
-    objFiles <- list.files("backtest", pattern=ptrnStr)
+    objFiles <- list.files("backtest_dir", pattern=ptrnStr)
     
     print(symbol)
     
     Objects <- c()
+    period <- c()
     
     k <- 1
     
     for(name in objFiles)
     {
-      fileName <- sprintf("backtest/%s", name)
+      fileName <- sprintf("backtest_dir/%s", name)
       print(fileName)
       alertas <- readRDS(file=fileName)
       
@@ -221,14 +230,12 @@ plotRegressions <- function(Symbols, startDate="", dateLimit="", dev="png")
         for(i in 1:(length(alertas)-1))
         {
           Objects[[k]] <- alertas[[i]]
+          period[[k]] <- Objects[[i]]$interval
           k <- k+1
         }
       }
     }
     
-    if(length(Objects) > 0)
-    {
-      plotPolyRegs(Objects, startDate=startDate, dateLimit=dateLimit, dev=dev, showPositions=TRUE)
-    }
+    plotPolyRegs(Objects, startDate=startDate, dateLimit=dateLimit, dev=dev, showPositions=TRUE)
   }
 }
