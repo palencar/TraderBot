@@ -196,7 +196,7 @@ getWallet <- function(env = .GlobalEnv, user = NULL,
   con <- dbConnect(MySQL(), user = user, password = password, 
                    dbname = dbname)
   
-  queryStr <- sprintf("select distinct(symbol) from positions")
+  queryStr <- sprintf("select distinct(symbol) from positions where end is null")
   
   query <- paste(queryStr)
   rs <- dbSendQuery(con, query)
@@ -207,4 +207,39 @@ getWallet <- function(env = .GlobalEnv, user = NULL,
   return(fr)
 }
 
+getQuery <- function(env = .GlobalEnv, user = NULL, 
+                      password = NULL, dbname = NULL, queryStr = "", ...) 
+{
+  return.class = "xts"
+  
+  this.env <- environment()
+  for (var in names(list(...))) {
+    assign(var, list(...)[[var]], this.env)
+  }
+  
+  if (require("DBI", quietly = TRUE)) {
+    if ("package:RMySQL" %in% search() || require("RMySQL", 
+                                                  quietly = TRUE)) {
+    }
+    else {
+      warning(paste("package:", dQuote("RMySQL"), "cannot be loaded"))
+    }
+  }
+  else {
+    stop(paste("package:", dQuote("DBI"), "cannot be loaded."))
+  }
+  
+  con <- dbConnect(MySQL(), user = user, password = password, 
+                   dbname = dbname)
+  
+  #queryStr <- sprintf("select distinct(symbol) from positions where end is null")
+  
+  query <- paste(queryStr)
+  rs <- dbSendQuery(con, query)
+  fr <- fetch(rs, n = -1)
+  
+  dbDisconnect(con)
+  
+  return(fr)
+}
 

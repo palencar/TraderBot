@@ -1,6 +1,9 @@
 library('quantmod')
+library('multicore')
 source('mysql_stocks.R')
 
+require(compiler)
+enableJIT(3)
 
 startProbe <- function()
 {
@@ -40,4 +43,9 @@ wallet <- function()
   }
   
   return (wall)
+}
+
+lastTradingSession <- function()
+{
+  return(getQuery(user = 'paulo', dbname = 'beancounter', query = "select date from stockprices order by date desc limit 1")[,1])
 }
