@@ -1,7 +1,7 @@
 library(xts)
 library(pastecs)
 
-turnPoints <- function(object, maxTpoints=4)
+turnPoints <- function(object, maxTpoints=8)
 {
   sigmas <- c()
   for(i in 1:length(object))
@@ -38,8 +38,8 @@ turnPoints <- function(object, maxTpoints=4)
     }
   }
   
-  if(length(sigmas) < maxTpoints)
-    return(sigmas)
+  #if(length(sigmas) < maxTpoints)
+  #  return(sigmas)
   
   tp <- extract(turnpoints(tPoints), 100000, peak=0, pit=1)
   

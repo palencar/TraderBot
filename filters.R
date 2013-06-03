@@ -307,9 +307,12 @@ filterObjectsSets <- function(Symbols, startDate, endDate)
       
       alertas <- turnPoints(alertas)
       
+      strOut <- sprintf("%s %s: %d", symbol, chartDate, length(turnPoints))
+      print(strOut)
+      
       if(length(alertas) > 0)
       {
-        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints.rds", chartDate, symbol, k1, k2)
+        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints.rds", chartDate, symbol, k1, k2)
         
         saveRDS(alertas, file=objectName)
       }
@@ -323,7 +326,7 @@ filterObjectsSets <- function(Symbols, startDate, endDate)
       
       if(length(alertas_r_up) > 0)
       {
-        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints_r_up.rds", chartDate, symbol, k1, k2)
+        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", chartDate, symbol, k1, k2)
         
         if((symbol %in% symbolList) == FALSE)
         {
@@ -339,7 +342,7 @@ filterObjectsSets <- function(Symbols, startDate, endDate)
       
       if(length(alertas_r_dow) > 0)
       {
-        objectName <- sprintf("backtest/%s-%s_%d_%d_turnpoints_r_down.rds", chartDate, symbol, k1, k2)
+        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", chartDate, symbol, k1, k2)
         
         if((symbol %in% symbolList) == FALSE)
         {

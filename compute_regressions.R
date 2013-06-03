@@ -23,5 +23,10 @@ if(length(args_cmd) ==3)
   Symbols <- args_cmd[3]
 }
 
+#Rprof("profile_cr.out")
+#mclapply(Symbols, processRegressions, args[1], args[2], mc.preschedule = TRUE, mc.set.seed = TRUE,
+#         mc.silent = FALSE, mc.cores = 2, mc.cleanup = TRUE)
+
 processRegressions(Symbols, args[1], args[2])
 
+#Rprof(NULL)
