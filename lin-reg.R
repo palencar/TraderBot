@@ -40,14 +40,19 @@ linearRegressionIndicator <- function (Symbol, window=365, n=50)
   
   lri <- c()
   
-  xi <- xts( , index(Symbol))
+  lastDate  <- as.Date(xts::last(index(Symbol)))
+  firstDate <- as.Date(lastDate-window)
   
-  for(i in 0:(window-1))
+  dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)]
+  
+  for(i in 1:nrow(dateInterval))
   {
-    lastDate <- as.Date(xts::last(index(Symbol)))
-    startDate <- as.Date(lastDate-(window+n)+i)
-    endDate   <- as.Date(lastDate-(window)+i)
+    xDate <- as.Date(index(dateInterval[i]))
+    
+    startDate <- as.Date(xDate-n)
+    endDate   <- as.Date(xDate)
     subsetSymbol <- Symbol[sprintf("%s::%s", startDate, endDate)]
+
     x <- as.integer(index(subsetSymbol))
     if(is.HLC(subsetSymbol))
     {
@@ -66,11 +71,10 @@ linearRegressionIndicator <- function (Symbol, window=365, n=50)
     
     lastDay <- as.Date(last(index(subsetSymbol)))
     dataextra <-data.frame(x=seq(lastDay, as.Date(lastDay + 1), 1))
-    lri[i+1] <- predict(lm(y~poly(x,2)), dataextra)[2]
+    lri[i] <- predict(lm(y~poly(x,2)), dataextra)[2]
   }
   
-  str(lri)
-  #xi <- xts(lri, index(Symbol))
+  xi <- xts(lri, index(dateInterval))
   
   return(xi)
 }
