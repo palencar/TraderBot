@@ -196,7 +196,7 @@ getWallet <- function(env = .GlobalEnv, user = NULL,
   con <- dbConnect(MySQL(), user = user, password = password, 
                    dbname = dbname)
   
-  queryStr <- sprintf("select distinct(symbol) from positions where end is null")
+  queryStr <- sprintf("select distinct(symbol) from positions")
   
   query <- paste(queryStr)
   rs <- dbSendQuery(con, query)

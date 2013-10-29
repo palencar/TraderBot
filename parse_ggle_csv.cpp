@@ -11,7 +11,7 @@ static char *getDate(time_t epoch)
   return date;
 }
 
-int main()
+int main(int argc, char **argv)
 {
   char line[1024+1];
   gets(line);
@@ -19,7 +19,11 @@ int main()
   unsigned long interval = 0;
   float close, high, low, open;
   
-
+  if(argc < 2)
+  {
+    return -3;
+  }
+  
   while(gets(line) != NULL)
   {
     if(strncmp("INTERVAL", line, 8) == 0)
@@ -39,7 +43,7 @@ int main()
       {
 	return -2;
       }
-      printf("%s,%f,%f,%f,%f,%u\n", getDate(time_t(lastEpoch + (epoch*interval))), open, high, low, close, volume);
+      printf("%s,%s,%f,%f,%f,%f,%u\n", argv[1], getDate(time_t(lastEpoch + (epoch*interval))), open, high, low, close, volume);
     }
     else if(line[0] == 'a')
     {
@@ -48,7 +52,7 @@ int main()
 	 return -1;
       }
       lastEpoch = epoch;
-      printf("%s,%f,%f,%f,%f,%llu\n", getDate(time_t(epoch)), open, high, low, close, volume);
+      printf("%s,%s,%f,%f,%f,%f,%llu\n", argv[1], getDate(time_t(epoch)), open, high, low, close, volume);
     }
     //else ignore
   }

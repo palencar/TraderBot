@@ -1,6 +1,7 @@
 source("startProbe.R")
 source("filters.R")
 source("poly-reg.R")
+source("lin-reg.R")
 source("plot.R")
 source("orders.R")
 
@@ -17,7 +18,7 @@ if(length(args_cmd) >= 1)
   Symbols <- args_cmd
 }
 
-#filterSymbols <- filterIncomplete(Symbols)
+filterSymbols <- filterIncomplete(Symbols)
 
 plotRegressions(Symbols)
 

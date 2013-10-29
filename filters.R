@@ -144,8 +144,13 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
   
   symbols <- c()
   j <- 1
-  for(i in 1:length(SymbolNames))
+  for(i in SymbolNames)
   {
+    if(length(get(i)) < 60)
+    {
+      next
+    }
+    
     if(dateLimit == "")
     {
       period <- sprintf("%s::%s", as.Date(Sys.Date() - 30), as.Date(Sys.Date()))
@@ -154,12 +159,12 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     {
       period <- sprintf("%s::%s", as.Date(as.Date(dateLimit) - 30), as.Date(dateLimit))
     }
-    lastMonth <- get(SymbolNames[[i]])[period]
+    lastMonth <- get(i)[period]
     
     lastMonthDays <- length(lastMonth[,1])
     if(lastMonthDays >= 15)
     {
-      symbols[j] <- SymbolNames[[i]]
+      symbols[j] <- i
       j <- j + 1
     }
   }

@@ -1,7 +1,7 @@
 library('RcppEigen')
-library('multicore')
-library(foreach)
-library(doMC)
+#library('multicore')
+#library(foreach)
+#library(doMC)
 #library('LargeRegression')
 
 
@@ -246,7 +246,7 @@ processRegressions <- function(Symbols, StartDate, EndDate)
   k1 <- 10
   k2 <- 730
   
-  registerDoMC()
+  #registerDoMC()
   
   for(dt in seq(as.Date(EndDate), as.Date(StartDate), by = "-1 day"))
   {
@@ -254,8 +254,8 @@ processRegressions <- function(Symbols, StartDate, EndDate)
     
     filterSymbols <- filterIncomplete(Symbols)
 
-    foreach (symbol = filterSymbols) %dopar%
-    #for(symbol in filterSymbols)
+    #foreach (symbol = filterSymbols) %dopar%
+    for(symbol in filterSymbols)
     {
       if(length(get(symbol)[chartDate]) > 0)
       {
