@@ -1,7 +1,7 @@
 source("startProbe.R")
 source("filters.R")
-source("poly-reg.R")
-source("plot.R")
+source("polyReg.R")
+source("chart.R")
 
 
 stopdtime <- "18:20:00"
@@ -10,13 +10,58 @@ fsmState <- "startProbe"
 args <- commandArgs(trailingOnly=TRUE)
 print(args)
 
+#Rprof("profile_tb.out")
+
+
 stream = FALSE
 
 if(length(args) > 0)
+{
   if(args[1] == "stream")
+  {
     stream = TRUE
-
-#Rprof("profile_tb.out")
+  }
+  else if(args[1] == "compute")
+  {
+    if(length(args) >= 3)
+    {
+      startDate <- args[2]
+      endDate <- args[3]
+    }
+    else if(length(args) == 2)
+    {
+      startDate <- endDate <- args[2]
+    }
+    else
+    {
+      startDate <- endDate <- Sys.Date()
+    }
+    
+    AllSymbols <- startProbe()
+    Symbols <- c()
+    
+    if(length(args) > 3)
+    {
+      for(i in 4:length(args))
+      {
+        Symbols[i-3] <- args[i]
+      }
+    }
+    else
+    {
+      Symbols <- AllSymbols
+    }
+    
+    print(args)
+    alert <- computeRegressions(Symbols, startDate, endDate)
+    if(is.null(alert) == FALSE)
+    {
+      print(alert) 
+    }
+    
+    quit()
+  }
+}
 
 while(fsmState != "end")
 {
@@ -26,9 +71,9 @@ while(fsmState != "end")
   {
     Symbols <- startProbe()
     
-    fsmState <- "processRegressions"
+    fsmState <- "computeRegressions"
   }
-  else if(fsmState == "processRegressions")
+  else if(fsmState == "computeRegressions")
   {
     lastSession <- lastTradingSession()
     startDate <- as.Date(lastSession) + 1
@@ -44,20 +89,26 @@ while(fsmState != "end")
     
     startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     
-    processRegressions(Symbols, startDate, endDate)
+    alertSymbols <- c()
+    i <- 1
     
-    fsmState <- "filterRevert"
-  }
-  else if(fsmState == "filterRevert")
-  {
-    alertSymbols <- filterObjectsSets(Symbols, startDate, endDate)
+    for(symbol in Symbols)
+    {
+      alert <- computeRegressions(symbol, startDate, endDate)
+      
+      if(is.null(alert) == FALSE)
+      {
+        alertSymbols[[i]] <- symbol
+        i <- i + 1
+      }
+    }
     
     fsmState <- "plotWallet"
   }
   else if(fsmState == "plotWallet")
   {
     if(stream == FALSE)
-      plotRegressions(wallet())
+      chartSymbols(wallet(), dev="png"))
     
     fsmState <- "plotAlerts"
   }
@@ -66,7 +117,7 @@ while(fsmState != "end")
     if(stream == TRUE)
       print(sprintf("Plot [%s]: %s", alertSymbols, startTime))
     
-    plotRegressions(alertSymbols)
+    chartSymbols(alertSymbols, dev="png")
     
     if(stream == FALSE)
       fsmState <- "end"
@@ -83,7 +134,7 @@ while(fsmState != "end")
     if(length(alertSymbols) > 0)
     {
       for(i in alertSymbols)
-        imgAttachmets <- sprintf("-a plots/%s.png", alertSymbols)
+        imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
       
       muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
       

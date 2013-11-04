@@ -2,6 +2,7 @@ library('quantmod')
 library('multicore')
 source('mysql_stocks.R')
 
+
 require(compiler)
 enableJIT(3)
 

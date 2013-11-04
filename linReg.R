@@ -78,3 +78,19 @@ linearRegressionIndicator <- function (Symbol, window=365, n=50)
   
   return(xi)
 }
+
+getLinRegIndicators <- function(SymbolName, n=c(50))
+{
+  polyRegs <- c()
+  
+  for(i in n)
+  {
+    objName <- sprintf("lri%s.p%d", SymbolName, i)
+    Symbol <- get(SymbolName)
+    obj <- linearRegressionIndicator(Symbol, window=(length(index(Symbol))-i), n=i)
+    assign(objName, obj, .GlobalEnv)
+    polyRegs <- c(polyRegs, sprintf("addTA(%s, on=1, col=3)", objName))
+  }
+  
+  return(polyRegs)
+}

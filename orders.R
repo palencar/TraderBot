@@ -1,36 +1,7 @@
-source('startProbe.R')
+source("startProbe.R")
 
-addOrder <- function(symbol, firstVal=0, lastVal=0)
-{
-  firstReg <- head(symbol, n=1)
-  lastReg <- tail(symbol, n=1)
 
-  xNew = xts(rep(NA,length(index(symbol))), index(symbol))
-
-  if(firstVal == 0)
-    xNew[time(firstReg)] <- as.double((Hi(firstReg)+Lo(firstReg)+Cl(firstReg))/3)
-  else
-    xNew[time(firstReg)] <- firstVal
-  
-  if(lastVal == 0)
-    xNew[time(lastReg)] <- as.double((Hi(lastReg)+Lo(lastReg)+Cl(lastReg))/3)
-  else
-    xNew[time(lastReg)] <- lastVal
-
-  if(as.double(xNew[time(firstReg)]) < as.double(xNew[time(lastReg)]))
-    col <- 3
-  else
-    col <- 2
-  
-  legendStr <- sprintf("Buy [%s]: %.3f\tSell [%s]: %.3f",
-                    time(firstReg), xNew[time(firstReg)],
-                    time(lastReg), xNew[time(lastReg)])
-  
-  position <- xts(na.approx(xNew))
-  plot(addTA(position, lwd=2, on=1, col=col))
-}
-
-addOrders <- function(symbol, name)
+getOrders <- function(symbol, name)
 {
   pos <- positions(name)
   
@@ -38,6 +9,8 @@ addOrders <- function(symbol, name)
   {
     return()
   }
+  
+  posit <- c()
   
   for(i in 1:length(pos[,1]))
   {
@@ -58,13 +31,36 @@ addOrders <- function(symbol, name)
     
     firstVal <- reg$openVal
     
+    firstReg <- head(symbol[period], n=1)
+    lastReg <- tail(symbol[period], n=1)
+    
+    xNew = xts(rep(NA,length(index(symbol[period]))), index(symbol[period]))
+    
+    if(firstVal == 0)
+      xNew[time(firstReg)] <- as.double((Hi(firstReg)+Lo(firstReg)+Cl(firstReg))/3)
+    else
+      xNew[time(firstReg)] <- firstVal
+    
     if(is.na(reg$closeVal) == FALSE)
     {
-      addOrder(symbol[period], firstVal=firstVal, lastVal=reg$closeVal)
+      xNew[time(lastReg)] <- reg$closeVal
     }
     else
     {
-      addOrder(symbol[period], firstVal=firstVal)
+      xNew[time(lastReg)] <- as.double((Hi(lastReg)+Lo(lastReg)+Cl(lastReg))/3)
     }
+    
+    if(as.double(xNew[time(firstReg)]) < as.double(xNew[time(lastReg)]))
+      col <- 3
+    else
+      col <- 2
+    
+    objName <- sprintf("%s.p%d", name, i)
+    position <- xts(na.approx(xNew))
+    assign(objName, position, .GlobalEnv)
+    
+    posit[i] <- sprintf("addTA(%s, lwd=2, on=1, col=%d)", objName, col)
   }
+  
+  return(posit)
 }

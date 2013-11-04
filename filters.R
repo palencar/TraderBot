@@ -1,20 +1,62 @@
-source('poly-reg.R')
-source('utils.R')
+source("polyReg.R")
+library(pastecs)
 
 
-loadFilters <- function(Symbols = NULL, Filters = NULL)
+turnPoints <- function(object, maxTpoints=8)
 {
-  str(Symbols)
-  for (i in 1:length(Symbols))
+  sigmas <- c()
+  for(i in 1:length(object))
   {
-    for (j in 1:length(Filters))
+    reg <- object[[i]]
+    
+    if(is.na(reg$sigma))
     {
-      #str(Symbols[i])
-      #str(Filters[j])
-      #get(Symbols[i])
-      #Symbols[[i]] <- merge(Symbols[[i]], as.numeric(0))# colocar o nome
+      sigmas[[i]] <- Inf
+    }
+    else
+    {
+      sigmas[[i]] <- reg$sigma 
     }
   }
+  
+  if(length(sigmas) < maxTpoints)
+    return(sigmas)
+  
+  tp <- extract(turnpoints(sigmas), 100000, peak=0, pit=1)
+  tPoints <- c()
+  
+  Tp <- object[[length(tp)]]$period
+  for(i in length(tp):1)
+  {
+    if(tp[i] == 1)
+    {
+      tPoints[[i]] <- object[[i]]$sigma
+      Tp <- object[[i]]$sigma
+    }
+    else
+    {
+      tPoints[[i]] <- Tp
+    }
+  }
+  
+  #if(length(sigmas) < maxTpoints)
+  #  return(sigmas)
+  
+  tp <- extract(turnpoints(tPoints), 100000, peak=0, pit=1)
+  
+  k <- 1
+  lista <- c()
+  
+  for(i in 1:length(tp))
+  {
+    if(tp[i] == 1)
+    {
+      lista[[k]] <- object[[i]]
+      k <- k+1
+    }
+  }
+  
+  return(lista)
 }
 
 filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0, dateLimit="")
@@ -172,37 +214,6 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
   return (symbols)
 }
 
-filterMultiple <- function(SymbolNames, Filters)
-{
-  
-  filterSymbols <- SymbolNames
-  
-  for(i in 1:length(Filters))
-  {
-    symbols <- c()
-    k <- 0
-    
-    for(j in 1:length(SymbolNames))
-    {
-      #if(Filters = "1sigma")
-      #{
-      #  symbols[k] <- filterPolyReg(Wallet, 60, 180, maxSigma=1.0)
-      #  k++
-      #}
-      #else if(Filters = "2sigma")
-      #{
-      #  
-      #}
-      #else if(Filters = )
-      #{
-      #  
-      #}     
-    }
-    
-    filterSymbols <- symbols
-  }
-}
-
 filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 {
   if(dateLimit == "")
@@ -274,7 +285,7 @@ filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months"
   return(symbols)
 }
 
-filterObjectsSets <- function(Symbols, startDate, endDate)
+filterObjectsSets <- function(Symbols, ChartDate)
 {
   k1 <- 10
   k2 <- 730
@@ -282,81 +293,80 @@ filterObjectsSets <- function(Symbols, startDate, endDate)
   k <- 1
   symbolList <- c()
   
-  for(dt in seq(as.Date(endDate), as.Date(startDate), by = "-1 day"))
+  filterSymbols <- filterIncomplete(Symbols)
+  
+  for(symbol in filterSymbols)
   {
-    chartDate <- sprintf("%s", as.Date(dt))
-    
-    filterSymbols <- filterIncomplete(Symbols)
-    
-    for(symbol in filterSymbols)
+    if(length(get(symbol)[ChartDate]) == 0)
     {
-      if(length(get(symbol)[chartDate]) == 0)
-        next
+      next
+    }
+    
+    if(exists(sprintf("%s.regset", symbol)) == FALSE)
+    {
+      next
+    }
+    
+    regset <- get(sprintf("%s.regset", symbol))
+    
+    if(exists(sprintf("%s.regset", symbol), envir=.GlobalEnv) == TRUE)
+    {
+      rm(list=sprintf("%s.regset", symbol), envir=.GlobalEnv)
+    }
+    
+    if(length(regset) == 0)
+    {
+      next
+    }
+    
+    print(sprintf("filterRevert %s %d %d %s", symbol, k1, k2, ChartDate))
+    
+    alertas <- turnPoints(regset)
+    
+    #strOut <- sprintf("%s %s: %d", symbol, ChartDate, length(turnPoints))
+    #print(strOut)
+    #
+    #if(length(alertas) > 0)
+    #{
+    #  objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints.rds", ChartDate, symbol, k1, k2)
+    #  
+    #  saveRDS(alertas, file=objectName)
+    #}
+    #if(length(alertas) == 0)
+    #{
+    #  next
+    #}
+    
+    trends <- c("r_up")
+    alertas_r_up <- filterRevert(alertas, trends, 3)
+    
+    if(length(alertas_r_up) > 0)
+    {
+      objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
       
-      strOut <- sprintf("filterRevert %s %d %d %s", symbol, k1, k2, chartDate)
-      print(strOut)
-      
-      objectName <- sprintf("backtest/%s-%s_%d_%d.rds", chartDate, symbol, k1, k2)
-      
-      if(file.exists(fileName=objectName) == FALSE)
+      if((symbol %in% symbolList) == FALSE)
       {
-        next
+        symbolList[k] <- symbol
+        k <- k+1
       }
       
-      alertas <- readRDS(file=objectName)
+      saveRDS(alertas_r_up, file=objectName)
+    }
+    
+    trends <- c("r_down")
+    alertas_r_dow <- filterRevert(alertas, trends, 3)
+    
+    if(length(alertas_r_dow) > 0)
+    {
+      objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
       
-      if(length(alertas) == 0)
+      if((symbol %in% symbolList) == FALSE)
       {
-        next
+        symbolList[k] <- symbol
+        k <- k+1
       }
       
-      alertas <- turnPoints(alertas)
-      
-      strOut <- sprintf("%s %s: %d", symbol, chartDate, length(turnPoints))
-      print(strOut)
-      
-      if(length(alertas) > 0)
-      {
-        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints.rds", chartDate, symbol, k1, k2)
-        
-        saveRDS(alertas, file=objectName)
-      }
-      if(length(alertas) == 0)
-      {
-        next
-      }
-      
-      trends <- c("r_up")
-      alertas_r_up <- filterRevert(alertas, trends, 3)
-      
-      if(length(alertas_r_up) > 0)
-      {
-        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", chartDate, symbol, k1, k2)
-        
-        if((symbol %in% symbolList) == FALSE)
-        {
-          symbolList[k] <- symbol
-          k <- k+1
-        }
-        
-        saveRDS(alertas_r_up, file=objectName)
-      }
-      
-      trends <- c("r_down")
-      alertas_r_dow <- filterRevert(alertas, trends, 3)
-      
-      if(length(alertas_r_dow) > 0)
-      {
-        objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", chartDate, symbol, k1, k2)
-        
-        if((symbol %in% symbolList) == FALSE)
-        {
-          symbolList[k] <- symbol
-          k <- k+1
-        }
-        
-        saveRDS(alertas_r_dow, file=objectName)
-      }
+      saveRDS(alertas_r_dow, file=objectName)
     }
   }
   

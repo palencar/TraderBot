@@ -1,7 +1,7 @@
 source("startProbe.R")
 source("filters.R")
-source("poly-reg.R")
-source("plot.R")
+source("polyReg.R")
+source("chart.R")
 
 #if(exists(Symbols) == FALSE)
 #{
