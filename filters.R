@@ -177,6 +177,77 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
+filterLRI <- function(symbol, lri, threshold=1)
+{
+  r <- rle(sign(diff(as.vector(lri))))
+  
+  len <- length(r$values)
+  
+  if(len <= 3)
+  {
+    return(FALSE)
+  }
+  
+  rdif <- c()
+  
+  lastIndex <- 1
+  for(i in 1:len)
+  {
+    nextIndex <- lastIndex + r$lengths[i]
+    
+    if(r$values[i] == 1)
+    {
+      high <- as.double(Hi(symbol[lastIndex]))
+      low  <- as.double(Lo(symbol[nextIndex]))
+      
+      dif <-  (high/low)/low
+    }
+    else if(r$values[i] == -1)
+    {
+      high <- as.double(Hi(symbol[lastIndex]))
+      low  <- as.double(Lo(symbol[nextIndex]))
+      
+      dif <- (high-low)/high
+    }
+    else
+    {
+      dif <= 0.0
+    }
+    
+    rdif[i] <- dif
+    lastIndex <- nextIndex
+  }
+  
+  alert <- c()
+  sdev <- sd(rdif)
+  
+  for(i in 1:len)
+  {
+    if(rdif[i] > 0)
+    {
+      alert[i] <- if(rdif[i] >= (sdev*threshold)) TRUE else FALSE
+    }
+    else if(rdif[i] < 0)
+    {
+      alert[i] <- if(rdif[i] <= (-sdev*threshold)) TRUE else FALSE
+    }
+    else
+    {
+      alert[i] <- FALSE
+    }
+  }
+  
+  if(r$values[len] == 1 && r$values[len] == -1) # >, <
+  {
+    if(r$lengths[len] == 1 && alert[len-1])
+    {
+      return(TRUE)
+    }
+  }
+  
+  return(FALSE)
+}
+
 filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
 {
   if(is.null(SymbolNames))
