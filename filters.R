@@ -9,7 +9,11 @@ turnPoints <- function(object, maxTpoints=8)
   {
     reg <- object[[i]]
     
-    if(is.na(reg$sigma))
+    if(is.null(reg))
+    {
+      sigmas[[i]] <- Inf
+    }
+    else if(is.na(reg$sigma))
     {
       sigmas[[i]] <- Inf
     }
@@ -177,7 +181,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(symbol, lri, threshold=1)
+filterLRI <- function(symbol, lri, threshold=0.05)
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -197,22 +201,27 @@ filterLRI <- function(symbol, lri, threshold=1)
     
     if(r$values[i] == 1)
     {
-      high <- as.double(Hi(symbol[lastIndex]))
-      low  <- as.double(Lo(symbol[nextIndex]))
+      high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
+      low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
       
-      dif <-  (high/low)/low
+      dif <- (high-low)/low
     }
     else if(r$values[i] == -1)
     {
-      high <- as.double(Hi(symbol[lastIndex]))
-      low  <- as.double(Lo(symbol[nextIndex]))
+      high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
+      low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
       
-      dif <- (high-low)/high
+      dif <- (low-high)/high
     }
     else
     {
       dif <= 0.0
     }
+    
+    #print(as.Date(index(symbol[lastIndex])))
+    #print(as.Date(index(symbol[nextIndex])))
+    #print(dif)
+    #print(i)
     
     rdif[i] <- dif
     lastIndex <- nextIndex
@@ -220,26 +229,20 @@ filterLRI <- function(symbol, lri, threshold=1)
   
   alert <- c()
   sdev <- sd(rdif)
-  
-  for(i in 1:len)
+  #sdev <- max(abs(rdif))/3
+  #sdev <- max(lri)
+ 
+  if(r$values[len-1] == -1 && r$values[len] == 1)
   {
-    if(rdif[i] > 0)
+    if(rdif[len-1] <= (-sdev*threshold))
     {
-      alert[i] <- if(rdif[i] >= (sdev*threshold)) TRUE else FALSE
-    }
-    else if(rdif[i] < 0)
-    {
-      alert[i] <- if(rdif[i] <= (-sdev*threshold)) TRUE else FALSE
-    }
-    else
-    {
-      alert[i] <- FALSE
+      return(TRUE)
     }
   }
   
-  if(r$values[len] == 1 && r$values[len] == -1) # >, <
+  if(r$values[len-1] == 1 && r$values[len] == -1)
   {
-    if(r$lengths[len] == 1 && alert[len-1])
+    if(rdif[len-1] >= (sdev*threshold))
     {
       return(TRUE)
     }
@@ -255,31 +258,45 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     return
   }
   
+  tradeDays <- getQuery(user="paulo", dbname="beancounter", queryStr="select distinct date from stockprices order by date desc")[,1]
+  firstTradeDay <- last(tradeDays)
+  
   symbols <- c()
   j <- 1
   for(i in SymbolNames)
   {
-    if(length(get(i)) < 60)
+    obj <- get(i)
+    if(length(obj) < 60)
     {
       next
     }
     
-    if(dateLimit == "")
-    {
-      period <- sprintf("%s::%s", as.Date(Sys.Date() - 30), as.Date(Sys.Date()))
-    }
-    else
-    {
-      period <- sprintf("%s::%s", as.Date(as.Date(dateLimit) - 30), as.Date(dateLimit))
-    }
-    lastMonth <- get(i)[period]
+    err <- 0
     
-    lastMonthDays <- length(lastMonth[,1])
-    if(lastMonthDays >= 15)
+    for(cdate in tradeDays)
     {
-      symbols[j] <- i
-      j <- j + 1
+      if(length(obj[cdate]) == 0)
+      {
+        if(length(obj[sprintf("%s/%s", firstTradeDay, cdate)] > 0))
+        {
+          print(sprintf("Bad data on symbol %s[%s]", i, cdate))
+          err <- err + 1
+          #break
+        }
+        else
+        {
+          break
+        }
+      }
     }
+    
+    if(err >= (5*length(obj))/100)  #5% error
+    {
+      next
+    }
+    
+    symbols[j] <- i
+    j <- j + 1
   }
   
   return (symbols)
@@ -378,7 +395,7 @@ filterObjectsSets <- function(Symbols, ChartDate)
       next
     }
     
-    regset <- get(sprintf("%s.regset", symbol))
+    regset <- get(sprintf("%s.regset", symbol), envir=.GlobalEnv)
     
     if(exists(sprintf("%s.regset", symbol), envir=.GlobalEnv) == TRUE)
     {

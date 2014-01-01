@@ -41,9 +41,6 @@ polyRegression <- function (SymbolName, DateInterval, Period)
 
 findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
 {
-  require(doMC)
-  registerDoMC()
-  
   if(dateLimit == "")
   {    
     dt = as.Date(format(Sys.time(), "%Y-%m-%d"))

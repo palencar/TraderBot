@@ -17,7 +17,7 @@ endDate <- Sys.Date()
 
 if(length(args) >= 1)
 {
-  Symbols <- last(args, (length(args) - 1))
+  Symbols <- args
 }
      
 con <- dbConnect(MySQL(), user = "paulo", dbname = "beancounter")
@@ -41,7 +41,7 @@ for(i in Symbols)
   Sys.sleep(2)
 }
    
-processRegressions(Symbols, startDate, endDate)
+computeRegressions(Symbols, startDate, endDate)
 
 alertSymbols <- filterObjectsSets(Symbols, startDate, endDate)
 

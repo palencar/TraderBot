@@ -5,17 +5,15 @@ source("orders.R")
 
 
 chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=2850, yres=1080, dev="",
-                         indicators=c("poly_r", "positions", "vol", "sma", "lri"))
+                         indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders"))
 {
-  require(doMC)
-  registerDoMC()
-  
-  dummy <- foreach(i = 1:length(Symbols)) %dopar%
+  #dummy <- foreach(i = 1:length(Symbols)) %dopar%
+  for(i  in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
     if(startDate == "")
     {
-      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-1095 days")[2]
+      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-730 days")[2]
     }  
     else
     {
@@ -61,13 +59,19 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=2850, yres=10
     else
       lri <- NULL
     
+    if("lriOrders" %in% indicators)
+      lriOrders <- getLinRegOrders(get(SymbolName), linearRegressionIndicator(SymbolName), threshold=1.2)
+    else
+      lriOrders <- NULL
+      
+    
     if("positions" %in% indicators)
       posit <- getOrders(Symbol, SymbolName)
     else
       posit <- NULL
     
     chartSeries(Symbol, name=SymbolName, subset=dateLimit,
-                TA=paste(c(polyRegs, sma, vol, posit, lri), collapse="; "))
+                TA=paste(c(polyRegs, sma, vol, posit, lri, lriOrders), collapse="; "))
     
     if(dev == "png")
     {

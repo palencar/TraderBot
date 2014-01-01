@@ -32,18 +32,36 @@ linearRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma))
 }
 
-linearRegressionIndicator <- function (Symbol, window=365, n=50)
+linearRegressionIndicator <- function (SymbolName, window=720, n=50)
 {
   require(quantmod)
   
-  this.env <- environment()
+  fileName <- sprintf("backtest_dir/%s_%d_lri.rds", SymbolName, n)
   
-  lri <- c()
+  Symbol <- get(SymbolName)
+  
+  fileExists <- file.exists(fileName)
   
   lastDate  <- as.Date(xts::last(index(Symbol)))
-  firstDate <- as.Date(lastDate-window)
   
-  dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)]
+  if(fileExists)
+  {
+    #print(sprintf("File: %s exists", fileName))
+    lriFile <- readRDS(file=fileName)
+    
+    firstDate <- as.Date(xts::last(index(lriFile)))
+  }
+  else
+  {
+    firstDate <- as.Date(lastDate-window)
+  }
+  
+  if(firstDate < as.Date(xts::first(index(Symbol))))
+    firstDate <- as.Date(xts::first(index(Symbol)))
+  
+  dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)] 
+  
+  lri <- c()
   
   for(i in 1:nrow(dateInterval))
   {
@@ -74,23 +92,121 @@ linearRegressionIndicator <- function (Symbol, window=365, n=50)
     lri[i] <- predict(lm(y~poly(x,2)), dataextra)[2]
   }
   
-  xi <- xts(lri, index(dateInterval))
+  if(fileExists)
+  {
+    xi <- rbind(lriFile[1:(length(lriFile)-1)], xts(lri, index(dateInterval)))
+  }
+  else
+  {
+    xi <- xts(lri, index(dateInterval))
+  }
+
+  saveRDS(xi, file=fileName)
   
   return(xi)
 }
 
 getLinRegIndicators <- function(SymbolName, n=c(50))
 {
-  polyRegs <- c()
-  
+  lri <- c()
+    
   for(i in n)
   {
     objName <- sprintf("lri%s.p%d", SymbolName, i)
-    Symbol <- get(SymbolName)
-    obj <- linearRegressionIndicator(Symbol, window=(length(index(Symbol))-i), n=i)
+    obj <- linearRegressionIndicator(SymbolName, n=i)
     assign(objName, obj, .GlobalEnv)
-    polyRegs <- c(polyRegs, sprintf("addTA(%s, on=1, col=3)", objName))
+    lri <- c(lri, sprintf("addTA(%s, on=1, col=3)", objName))
+  }
+    
+  return(lri)
+}
+
+getLinRegOrders <- function(symbol, lri, threshold=2.0)
+{
+  orders <- xts()
+  
+  r <- rle(sign(diff(as.vector(lri))))
+  
+  len <- length(r$values)
+  
+  if(len <= 3)
+  {
+    return(FALSE)
   }
   
-  return(polyRegs)
+  rdif <- c()
+  
+  indexes <- c()
+  
+  lastIndex <- 1
+  for(i in 1:len)
+  {
+    indexes[i] <- lastIndex
+    nextIndex <- lastIndex + r$lengths[i]
+    
+    if(r$values[i] == 1)
+    {
+      #high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
+      high <- as.double(lri[nextIndex])
+      #low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
+      low  <- as.double(lri[lastIndex])
+      
+      dif <- (high-low)/low
+    }
+    else if(r$values[i] == -1)
+    {
+      #high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
+      high <- as.double(lri[lastIndex])
+      #low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
+      low  <- as.double(lri[nextIndex])
+      
+      dif <- (low-high)/high
+    }
+    else
+    {
+      dif <= 0.0
+    }
+    
+    #print(as.Date(index(symbol[lastIndex])))
+    #print(as.Date(index(symbol[nextIndex])))
+    #print(dif)
+    #print(i)
+    
+    rdif[i] <- dif
+    lastIndex <- nextIndex
+  }
+  indexes[len] <- lastIndex
+  
+  sdev <- sd(rdif) #rdif -> variacao em %
+  #sdev <- max(abs(rdif))/3
+  #sdev <- max(lri)
+  
+  signals <- NULL
+  
+  for(i in 2:len)
+  {
+    objName <- sprintf("lri_orders.p%d", i)
+    
+    if(r$values[i-1] == -1 && r$values[i] == 1)
+    {
+      if(rdif[i-1] <= (-sdev*threshold))
+      {
+        #print(sprintf("%f", rdif[i-1]))
+        signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
+        assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+      }
+    }
+    
+    if(r$values[i-1] == 1 && r$values[i] == -1)
+    {
+      if(rdif[i-1] >= (sdev*threshold))
+      {
+        #print(sprintf("%f", rdif[i-1]))
+        signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
+        assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+      }
+    }
+  }
+  
+  return(signals)
 }

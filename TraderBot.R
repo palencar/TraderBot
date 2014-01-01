@@ -108,7 +108,7 @@ while(fsmState != "end")
   else if(fsmState == "plotWallet")
   {
     if(stream == FALSE)
-      chartSymbols(wallet(), dev="png"))
+      chartSymbols(wallet(), dev="png")
     
     fsmState <- "plotAlerts"
   }

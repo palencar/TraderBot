@@ -5,8 +5,8 @@ source("chart.R")
 source("orders.R")
 
 
-require(compiler)
-enableJIT(3)
+#require(compiler)
+#enableJIT(3)
 
 Symbols <- startProbe()
 
