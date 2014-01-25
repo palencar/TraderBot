@@ -4,11 +4,11 @@ source("startProbe.R")
 source("orders.R")
 
 
-chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=2850, yres=1080, dev="",
-                         indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders"))
+chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders"))
 {
-  #dummy <- foreach(i = 1:length(Symbols)) %dopar%
-  for(i  in 1:length(Symbols))
+  chartedSymbols <- foreach(i = 1:length(Symbols), .errorhandling="remove") %dopar%
+  #for(i in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
     if(startDate == "")
@@ -35,12 +35,16 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=2850, yres=10
     
     if(dev == "png")
     {
-      imageName <- sprintf("charts/%s.png", SymbolName)
+      if(is.null(suffix) == FALSE)      
+        imageName <- sprintf("%s/%s-%s.png", path, SymbolName, suffix)
+      else
+        imageName <- sprintf("%s/%s.png", path, SymbolName)
+      
       png(filename = imageName, width=xres, height=yres)
     }
     
     if("poly_r" %in% indicators)
-      polyRegs <- getPolyRegs(SymbolName)
+      polyRegs <- getPolyRegs(SymbolName, endDate=ed)
     else
       polyRegs <- NULL
     
@@ -63,19 +67,32 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=2850, yres=10
       lriOrders <- getLinRegOrders(get(SymbolName), linearRegressionIndicator(SymbolName), threshold=1.2)
     else
       lriOrders <- NULL
-      
     
     if("positions" %in% indicators)
-      posit <- getOrders(Symbol, SymbolName)
+    {
+      if(is.null(Posit) == TRUE)
+      {
+        posit <- getOrders(Symbol, SymbolName)
+      }
+      else
+      {
+        posit <- Posit
+      }
+    }
     else
+    {
       posit <- NULL
+    }
     
     chartSeries(Symbol, name=SymbolName, subset=dateLimit,
                 TA=paste(c(polyRegs, sma, vol, posit, lri, lriOrders), collapse="; "))
-    
+        
     if(dev == "png")
     {
       dev.off()
     }
+    
+    #SymbolName
   }
+  #return(chartedSymbols)
 }
