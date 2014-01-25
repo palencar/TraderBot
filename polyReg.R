@@ -50,7 +50,7 @@ findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
     dt = as.Date(dateLimit)
   }
   
-  lista <- foreach (i = minDays:maxDays, .combine = rbind ) %dopar%
+  lista <- foreach (i = minDays:maxDays, .combine = rbind, .errorhandling="remove") %dopar%
   { 
     list(polyRegression(SymbolName, sprintf("%s::%s", seq(dt, length=2, by=sprintf("-%d days", i))[2], dt), i))
   }
@@ -134,12 +134,15 @@ computeRegressions <- function(Symbols, StartDate, EndDate)
   return(lista)
 }
 
-getPolyRegs <- function(Symbol)
+getPolyRegs <- function(Symbol, endDate=NULL)
 {
   ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
   objFiles <- list.files("backtest_dir", pattern=ptrnStr)
   
   print(Symbol)
+
+  if(is.null(endDate))
+    endDate <- Sys.Date()
   
   k <- 1
   polyRegs <- c()
@@ -152,20 +155,23 @@ getPolyRegs <- function(Symbol)
     if(length(alertas) > 0)
     {
       for(i in 1:(length(alertas)-1))
-      {    
-        objName <- sprintf("poly%s.p%d", Symbol, k)
-        assign(objName, alertas[[i]]$regression, .GlobalEnv)
-        polyRegs <- c(polyRegs, sprintf("addTA(%s, on=1, col=3)", objName))
-        
-        objName <- sprintf("poly%s.p%dpsigma", Symbol, k)
-        assign(objName, alertas[[i]]$regression+alertas[[i]]$sigma, .GlobalEnv)
-        polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
-        
-        objName <- sprintf("poly%s.p%dmsigma", Symbol, k)
-        assign(objName, alertas[[i]]$regression-alertas[[i]]$sigma, .GlobalEnv)
-        polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
-        
-        k <- k+1
+      {
+        if(as.Date(substr(name, 1, 10)) <= endDate)
+        {
+          objName <- sprintf("poly%s.p%d", Symbol, k)
+          assign(objName, alertas[[i]]$regression, .GlobalEnv)
+          polyRegs <- c(polyRegs, sprintf("addTA(%s, on=1, col=3)", objName))
+          
+          objName <- sprintf("poly%s.p%dpsigma", Symbol, k)
+          assign(objName, alertas[[i]]$regression+alertas[[i]]$sigma, .GlobalEnv)
+          polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
+          
+          objName <- sprintf("poly%s.p%dmsigma", Symbol, k)
+          assign(objName, alertas[[i]]$regression-alertas[[i]]$sigma, .GlobalEnv)
+          polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
+          
+          k <- k+1
+        }
       }
     }
   }
