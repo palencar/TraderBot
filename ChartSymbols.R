@@ -5,17 +5,16 @@ source("chart.R")
 source("orders.R")
 
 
-#require(compiler)
-#enableJIT(3)
-
-Symbols <- startProbe()
-
 args_cmd <- commandArgs(trailingOnly=TRUE)
+
+symbolNames <- NULL
 
 if(length(args_cmd) >= 1)
 {
-  Symbols <- args_cmd
+  symbolNames <- args_cmd
 }
+
+Symbols <- startProbe(symbolNames, FALSE)
 
 #filterSymbols <- filterIncomplete(Symbols)
 
