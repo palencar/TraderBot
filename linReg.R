@@ -59,6 +59,9 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=50)
   if(firstDate < as.Date(xts::first(index(Symbol))))
     firstDate <- as.Date(xts::first(index(Symbol)))
   
+  if(firstDate > lastDate)
+    return(NULL)
+  
   dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)] 
   
   lri <- c()
