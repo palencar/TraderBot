@@ -181,7 +181,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(symbol, lri, threshold=0.05)
+filterLRI <- function(symbol, lri, threshold=1.2)
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -272,14 +272,32 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     }
     
     err <- 0
+    lastError <- NULL
     
     for(cdate in tradeDays)
     {
       if(length(obj[cdate]) == 0)
       {
-        if(length(obj[sprintf("%s/%s", firstTradeDay, cdate)] > 0))
+        if(is.null(lastError) == TRUE)
         {
-          print(sprintf("Bad data on symbol %s[%s]", i, cdate))
+          lastError <- cdate
+        }
+        else
+        {
+          if(length(obj[sprintf("%s/%s", lastError, cdate)]) < 4)
+          {
+            err <- err + 1
+          }
+          
+          lastError <- cdate
+        }
+        if(length(obj[sprintf("%s/%s", firstTradeDay, cdate)]) > 0)
+        {
+          if(err == 1)
+          {
+            print(sprintf("Bad data on symbol %s[%s]", i, cdate))
+          }
+          
           err <- err + 1
           #break
         }
@@ -292,6 +310,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     
     if(err >= (5*length(obj))/100)  #5% error
     {
+      print(sprintf("excluding %s from symbols", i))
       next
     }
     
