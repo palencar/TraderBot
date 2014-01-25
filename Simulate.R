@@ -19,7 +19,7 @@ window <- 730
 
 AllSymbols <- startProbe(update = FALSE)
 
-k <- 1
+
 for(day in as.Date(startDate):as.Date(endDate))
 {
   startChart <- sprintf("%s", as.Date(day-window))
@@ -40,7 +40,9 @@ for(day in as.Date(startDate):as.Date(endDate))
     #  close all virtual positions
     #}
     
-    chartSymbols(symbolName, startDate=startChart, dateLimit=endChart, dev="png", seq=k)
-    k <- k + 1
+    imagePath <- sprintf("charts/%s", symbolName)
+    dir.create(imagePath, showWarnings=FALSE)
+    
+    chartSymbols(symbolName, startDate=startChart, dateLimit=endChart, dev="png", path=imagePath, suffix=day)
   }
 }
