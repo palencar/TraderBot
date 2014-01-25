@@ -4,6 +4,9 @@ source("polyReg.R")
 source("chart.R")
 
 
+require(doMC)
+registerDoMC()
+
 stopdtime <- "18:20:00"
 fsmState <- "startProbe"
 
@@ -12,14 +15,19 @@ print(args)
 
 #Rprof("profile_tb.out")
 
-
 stream = FALSE
+Symbols <- NULL
 
 if(length(args) > 0)
 {
   if(args[1] == "stream")
   {
     stream = TRUE
+    
+    if(length(args) > 1)
+    {
+      Symbols <- tail(args, n=(length(args)-1))
+    }
   }
   else if(args[1] == "compute")
   {
@@ -69,7 +77,10 @@ while(fsmState != "end")
   
   if(fsmState == "startProbe")
   {
-    Symbols <- startProbe()
+    Symbols <- startProbe(symbolNames=Symbols)
+    
+    print("COMPUTING:")
+    print(Symbols)
     
     fsmState <- "computeRegressions"
   }
@@ -92,11 +103,14 @@ while(fsmState != "end")
     alertSymbols <- c()
     i <- 1
     
+    Symbols <- filterIncomplete(Symbols)
+    
     for(symbol in Symbols)
     {
-      alert <- computeRegressions(symbol, startDate, endDate)
+      alertR <- computeRegressions(symbol, startDate, endDate)
+      alertL <- filterLRI(get(symbol), linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
       
-      if(is.null(alert) == FALSE)
+      if(is.null(alertR) == FALSE || is.null(alertL) == FALSE)
       {
         alertSymbols[[i]] <- symbol
         i <- i + 1
