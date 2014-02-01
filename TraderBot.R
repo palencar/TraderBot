@@ -60,8 +60,13 @@ if(length(args) > 0)
       Symbols <- AllSymbols
     }
     
-    print(args)
-    alert <- computeRegressions(Symbols, startDate, endDate)
+    Symbols <- filterIncomplete(Symbols)
+    alert <- NULL
+    for(symbol in Symbols)
+    {
+      alert <- c(alert, computeRegressions(Symbols, startDate, endDate))
+    }
+    
     if(is.null(alert) == FALSE)
     {
       print(alert) 
@@ -71,6 +76,8 @@ if(length(args) > 0)
   }
 }
 
+filter <- FALSE
+
 while(fsmState != "end")
 {
   print(fsmState)
@@ -78,9 +85,6 @@ while(fsmState != "end")
   if(fsmState == "startProbe")
   {
     Symbols <- startProbe(symbolNames=Symbols)
-    
-    print("COMPUTING:")
-    print(Symbols)
     
     fsmState <- "computeRegressions"
   }
@@ -103,14 +107,22 @@ while(fsmState != "end")
     alertSymbols <- c()
     i <- 1
     
-    Symbols <- filterIncomplete(Symbols)
+    if(filter == FALSE)
+    {
+      Symbols <- filterIncomplete(Symbols)
+      filter <- TRUE
+    }
+    
+    print("COMPUTING:")
     
     for(symbol in Symbols)
     {
+      print(symbol)
+      
       alertR <- computeRegressions(symbol, startDate, endDate)
       alertL <- filterLRI(get(symbol), linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
       
-      if(is.null(alertR) == FALSE || is.null(alertL) == FALSE)
+      if(is.null(alertR) == FALSE || alertL == TRUE)
       {
         alertSymbols[[i]] <- symbol
         i <- i + 1

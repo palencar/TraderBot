@@ -93,39 +93,32 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   return(lista)
 }
 
-computeRegressions <- function(Symbols, StartDate, EndDate)
+computeRegressions <- function(Symbol, StartDate, EndDate)
 {
   k1 <- 10
   k2 <- 730
   
-  k <- 1
-  lista <- c()
+  lista <- NULL
   
   for(dt in seq(as.Date(EndDate), as.Date(StartDate), by = "-1 day"))
   {
     chartDate <- sprintf("%s", as.Date(dt))
     
-    filterSymbols <- filterIncomplete(Symbols)
-
-    for(symbol in filterSymbols)
+    if(length(get(Symbol)[chartDate]) > 0)
     {
-      if(length(get(symbol)[chartDate]) > 0)
+      strOut <- sprintf("findCurves %s %d %d %s", Symbol, k1, k2, chartDate)
+      print(strOut)
+      
+      alertas <- findCurves(Symbol, k1, k2, dateLimit=chartDate)
+      
+      if(length(alertas) > 0)
       {
-        strOut <- sprintf("findCurves %s %d %d %s", symbol, k1, k2, chartDate)
-        print(strOut)
+        assign(sprintf("%s.regset", Symbol), alertas, .GlobalEnv)
+        item <- filterObjectsSets(Symbol, chartDate)
         
-        alertas <- findCurves(symbol, k1, k2, dateLimit=chartDate)
-        
-        if(length(alertas) > 0)
+        if(is.null(item) == FALSE)
         {
-          assign(sprintf("%s.regset", symbol), alertas, .GlobalEnv)
-          item <- filterObjectsSets(symbol, chartDate)
-          
-          if(is.null(item) == FALSE)
-          {
-            lista[k] <- item
-            k <- k + 1
-          }
+          lista <- c(lista, item)
         }
       }
     }

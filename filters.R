@@ -187,6 +187,11 @@ filterLRI <- function(symbol, lri, threshold=1.2)
   
   len <- length(r$values)
   
+  if(r$lengths[len] > 2)
+  {
+    return(FALSE)
+  }
+  
   if(len <= 3)
   {
     return(FALSE)
@@ -258,14 +263,15 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     return
   }
   
-  tradeDays <- getQuery(user="paulo", dbname="beancounter", queryStr="select distinct date from stockprices order by date desc")[,1]
+  tradeDays <- getQuery(user="paulo", dbname="beancounter", queryStr="select distinct date from stockprices where date >= (select now() - interval 2 year) order by date desc")[,1]
   firstTradeDay <- last(tradeDays)
   
-  symbols <- c()
-  j <- 1
-  for(i in SymbolNames)
+  symbols <- NULL
+  k <- 0
+
+  for(symbol in SymbolNames)
   {
-    obj <- get(i)
+    obj <- get(symbol)
     if(length(obj) < 60)
     {
       next
@@ -273,49 +279,44 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     
     err <- 0
     lastError <- NULL
+    exclude <- FALSE
     
-    for(cdate in tradeDays)
+    for(i in 1:length(tradeDays))
     {
+      cdate <- tradeDays[i]
       if(length(obj[cdate]) == 0)
       {
-        if(is.null(lastError) == TRUE)
+        lastError <- cdate
+
+        k <- 0
+        for(j in (i+1):length(tradeDays))
         {
-          lastError <- cdate
-        }
-        else
-        {
-          if(length(obj[sprintf("%s/%s", lastError, cdate)]) < 4)
+          if(length(obj[tradeDays[j]]) == 0)
           {
-            err <- err + 1
+            k <- k + 1
+            lastError <- tradeDays[j]
+            print(sprintf("Bad data on symbol %s[%s]", symbol, lastError))
+            if(k >= 3)
+            {
+                exclude <- TRUE
+                break
+            }
           }
-          
-          lastError <- cdate
         }
-        if(length(obj[sprintf("%s/%s", firstTradeDay, cdate)]) > 0)
-        {
-          if(err == 1)
-          {
-            print(sprintf("Bad data on symbol %s[%s]", i, cdate))
-          }
-          
-          err <- err + 1
-          #break
-        }
-        else
-        {
-          break
-        }
+      }
+      if(exclude == TRUE)
+      {
+        break
       }
     }
     
-    if(err >= (5*length(obj))/100)  #5% error
+    if(exclude == TRUE)
     {
-      print(sprintf("excluding %s from symbols", i))
+      print(sprintf("excluding %s from symbols %s", symbol, lastError))
       next
     }
     
-    symbols[j] <- i
-    j <- j + 1
+    symbols <- c(symbols, symbol)
   }
   
   return (symbols)

@@ -17,19 +17,25 @@ endDate <- args[3]
 
 window <- 730
 
-AllSymbols <- startProbe(update = FALSE)
+Symbols <- startProbe(symbolNames=symbolName, update = FALSE)
 
+#Symbols <- filterIncomplete(AllSymbols)
+
+if(is.null(Symbols) == TRUE)
+{
+  quit()
+}
 
 for(day in as.Date(startDate):as.Date(endDate))
 {
   startChart <- sprintf("%s", as.Date(day-window))
   endChart <- sprintf("%s", as.Date(day))
   
-  alertR <- computeRegressions(symbolName, endChart, endChart)
+  #alertR <- computeRegressions(symbolName, endChart, endChart)
   
-  alertL <- filterLRI(get(symbolName), linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
+  #alertL <- filterLRI(get(symbolName), linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
   
-  if(is.null(alertR) == FALSE || is.null(alertL) == FALSE)
+  #if(is.null(alertR) == FALSE || alertL == TRUE)
   {
     #if(alertL (r_up) && alertL < SMA(200)")
     #{

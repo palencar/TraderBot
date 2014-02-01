@@ -16,6 +16,6 @@ if(length(args_cmd) >= 1)
 
 Symbols <- startProbe(symbolNames, FALSE)
 
-#filterSymbols <- filterIncomplete(Symbols)
+filterSymbols <- filterIncomplete(Symbols)
 
-chartSymbols(Symbols, dev="png")
+chartSymbols(filterSymbols, dev="png")
