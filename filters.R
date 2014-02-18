@@ -187,7 +187,7 @@ filterLRI <- function(symbol, lri, threshold=1.2)
   
   len <- length(r$values)
   
-  if(r$lengths[len] > 2)
+  if(r$lengths[len] > 1)
   {
     return(FALSE)
   }
@@ -206,15 +206,19 @@ filterLRI <- function(symbol, lri, threshold=1.2)
     
     if(r$values[i] == 1)
     {
-      high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
-      low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
+      #high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
+      high <- as.double(lri[nextIndex])
+      #low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
+      low  <- as.double(lri[lastIndex])
       
       dif <- (high-low)/low
     }
     else if(r$values[i] == -1)
     {
-      high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
-      low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
+      #high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
+      high <- as.double(lri[lastIndex])
+      #low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
+      low  <- as.double(lri[nextIndex])
       
       dif <- (low-high)/high
     }
@@ -401,9 +405,7 @@ filterObjectsSets <- function(Symbols, ChartDate)
   k <- 1
   symbolList <- c()
   
-  filterSymbols <- filterIncomplete(Symbols)
-  
-  for(symbol in filterSymbols)
+  for(symbol in Symbols)
   {
     if(length(get(symbol)[ChartDate]) == 0)
     {

@@ -61,15 +61,34 @@ if(length(args) > 0)
     }
     
     Symbols <- filterIncomplete(Symbols)
-    alert <- NULL
-    for(symbol in Symbols)
+    
+    alertSymbols <- NULL
+    
+    for(dt in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
     {
-      alert <- c(alert, computeRegressions(Symbols, startDate, endDate))
+      for(symbol in Symbols)
+      {
+        print(symbol)
+        
+        alertR <- computeRegressions(symbol, as.Date(dt), as.Date(dt))
+        alertL <- filterLRI(get(symbol)[sprintf("/%s", as.Date(dt))], linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
+        
+        if(is.null(alertR) == FALSE)
+          print(sprintf("%s %s: alertR", as.Date(dt), symbol))
+        
+        if(alertL == TRUE)
+          print(sprintf("%s %s: alertL", as.Date(dt), symbol))
+        
+        if(is.null(alertR) == FALSE || alertL == TRUE)
+        {
+          alertSymbols <- c(alertSymbols, symbol)
+        }
+      }
     }
     
-    if(is.null(alert) == FALSE)
+    if(is.null(alertSymbols) == FALSE)
     {
-      print(alert) 
+      print(alertSymbols) 
     }
     
     quit()
@@ -103,9 +122,7 @@ while(fsmState != "end")
       stream <- FALSE
     
     startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    
-    alertSymbols <- c()
-    i <- 1
+    startDay <- format(Sys.time(), "%Y-%m-%d")
     
     if(filter == FALSE)
     {
@@ -115,33 +132,33 @@ while(fsmState != "end")
     
     print("COMPUTING:")
     
+    alertSymbols <- NULL
+    
     for(symbol in Symbols)
     {
       print(symbol)
-      
+     
       alertR <- computeRegressions(symbol, startDate, endDate)
-      alertL <- filterLRI(get(symbol), linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
+      alertL <- filterLRI(get(symbol)[sprintf("/%s", endDate)], linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
+      
+      if(is.null(alertR) == FALSE)
+        print(sprintf("%s %s: alertR", as.Date(endDate), symbol))
+      
+      if(alertL == TRUE)
+        print(sprintf("%s %s: alertL", as.Date(endDate), symbol))
       
       if(is.null(alertR) == FALSE || alertL == TRUE)
       {
-        alertSymbols[[i]] <- symbol
-        i <- i + 1
+        alertSymbols <- c(alertSymbols, symbol)
       }
     }
     
-    fsmState <- "plotWallet"
+    fsmState <- "chartAlerts"
   }
-  else if(fsmState == "plotWallet")
-  {
-    if(stream == FALSE)
-      chartSymbols(wallet(), dev="png")
-    
-    fsmState <- "plotAlerts"
-  }
-  else if(fsmState == "plotAlerts")
+  else if(fsmState == "chartAlerts")
   {
     if(stream == TRUE)
-      print(sprintf("Plot [%s]: %s", alertSymbols, startTime))
+      print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
     
     chartSymbols(alertSymbols, dev="png")
     
@@ -168,6 +185,18 @@ while(fsmState != "end")
     }
     
     fsmState <- "startProbe"
+  }
+  else if(fsmState == "end")
+  {
+    if(stream == FALSE)
+    {
+      for(symbol in Symbols)
+      {
+        imagePath <- sprintf("chart-history/%s", symbol)
+        dir.create(imagePath, showWarnings=FALSE)
+        chartSymbols(Symbols=symbol, dev="png", path=imagePath, suffix=startDay)
+      }
+    }
   }
 }
 

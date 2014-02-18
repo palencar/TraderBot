@@ -60,7 +60,7 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=50)
     firstDate <- as.Date(xts::first(index(Symbol)))
   
   if(firstDate > lastDate)
-    return(NULL)
+    firstDate <- as.Date(lastDate-window)
   
   dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)] 
   
@@ -97,7 +97,7 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=50)
   
   if(fileExists)
   {
-    xi <- rbind(lriFile[1:(length(lriFile)-1)], xts(lri, index(dateInterval)))
+    xi <- rbind(lriFile[sprintf("::%s", (as.Date(index(last(lriFile)))-1))], xts(lri, index(dateInterval)))
   }
   else
   {

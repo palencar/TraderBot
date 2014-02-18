@@ -31,12 +31,18 @@ for(day in as.Date(startDate):as.Date(endDate))
   startChart <- sprintf("%s", as.Date(day-window))
   endChart <- sprintf("%s", as.Date(day))
   
+  alertR <- NULL
   #alertR <- computeRegressions(symbolName, endChart, endChart)
-  
-  #alertL <- filterLRI(get(symbolName), linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
+  alertL <- filterLRI(get(symbolName)[sprintf("/%s", endChart)], linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
   
   #if(is.null(alertR) == FALSE || alertL == TRUE)
   {
+    if(is.null(alertR) == FALSE)
+      print(sprintf("%s %s: alertR", as.Date(day), symbolName))
+    
+    if(alertL == TRUE)
+      print(sprintf("%s %s: alertL", as.Date(day), symbolName))
+    
     #if(alertL (r_up) && alertL < SMA(200)")
     #{
     #  add virtual position (buy)
@@ -46,9 +52,9 @@ for(day in as.Date(startDate):as.Date(endDate))
     #  close all virtual positions
     #}
     
-    imagePath <- sprintf("charts/%s", symbolName)
+    imagePath <- sprintf("chart-history/%s", symbolName)
     dir.create(imagePath, showWarnings=FALSE)
     
-    chartSymbols(symbolName, startDate=startChart, dateLimit=endChart, dev="png", path=imagePath, suffix=day)
+    chartSymbols(symbolName, startDate=startChart, dateLimit=endChart, dev="png", path=imagePath, suffix=sprintf(format(as.Date(day), "%Y-%m-%d")))
   }
 }
