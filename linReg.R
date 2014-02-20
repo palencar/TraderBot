@@ -124,10 +124,8 @@ getLinRegIndicators <- function(SymbolName, n=c(50))
   return(lri)
 }
 
-getLinRegOrders <- function(symbol, lri, threshold=2.0)
+getLinRegOrders <- function(symbol, lri, threshold=1.2)
 {
-  orders <- xts()
-  
   r <- rle(sign(diff(as.vector(lri))))
   
   len <- length(r$values)
@@ -149,18 +147,14 @@ getLinRegOrders <- function(symbol, lri, threshold=2.0)
     
     if(r$values[i] == 1)
     {
-      #high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
       high <- as.double(lri[nextIndex])
-      #low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
       low  <- as.double(lri[lastIndex])
       
       dif <- (high-low)/low
     }
     else if(r$values[i] == -1)
     {
-      #high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
       high <- as.double(lri[lastIndex])
-      #low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
       low  <- as.double(lri[nextIndex])
       
       dif <- (low-high)/high
@@ -170,19 +164,12 @@ getLinRegOrders <- function(symbol, lri, threshold=2.0)
       dif <= 0.0
     }
     
-    #print(as.Date(index(symbol[lastIndex])))
-    #print(as.Date(index(symbol[nextIndex])))
-    #print(dif)
-    #print(i)
-    
     rdif[i] <- dif
     lastIndex <- nextIndex
   }
   indexes[len] <- lastIndex
   
   sdev <- sd(rdif) #rdif -> variacao em %
-  #sdev <- max(abs(rdif))/3
-  #sdev <- max(lri)
   
   signals <- NULL
   
@@ -194,9 +181,11 @@ getLinRegOrders <- function(symbol, lri, threshold=2.0)
     {
       if(rdif[i-1] <= (-sdev*threshold))
       {
-        #print(sprintf("%f", rdif[i-1]))
-        signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
-        assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+        if(i < len || r$lengths[i] == 1)
+        {
+          signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
+          assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+        }
       }
     }
     
@@ -204,9 +193,11 @@ getLinRegOrders <- function(symbol, lri, threshold=2.0)
     {
       if(rdif[i-1] >= (sdev*threshold))
       {
-        #print(sprintf("%f", rdif[i-1]))
-        signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
-        assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+        if(i < len || r$lengths[i] == 1)
+        {
+          signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
+          assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+        }
       }
     }
   }

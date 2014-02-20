@@ -43,6 +43,7 @@ for(day in as.Date(startDate):as.Date(endDate))
     if(alertL == TRUE)
       print(sprintf("%s %s: alertL", as.Date(day), symbolName))
     
+    
     #if(alertL (r_up) && alertL < SMA(200)")
     #{
     #  add virtual position (buy)

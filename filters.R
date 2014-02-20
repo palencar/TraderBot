@@ -206,18 +206,14 @@ filterLRI <- function(symbol, lri, threshold=1.2)
     
     if(r$values[i] == 1)
     {
-      #high <- as.double(Hi(symbol[as.Date(index(lri[nextIndex]))]))
       high <- as.double(lri[nextIndex])
-      #low  <- as.double(Lo(symbol[as.Date(index(lri[lastIndex]))]))
       low  <- as.double(lri[lastIndex])
       
       dif <- (high-low)/low
     }
     else if(r$values[i] == -1)
     {
-      #high <- as.double(Hi(symbol[as.Date(index(lri[lastIndex]))]))
       high <- as.double(lri[lastIndex])
-      #low  <- as.double(Lo(symbol[as.Date(index(lri[nextIndex]))]))
       low  <- as.double(lri[nextIndex])
       
       dif <- (low-high)/high
@@ -227,19 +223,12 @@ filterLRI <- function(symbol, lri, threshold=1.2)
       dif <= 0.0
     }
     
-    #print(as.Date(index(symbol[lastIndex])))
-    #print(as.Date(index(symbol[nextIndex])))
-    #print(dif)
-    #print(i)
-    
     rdif[i] <- dif
     lastIndex <- nextIndex
   }
   
   alert <- c()
   sdev <- sd(rdif)
-  #sdev <- max(abs(rdif))/3
-  #sdev <- max(lri)
  
   if(r$values[len-1] == -1 && r$values[len] == 1)
   {
