@@ -270,6 +270,13 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       next
     }
     
+    if((sum(is.na(as.numeric(Op(obj)))) + sum(is.na(as.numeric(Hi(obj)))) + sum(is.na(as.numeric(Lo(obj)))) + sum(is.na(as.numeric(Cl(obj))))) > 0)
+    {
+      next
+    }
+    
+    print(symbol)
+    
     err <- 0
     lastError <- NULL
     exclude <- FALSE
@@ -421,20 +428,6 @@ filterObjectsSets <- function(Symbols, ChartDate)
     print(sprintf("filterRevert %s %d %d %s", symbol, k1, k2, ChartDate))
     
     alertas <- turnPoints(regset)
-    
-    #strOut <- sprintf("%s %s: %d", symbol, ChartDate, length(turnPoints))
-    #print(strOut)
-    #
-    #if(length(alertas) > 0)
-    #{
-    #  objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints.rds", ChartDate, symbol, k1, k2)
-    #  
-    #  saveRDS(alertas, file=objectName)
-    #}
-    #if(length(alertas) == 0)
-    #{
-    #  next
-    #}
     
     trends <- c("r_up")
     alertas_r_up <- filterRevert(alertas, trends, 3)
