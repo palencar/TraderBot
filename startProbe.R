@@ -67,6 +67,11 @@ wallet <- function()
   return (wall)
 }
 
+meanPrice <- function(SymbolName)
+{
+  return(getQuery(user = 'paulo', dbname = 'beancounter', query = sprintf("select avg(openVal) from positions where symbol = '%s' and closeVal is null", SymbolName))[,1])
+}
+
 lastTradingSession <- function()
 {
   return(getQuery(user = 'paulo', dbname = 'beancounter', query = "select date from stockprices order by date desc limit 1")[,1])
