@@ -2,10 +2,10 @@ source("polyReg.R")
 source("linReg.R")
 source("startProbe.R")
 source("orders.R")
-
+source("meanPrice.R")
 
 chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders"))
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders", "meanPrice"))
 {
   chartedSymbols <- foreach(i = 1:length(Symbols), .errorhandling="remove") %dopar%
   #for(i in 1:length(Symbols))
@@ -84,9 +84,18 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       posit <- NULL
     }
     
+    if("meanPrice" %in% indicators)
+    {
+      mePrice <- getMeanPrice(Symbol, SymbolName)
+    }
+    else
+    {
+      mePrice <- NULL
+    }
+    
     chartSeries(Symbol, name=SymbolName, subset=dateLimit,
-                TA=paste(c(polyRegs, sma, vol, posit, lri, lriOrders), collapse="; "))
-        
+                TA=paste(c(polyRegs, sma, vol, posit, lri, lriOrders, mePrice), collapse="; "))
+    
     if(dev == "png")
     {
       dev.off()
