@@ -278,39 +278,31 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     print(symbol)
     
     err <- 0
-    lastError <- NULL
     exclude <- FALSE
-    
-    for(i in 1:length(tradeDays))
-    {
-      cdate <- tradeDays[i]
-      if(length(obj[cdate]) == 0)
-      {
-        lastError <- cdate
+    lastError <- tradeDays[1]
 
-        k <- 0
-        for(j in (i+1):length(tradeDays))
-        {
-          if(length(obj[tradeDays[j]]) == 0)
-          {
-            print(sprintf("Bad data on symbol %s[%s]", symbol, lastError))
-            
-            if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
-              k <- k + 1
-            
-            lastError <- tradeDays[j]
-            
-            if(k >= 3)
-            {
-              exclude <- TRUE
-              break
-            }
-          }
-        }
-      }
-      if(exclude == TRUE)
+    if(length(obj[tradeDays[1]]) == 0)
+    {
+      print(sprintf("Bad data on symbol %s[%s]", symbol, lastError))
+    }
+    
+    k <- 0
+    for(j in 2:length(tradeDays))
+    {
+      if(length(obj[tradeDays[j]]) == 0)
       {
-        break
+        print(sprintf("Bad data on symbol %s[%s]", symbol, lastError))
+        
+        if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
+          k <- k + 1
+        
+        lastError <- tradeDays[j]
+        
+        if(k >= 3)
+        {
+          exclude <- TRUE
+          break
+        }
       }
     }
     
