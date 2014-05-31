@@ -293,13 +293,17 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
         {
           if(length(obj[tradeDays[j]]) == 0)
           {
-            k <- k + 1
-            lastError <- tradeDays[j]
             print(sprintf("Bad data on symbol %s[%s]", symbol, lastError))
+            
+            if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
+              k <- k + 1
+            
+            lastError <- tradeDays[j]
+            
             if(k >= 3)
             {
-                exclude <- TRUE
-                break
+              exclude <- TRUE
+              break
             }
           }
         }
