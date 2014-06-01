@@ -231,12 +231,9 @@ getQuery <- function(env = .GlobalEnv, user = NULL,
   
   con <- dbConnect(MySQL(), user = user, password = password, 
                    dbname = dbname)
-  
-  #queryStr <- sprintf("select distinct(symbol) from positions where end is null")
-  
+
   query <- paste(queryStr)
-  rs <- dbSendQuery(con, query)
-  fr <- fetch(rs, n = -1)
+  fr <- dbGetQuery(con, query)
   
   dbDisconnect(con)
   
