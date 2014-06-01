@@ -67,6 +67,47 @@ wallet <- function()
   return (wall)
 }
 
+getQuoteDay <- function(Symbol, Day)
+{
+  print(sprintf("getQuoteDay [%s][%s]", Symbol, Day))
+  
+  modes <- c('google')
+  
+  for(mode in modes)
+  {
+    originalName <- Symbol
+    if(mode == 'google')
+      Symbol <- sprintf("BVMF:%s", unlist(strsplit(Symbol, "[.]"))[1])
+    
+    getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day))
+    if(exists(Symbol) == FALSE)
+       return(NULL)
+    
+    if(is.na(Op(get(Symbol))) || is.na(Hi(get(Symbol))) ||
+         is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))))
+      return(NULL)
+    
+    print(get(Symbol))
+    
+    table <- as.data.frame(get(Symbol))
+    names(table)[1]<-paste("day_open")
+    names(table)[2]<-paste("day_high")
+    names(table)[3]<-paste("day_low")
+    names(table)[4]<-paste("day_close")
+    names(table)[5]<-paste("volume")
+    table["date"] <- as.Date(Day)
+    table["symbol"] <- originalName
+    table[6] <- NULL
+
+    queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+                        originalName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
+    
+    getQuery(user = 'paulo', dbname = 'beancounter', query=queryStr)
+    
+    #return(startProbe(originalName, update = FALSE))
+  }
+}
+
 meanPrice <- function(SymbolName)
 {
   return(getQuery(user = 'paulo', dbname = 'beancounter', query = sprintf("select avg(openVal) from positions where symbol = '%s' and closeVal is null", SymbolName))[,1])
