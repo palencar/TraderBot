@@ -79,12 +79,14 @@ getQuoteDay <- function(Symbol, Day)
     if(mode == 'google')
       Symbol <- sprintf("BVMF:%s", unlist(strsplit(Symbol, "[.]"))[1])
     
-    getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day))
+    try(getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day)), silent=TRUE)
     if(exists(Symbol) == FALSE)
        return(NULL)
     
     if(is.na(Op(get(Symbol))) || is.na(Hi(get(Symbol))) ||
-         is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))))
+         is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))) ||
+         as.double(Op(get(Symbol))) == 0.0 || as.double(Hi(get(Symbol))) == 0.0 ||
+         as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
       return(NULL)
     
     print(get(Symbol))
@@ -103,8 +105,6 @@ getQuoteDay <- function(Symbol, Day)
                         originalName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
     
     getQuery(user = 'paulo', dbname = 'beancounter', query=queryStr)
-    
-    #return(startProbe(originalName, update = FALSE))
   }
 }
 
