@@ -12,9 +12,9 @@ startProbe <- function(symbolNames = NULL, update = TRUE)
     system("beancounter update today 2> /dev/null")
 
   if(is.null(symbolNames))
-    symbolNames <- getSymbolNamesMySQL(user = 'paulo', dbname = 'beancounter')
+    symbolNames <- getSymbolNamesMySQL()
   
-  symbolNamesObj <- getSymbolsMySQL(symbolNames, user = 'paulo', dbname = 'beancounter')
+  symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update)
   
   return (symbolNamesObj)
 }
@@ -42,11 +42,11 @@ positions <- function(symbol = NULL)
 {
   if(is.null(symbol))
   {
-    pos <- getPositions(user = 'paulo', dbname = 'beancounter')
+    pos <- getPositions()
   }
   else
   {
-    pos <- getPositions(user = 'paulo', dbname = 'beancounter', symbol=symbol)
+    pos <- getPositions(symbol)
   }
   
   return (pos)
@@ -54,7 +54,7 @@ positions <- function(symbol = NULL)
 
 wallet <- function()
 {
-  wal <- getWallet(user = 'paulo', dbname = 'beancounter')
+  wal <- getWallet()
 
   wall <- c()
   
@@ -104,22 +104,22 @@ getQuoteDay <- function(Symbol, Day)
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         originalName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
     
-    getQuery(user = 'paulo', dbname = 'beancounter', query=queryStr)
+    getQuery(queryStr)
   }
 }
 
 meanPrice <- function(SymbolName)
 {
-  return(getQuery(user = 'paulo', dbname = 'beancounter', query = sprintf("select avg(openVal) from positions where symbol = '%s' and closeVal is null", SymbolName))[,1])
+  return(getQuery(sprintf("select avg(openVal) from positions where symbol = '%s' and closeVal is null", SymbolName))[,1])
 }
 
 lastTradingSession <- function()
 {
-  return(getQuery(user = 'paulo', dbname = 'beancounter', query = "select date from stockprices order by date desc limit 1")[,1])
+  return(getQuery("select date from stockprices order by date desc limit 1")[,1])
 }
 
 loadLocalCSV <- function(symbol)
 {
   queryStr <- sprintf("LOAD DATA LOCAL INFILE \'%s.csv\' INTO TABLE beancounter.stockprices_intraday FIELDS TERMINATED BY \',\' ENCLOSED BY \'\"\' LINES TERMINATED BY \'\n\' (symbol, datetime, min_open, min_low, min_high, min_close, volume)", symbol)
-  return(getQuery(user = 'paulo', dbname = 'beancounter', query = queryStr)[,1])
+  return(getQuery(queryStr)[,1])
 }

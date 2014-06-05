@@ -256,7 +256,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     return
   }
   
-  tradeDays <- getQuery(user="paulo", dbname="beancounter", queryStr="select distinct date from stockprices where date >= (select now() - interval 2 year) order by date desc")[,1]
+  tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 2 year) order by date desc")[,1]
   firstTradeDay <- last(tradeDays)
   
   symbols <- NULL
