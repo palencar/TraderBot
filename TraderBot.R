@@ -16,7 +16,7 @@ print(args)
 #Rprof("profile_tb.out")
 
 stream = FALSE
-Symbols <- NULL
+Symbols = NULL
 
 if(length(args) > 0)
 {
@@ -95,15 +95,13 @@ if(length(args) > 0)
   }
 }
 
-filter <- FALSE
-
 while(fsmState != "end")
 {
   print(fsmState)
   
   if(fsmState == "startProbe")
   {
-    Symbols <- startProbe(symbolNames=Symbols)
+    AllSymbols <- startProbe()
     
     fsmState <- "computeRegressions"
   }
@@ -124,13 +122,11 @@ while(fsmState != "end")
     startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     startDay <- format(Sys.time(), "%Y-%m-%d")
     
-    if(filter == FALSE)
-    {
-      Symbols <- filterIncomplete(Symbols)
-      filter <- TRUE
-    }
+    toFilter <- setdiff(AllSymbols, Symbols)
+    Symbols <- union(filterIncomplete(toFilter), Symbols)
     
     print("COMPUTING:")
+    print(Symbols)
     
     alertSymbols <- NULL
     
@@ -199,5 +195,7 @@ while(fsmState != "end")
     }
   }
 }
+
+dbDisconnect(con)
 
 #Rprof(NULL)
