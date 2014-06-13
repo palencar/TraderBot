@@ -181,7 +181,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(symbol, lri, threshold=1.2)
+filterLRI <- function(lri, threshold=1.2)
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -295,7 +295,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       {
         print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[j]))
         
-        getQuoteDay(symbol, tradeDays[j])
+        #getQuoteDay(symbol, tradeDays[j])
         
         if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
           k <- k + 1

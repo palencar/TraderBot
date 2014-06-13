@@ -45,7 +45,7 @@ if(length(args) > 0)
       startDate <- endDate <- Sys.Date()
     }
     
-    AllSymbols <- startProbe()
+    AllSymbols <- startProbe(minAge=730, update=FALSE)
     Symbols <- c()
     
     if(length(args) > 3)
@@ -71,7 +71,7 @@ if(length(args) > 0)
         print(symbol)
         
         alertR <- computeRegressions(symbol, as.Date(dt), as.Date(dt))
-        alertL <- filterLRI(get(symbol)[sprintf("/%s", as.Date(dt))], linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
+        alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
         
         if(is.null(alertR) == FALSE)
           print(sprintf("%s %s: alertR", as.Date(dt), symbol))
@@ -101,7 +101,7 @@ while(fsmState != "end")
   
   if(fsmState == "startProbe")
   {
-    AllSymbols <- startProbe()
+    AllSymbols <- startProbe(minAge=730)
     
     fsmState <- "computeRegressions"
   }
@@ -135,7 +135,7 @@ while(fsmState != "end")
       print(symbol)
      
       alertR <- computeRegressions(symbol, startDate, endDate)
-      alertL <- filterLRI(get(symbol)[sprintf("/%s", endDate)], linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
+      alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
       
       if(is.null(alertR) == FALSE)
         print(sprintf("%s %s: alertR", as.Date(endDate), symbol))
@@ -174,8 +174,12 @@ while(fsmState != "end")
     {
       for(i in alertSymbols)
         imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
-      
-      muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
+
+      wal <- wallet()
+      if(!is.null(intersect(alertSymbols, wal)))
+        muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert W\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
+      else
+        muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
       
       cmdOut <- system(muttCmd, intern=TRUE, ignore.stderr=TRUE)
     }
@@ -195,7 +199,5 @@ while(fsmState != "end")
     }
   }
 }
-
-dbDisconnect(con)
 
 #Rprof(NULL)

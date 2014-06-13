@@ -33,7 +33,7 @@ for(day in as.Date(startDate):as.Date(endDate))
   
   alertR <- NULL
   #alertR <- computeRegressions(symbolName, endChart, endChart)
-  alertL <- filterLRI(get(symbolName)[sprintf("/%s", endChart)], linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
+  alertL <- filterLRI(linearRegressionIndicator(symbolName)[sprintf("/%s", endChart)], threshold=1.2)
   
   #if(is.null(alertR) == FALSE || alertL == TRUE)
   {
