@@ -11,7 +11,7 @@ dbConnnection <- function()
   return(con)
 }
 
-getSymbolsMySQL <- function (Symbols, FilterToday=FALSE ,env = .GlobalEnv) 
+getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
 {
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
 
@@ -25,6 +25,16 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE ,env = .GlobalEnv)
     Symbols <- fr$symbol
   }
   
+  if(!is.null(FilterAge))
+  {
+    query <- sprintf("select * from (select symbol, datediff(max(date),min(date)) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    rs <- dbSendQuery(con, query)
+    fr <- fetch(rs, n = -1)
+    Symbols <- intersect(Symbols, fr$symbol)
+  }
+  
+  #select * from (select symbol, count(*) as cnt from stockprices where volume = 0 group by symbol) as volume where cnt > 100
+  
   for (i in 1:length(Symbols))
   {
     query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  Symbols[[i]], "' ORDER BY date", sep = "")
@@ -37,6 +47,8 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE ,env = .GlobalEnv)
     assign(Symbols[[i]], fr, env)
   }
   
+  dbDisconnect(con)
+  
   return(Symbols)
 }
 
@@ -47,6 +59,8 @@ getSymbolNamesMySQL <- function()
   rs <- dbSendQuery(con, "SELECT distinct(symbol) from stockprices")
   fr <- fetch(rs, n = -1)
 
+  dbDisconnect(con)
+  
   return(fr$symbol)
 }
 
@@ -62,6 +76,8 @@ getPositions <- function(symbol = NULL)
   rs <- dbSendQuery(con, queryStr)
   fr <- fetch(rs, n = -1)
   
+  dbDisconnect(con)
+  
   return(fr)
 }
 
@@ -72,6 +88,8 @@ getWallet <- function()
   rs <- dbSendQuery(con, "select distinct(symbol) from positions")
   fr <- fetch(rs, n = -1)
   
+  dbDisconnect(con)
+  
   return(fr)
 }
 
@@ -80,6 +98,8 @@ getQuery <- function(queryStr = "")
   con <- dbConnnection()
 
   fr <- dbGetQuery(con, queryStr)
+  
+  dbDisconnect(con)
   
   return(fr)
 }

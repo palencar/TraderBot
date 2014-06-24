@@ -6,7 +6,7 @@ source('mysql_stocks.R')
 require(compiler)
 enableJIT(3)
 
-startProbe <- function(symbolNames = NULL, update = TRUE)
+startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
   if(update)
     system("beancounter update today 2> /dev/null")
@@ -14,7 +14,7 @@ startProbe <- function(symbolNames = NULL, update = TRUE)
   if(is.null(symbolNames))
     symbolNames <- getSymbolNamesMySQL()
   
-  symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update)
+  symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update, FilterAge=minAge)
   
   return (symbolNamesObj)
 }
