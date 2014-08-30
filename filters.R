@@ -234,7 +234,7 @@ filterLRI <- function(lri, threshold=1.2)
   {
     if(rdif[len-1] <= (-sdev*threshold))
     {
-      return(TRUE)
+      return("up")
     }
   }
   
@@ -242,7 +242,7 @@ filterLRI <- function(lri, threshold=1.2)
   {
     if(rdif[len-1] >= (sdev*threshold))
     {
-      return(TRUE)
+      return("down")
     }
   }
   
@@ -295,17 +295,19 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       {
         print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[j]))
         
-        #getQuoteDay(symbol, tradeDays[j])
+        getQuoteDay(symbol, tradeDays[j])
         
         if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
           k <- k + 1
+        else
+          k <- 0
         
         lastError <- tradeDays[j]
         
         if(k >= 3)
         {
           exclude <- TRUE
-          break
+          #break
         }
       }
     }

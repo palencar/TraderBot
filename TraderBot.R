@@ -1,3 +1,5 @@
+Rprof("TraderBot_profile.out")
+
 source("startProbe.R")
 source("filters.R")
 source("polyReg.R")
@@ -12,8 +14,6 @@ fsmState <- "startProbe"
 
 args <- commandArgs(trailingOnly=TRUE)
 print(args)
-
-#Rprof("profile_tb.out")
 
 stream = FALSE
 Symbols = NULL
@@ -73,15 +73,25 @@ if(length(args) > 0)
         alertR <- computeRegressions(symbol, as.Date(dt), as.Date(dt))
         alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
         
-        if(is.null(alertR) == FALSE)
-          print(sprintf("%s %s: alertR", as.Date(dt), symbol))
+        if(!is.null(alertR))
+          print(sprintf("%s %s: alertR %s", as.Date(dt), symbol, alertR))
         
-        if(alertL == TRUE)
-          print(sprintf("%s %s: alertL", as.Date(dt), symbol))
+        if(!is.null(alertL))
+          print(sprintf("%s %s: alertL %s", as.Date(dt), symbol, alertL))
         
-        if(is.null(alertR) == FALSE || alertL == TRUE)
+        obj <- get(symbol)
+        lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
+        lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
+        
+        if(!is.null(alertR))
         {
           alertSymbols <- c(alertSymbols, symbol)
+        }
+        
+        if(!is.null(alertL))
+        {
+          if((alertL == "down" && lsma < lst) || (alertL == "up" && lsma > lst))
+            alertSymbols <- c(alertSymbols, symbol)
         }
       }
     }
@@ -94,6 +104,8 @@ if(length(args) > 0)
     quit()
   }
 }
+
+toFilter <- NULL
 
 while(fsmState != "end")
 {
@@ -122,8 +134,11 @@ while(fsmState != "end")
     startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     startDay <- format(Sys.time(), "%Y-%m-%d")
     
-    toFilter <- setdiff(AllSymbols, Symbols)
-    Symbols <- union(filterIncomplete(toFilter), Symbols)
+    if(is.null(toFilter))
+    {
+      toFilter <- setdiff(AllSymbols, Symbols)
+      Symbols <- union(filterIncomplete(toFilter), Symbols)
+    }
     
     print("COMPUTING:")
     print(Symbols)
@@ -137,15 +152,25 @@ while(fsmState != "end")
       alertR <- computeRegressions(symbol, startDate, endDate)
       alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
       
-      if(is.null(alertR) == FALSE)
-        print(sprintf("%s %s: alertR", as.Date(endDate), symbol))
+      if(!is.null(alertR))
+        print(sprintf("%s %s: alertR %s", as.Date(endDate), symbol, alertR))
       
-      if(alertL == TRUE)
-        print(sprintf("%s %s: alertL", as.Date(endDate), symbol))
+      if(!is.null(alertL))
+        print(sprintf("%s %s: alertL %s", as.Date(endDate), symbol, alertL))
       
-      if(is.null(alertR) == FALSE || alertL == TRUE)
+      obj <- get(symbol)
+      lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
+      lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
+      
+      if(!is.null(alertR))
       {
         alertSymbols <- c(alertSymbols, symbol)
+      }
+      
+      if(!is.null(alertL))
+      {
+        if((alertL == "down" && lsma < lst) || (alertL == "up" && lsma > lst))
+          alertSymbols <- c(alertSymbols, symbol)
       }
     }
     
@@ -176,7 +201,7 @@ while(fsmState != "end")
         imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
 
       wal <- wallet()
-      if(!is.null(intersect(alertSymbols, wal)))
+      if(alertSymbols %in% wal)
         muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert W\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
       else
         muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
@@ -200,4 +225,4 @@ while(fsmState != "end")
   }
 }
 
-#Rprof(NULL)
+Rprof(NULL)
