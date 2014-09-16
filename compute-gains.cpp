@@ -2,11 +2,23 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <list>
+#include <ctime>
+#include <cstdlib>
+#include <cstring>
  
 using namespace std;
  
 void csvline_populate(vector<string> &record, const string& line, char delimiter);
- 
+
+typedef struct {
+  string name;
+  time_t date;
+  char type;
+  int size;
+  float meanPrice;
+} trans;
+
 int main(int argc, char *argv[])
 {
     vector<string> row;
@@ -14,13 +26,49 @@ int main(int argc, char *argv[])
     ifstream in("Acoes.csv");
     if (in.fail())  { cout << "File not found" <<endl; return 0; }
  
-    while(getline(in, line)  && in.good() )
+    //multimap<string, trans> m;
+    list<trans> lst;
+ 
+    int lines = 0;
+    
+    while(getline(in, line)  && in.good())
     {
         csvline_populate(row, line, ',');
-        for(int i=0, leng=row.size(); i<leng; i++)
-            cout << row[i] << "\t";
-        cout << endl;
+	
+	if(lines++ == 0)
+	  continue;
+	
+	trans trn;
+	
+	//memset(&trn, 0, sizeof(trans));
+	trn.name = row[0];
+	
+	struct tm tm;
+	time_t t;
+	
+	strptime(row[1].c_str(), "%d/%m/%y", &tm);
+	t = mktime(&tm);
+	
+	trn.date = t;
+	
+	trn.type = row[2].c_str()[0];
+	
+	trn.size = atoi(row[3].c_str());
+	
+	trn.meanPrice = atof(row[11].c_str());
+	
+	//m.insert(pair<string, trans>(row[0], trn));
+	lst.push_back(trn);
+	
+        //cout << endl;
     }
+    
+    while (!lst.empty())
+    {
+      std::cout << lst.front().name << endl;
+      lst.pop_front();  
+    }
+    
     in.close();
     return 0;
 }
