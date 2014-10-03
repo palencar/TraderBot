@@ -262,6 +262,8 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
   symbols <- NULL
   k <- 0
 
+  badData <- NULL
+  
   for(symbol in SymbolNames)
   {
     obj <- get(symbol)
@@ -285,7 +287,8 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     {
       print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[1]))
       
-      getQuoteDay(symbol, tradeDays[1])
+      badData <- c(badData, sprintf("%s %s", symbol, tradeDays[1]))
+      #getQuoteDay(symbol, tradeDays[1])
     }
     
     k <- 0
@@ -295,7 +298,8 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       {
         print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[j]))
         
-        getQuoteDay(symbol, tradeDays[j])
+        badData <- c(badData, sprintf("%s %s", symbol, tradeDays[j]))
+        #getQuoteDay(symbol, tradeDays[j])
         
         if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
           k <- k + 1
@@ -304,13 +308,27 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
         
         lastError <- tradeDays[j]
         
-        if(k >= 3)
+        if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 10) && k >= 1)
+        {
+          exclude <- TRUE 
+        }
+        else if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 60) && k >= 2)
         {
           exclude <- TRUE
-          #break
+        }
+        else if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 120) && k >= 3)
+        {
+          exclude <- TRUE
+        }
+        else if (k >= 4)
+        {
+          exclude <- TRUE
         }
       }
     }
+    
+    if(!is.null(badData))
+      writeLines(badData, "baddata.txt")
     
     if(exclude == TRUE)
     {
