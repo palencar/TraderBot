@@ -1,5 +1,5 @@
 library('quantmod')
-library('multicore')
+library('parallel')
 source('mysql_stocks.R')
 
 
@@ -71,7 +71,7 @@ getQuoteDay <- function(Symbol, Day)
 {
   print(sprintf("getQuoteDay [%s][%s]", Symbol, Day))
   
-  modes <- c('google')
+  modes <- c('google', 'yahoo')
   
   for(mode in modes)
   {

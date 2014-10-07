@@ -1,13 +1,12 @@
-Rprof("TraderBot_profile.out")
-
 source("startProbe.R")
 source("filters.R")
 source("polyReg.R")
 source("chart.R")
+library(parallel)
+library(doParallel)
 
-
-require(doMC)
-registerDoMC()
+cl <- makeCluster(detectCores())
+registerDoParallel(cl)
 
 stopdtime <- "18:20:00"
 fsmState <- "startProbe"
@@ -73,25 +72,41 @@ if(length(args) > 0)
         alertR <- computeRegressions(symbol, as.Date(dt), as.Date(dt))
         alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
         
+        obj <- get(symbol)
+        seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
+        sma <- SMA(seq, n=200)
+        ssd <- sd(as.double(na.omit(seq-sma)))
+        
+        alertS <- FALSE
+        if(last(seq) > (last(sma) + (2*ssd)) || last(seq) < (last(sma) - (2*ssd)))  
+          alertS <- TRUE
+        
         if(!is.null(alertR))
           print(sprintf("%s %s: alertR %s", as.Date(dt), symbol, alertR))
         
         if(!is.null(alertL))
           print(sprintf("%s %s: alertL %s", as.Date(dt), symbol, alertL))
         
+        print(sprintf("%s %s: alertS %s", as.Date(dt), symbol, alertS))
+
         obj <- get(symbol)
         lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
         lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
         
-        if(!is.null(alertR))
+        if(!is.null(alertR) && !(symbol %in% alertSymbols))
         {
           alertSymbols <- c(alertSymbols, symbol)
         }
         
-        if(!is.null(alertL))
+        if(!is.null(alertL) && !(symbol %in% alertSymbols))
         {
           if((alertL == "down" && lsma < lst) || (alertL == "up" && lsma > lst))
             alertSymbols <- c(alertSymbols, symbol)
+        }
+        
+        if(alertS && !(symbol %in% alertSymbols))
+        {
+          alertSymbols <- c(alertSymbols, symbol)
         }
       }
     }
@@ -137,7 +152,10 @@ while(fsmState != "end")
     if(is.null(toFilter))
     {
       toFilter <- setdiff(AllSymbols, Symbols)
-      Symbols <- union(filterIncomplete(toFilter), Symbols)
+      Rprof("filterIncomplete.out")
+      accepted <- filterIncomplete(toFilter)
+      Rprof(NULL)
+      Symbols <- union(accepted, Symbols)
     }
     
     print("COMPUTING:")
@@ -152,25 +170,41 @@ while(fsmState != "end")
       alertR <- computeRegressions(symbol, startDate, endDate)
       alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
       
+      obj <- get(symbol)
+      seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
+      sma <- SMA(seq, n=200)
+      ssd <- sd(as.double(na.omit(seq-sma)))
+      
+      alertS <- FALSE
+      if(last(seq) > (last(sma) + (2*ssd)) || last(seq) < (last(sma) - (2*ssd)))  
+        alertS <- TRUE
+      
       if(!is.null(alertR))
         print(sprintf("%s %s: alertR %s", as.Date(endDate), symbol, alertR))
       
       if(!is.null(alertL))
         print(sprintf("%s %s: alertL %s", as.Date(endDate), symbol, alertL))
       
+      print(sprintf("%s %s: alertS %s", as.Date(endDate), symbol, alertS))
+      
       obj <- get(symbol)
       lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
       lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
       
-      if(!is.null(alertR))
+      if(!is.null(alertR) && !(symbol %in% alertSymbols))
       {
         alertSymbols <- c(alertSymbols, symbol)
       }
       
-      if(!is.null(alertL))
+      if(!is.null(alertL) && !(symbol %in% alertSymbols))
       {
         if((alertL == "down" && lsma < lst) || (alertL == "up" && lsma > lst))
           alertSymbols <- c(alertSymbols, symbol)
+      }
+      
+      if(alertS && !(symbol %in% alertSymbols))
+      {
+        alertSymbols <- c(alertSymbols, symbol)
       }
     }
     
@@ -224,5 +258,3 @@ while(fsmState != "end")
     }
   }
 }
-
-Rprof(NULL)
