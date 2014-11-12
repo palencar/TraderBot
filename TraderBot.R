@@ -215,7 +215,8 @@ while(fsmState != "end")
     if(stream == TRUE)
       print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
     
-    chartSymbols(alertSymbols, dev="png")
+    for(symbol in alertSymbols)
+      chartSymbols(alertSymbols, dev="png")
     
     if(stream == FALSE)
       fsmState <- "end"

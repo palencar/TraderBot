@@ -3,12 +3,13 @@ source("linReg.R")
 source("startProbe.R")
 source("orders.R")
 source("meanPrice.R")
+source("smaSD.R")
 
 chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "lriOrders", "meanPrice"))
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "smaSD", "lriOrders"))
 {
-  chartedSymbols <- foreach(i = 1:length(Symbols), .errorhandling="remove") %dopar%
-  #for(i in 1:length(Symbols))
+  #chartedSymbols <- foreach(i = 1:length(Symbols), .errorhandling="remove") %dopar%
+  for(i in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
     if(startDate == "")
@@ -52,6 +53,11 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       sma <- "addSMA(200)"
     else
       sma <- NULL
+
+    if("smaSD" %in% indicators)
+      smasd <- smaSD(SymbolName, 200)
+    else
+      smasd <- NULL
     
     if("vol" %in% indicators)
       vol <- "addVo()"
@@ -64,7 +70,7 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       lri <- NULL
     
     if("lriOrders" %in% indicators)
-      lriOrders <- getLinRegOrders(get(SymbolName)[sprintf("/%s", ed)], linearRegressionIndicator(SymbolName)[sprintf("/%s", ed)], threshold=1.2)
+      lriOrders <- getLinRegOrders(SymbolName, get(SymbolName)[sprintf("/%s", ed)], linearRegressionIndicator(SymbolName)[sprintf("/%s", ed)], threshold=1.2)
     else
       lriOrders <- NULL
     
@@ -94,14 +100,14 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
     }
     
     chartSeries(Symbol, name=SymbolName, subset=dateLimit,
-                TA=paste(c(polyRegs, sma, vol, posit, lri, lriOrders, mePrice), collapse="; "))
+                TA=paste(c(polyRegs, sma, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; "))
     
     if(dev == "png")
     {
       dev.off()
     }
-    
-    #SymbolName
+   
+    list <- ls(pattern=sprintf("*%s*", SymbolName))
+    rm(list = list[list != SymbolName], envir =  .GlobalEnv)
   }
-  #return(chartedSymbols)
 }

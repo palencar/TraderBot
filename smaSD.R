@@ -9,11 +9,11 @@ smaSD <- function(SymbolName, n=200)
   
   smaSd <- c()
   
-  objName <- sprintf("smaP2sd")
+  objName <- sprintf("smaP2sd%s", SymbolName)
   assign(objName, sma+(2*ssd), .GlobalEnv)
   smaSd <- c(smaSd, sprintf("addTA(%s, on=1, col=8)", objName))
   
-  objName <- sprintf("smaM2sd")
+  objName <- sprintf("smaM2sd%s", SymbolName)
   assign(objName, sma-(2*ssd), .GlobalEnv)
   smaSd <- c(smaSd, sprintf("addTA(%s, lwd=2, on=1, col=8)", objName, col))
   

@@ -1,7 +1,7 @@
 library("RcppEigen")
-library("multicore")
+library("parallel")
 library("foreach")
-library("doMC")
+library("parallel")
 
 
 polyRegression <- function (SymbolName, DateInterval, Period)

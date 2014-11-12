@@ -124,7 +124,7 @@ getLinRegIndicators <- function(SymbolName, n=c(50))
   return(lri)
 }
 
-getLinRegOrders <- function(symbol, lri, threshold=1.2)
+getLinRegOrders <- function(SymbolName, symbol, lri, threshold=1.2)
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -175,7 +175,7 @@ getLinRegOrders <- function(symbol, lri, threshold=1.2)
   
   for(i in 2:len)
   {
-    objName <- sprintf("lri_orders.p%d", i)
+    objName <- sprintf("lriOrders%s.p%d", SymbolName, i)
     
     if(r$values[i-1] == -1 && r$values[i] == 1)
     {
