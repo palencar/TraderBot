@@ -46,7 +46,6 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=50)
   
   if(fileExists)
   {
-    #print(sprintf("File: %s exists", fileName))
     lriFile <- readRDS(file=fileName)
     
     firstDate <- as.Date(xts::last(index(lriFile)))
@@ -145,26 +144,32 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=1.2)
     indexes[i] <- lastIndex
     nextIndex <- lastIndex + r$lengths[i]
     
-    if(r$values[i] == 1)
-    {
-      high <- as.double(lri[nextIndex])
-      low  <- as.double(lri[lastIndex])
-      
-      dif <- (high-low)/low
-    }
-    else if(r$values[i] == -1)
-    {
-      high <- as.double(lri[lastIndex])
-      low  <- as.double(lri[nextIndex])
-      
-      dif <- (low-high)/high
-    }
-    else
-    {
-      dif <= 0.0
-    }
+    tryCatch({
+      dif = Inf
+      if(r$values[i] == 1)
+      {
+        high <- as.double(lri[nextIndex])
+        low  <- as.double(lri[lastIndex])
+        
+        dif <- (high-low)/low
+      }
+      else if(r$values[i] == -1)
+      {
+        high <- as.double(lri[lastIndex])
+        low  <- as.double(lri[nextIndex])
+        
+        dif <- (low-high)/high
+      }
+      rdif[i] <- dif  
+    }, warning = function(war) {
+      print(war)
+      return(Inf)
+    }, error = function(err) {
+      print(err)
+      return(Inf)
+    }, finally={
+    })
     
-    rdif[i] <- dif
     lastIndex <- nextIndex
   }
   indexes[len] <- lastIndex

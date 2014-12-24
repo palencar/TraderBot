@@ -69,8 +69,27 @@ if(length(args) > 0)
       {
         print(symbol)
         
-        alertR <- computeRegressions(symbol, as.Date(dt), as.Date(dt))
-        alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
+        alertR = tryCatch({
+          computeRegressions(symbol, as.Date(dt), as.Date(dt))
+        }, warning = function(war) {
+          print(war)
+          return(NULL)
+        }, error = function(err) {
+          print(err)
+          return(NULL)
+        }, finally={
+        })    
+        
+        alertL = tryCatch({
+          filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(dt))], threshold=1.2)
+        }, warning = function(war) {
+          print(war)
+          return(NULL)
+        }, error = function(err) {
+          print(err)
+          return(NULL)
+        }, finally={
+        })
         
         obj <- get(symbol)
         seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
@@ -167,8 +186,27 @@ while(fsmState != "end")
     {
       print(symbol)
      
-      alertR <- computeRegressions(symbol, startDate, endDate)
-      alertL <- filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
+      alertR = tryCatch({
+        computeRegressions(symbol, startDate, endDate)
+      }, warning = function(war) {
+        print(war)
+        return(NULL)
+      }, error = function(err) {
+        print(err)
+        return(NULL)
+      }, finally={
+      })    
+
+      alertL = tryCatch({
+        filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
+      }, warning = function(war) {
+        print(war)
+        return(NULL)
+      }, error = function(err) {
+        print(err)
+        return(NULL)
+      }, finally={
+      })
       
       obj <- get(symbol)
       seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)

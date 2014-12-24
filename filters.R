@@ -42,10 +42,7 @@ turnPoints <- function(object, maxTpoints=8)
       tPoints[[i]] <- Tp
     }
   }
-  
-  #if(length(sigmas) < maxTpoints)
-  #  return(sigmas)
-  
+
   tp <- extract(turnpoints(tPoints), 100000, peak=0, pit=1)
   
   k <- 1
@@ -157,6 +154,11 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
       print(reg$name)
     }
     
+    if(changeRatio(reg) < 3.0) #3% a.m.
+    {
+      next
+    }
+    
     if(is.null(period))
     {
       dtrend <- revertTrend(treg, n=length(treg))
@@ -208,22 +210,18 @@ filterLRI <- function(lri, threshold=1.2)
     {
       high <- as.double(lri[nextIndex])
       low  <- as.double(lri[lastIndex])
-      
-      dif <- (high-low)/low
+      rdif[i] <- (high-low)/low
     }
     else if(r$values[i] == -1)
     {
       high <- as.double(lri[lastIndex])
-      low  <- as.double(lri[nextIndex])
-      
-      dif <- (low-high)/high
+      low  <- as.double(lri[nextIndex]) 
+      rdif[i] <- (low-high)/high
     }
     else
     {
-      dif <= 0.0
+      rdif[i] <- Inf
     }
-    
-    rdif[i] <- dif
     lastIndex <- nextIndex
   }
   
@@ -256,8 +254,14 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     return
   }
   
+  cacheFileName <- "backtest_dir/filter.rds"
+  filterMap <- new.env(hash=T, parent=emptyenv())
+  if(file.exists(cacheFileName))
+  {
+    filterMap <- readRDS(cacheFileName)
+  }
+  
   tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 2 year) order by date desc")[,1]
-  firstTradeDay <- last(tradeDays)
   
   symbols <- NULL
   k <- 0
@@ -265,7 +269,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
   badData <- NULL
   
   for(symbol in SymbolNames)
-  {
+  {  
     obj <- get(symbol)
     if(length(obj) < 60)
     {
@@ -283,47 +287,47 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     exclude <- FALSE
     lastError <- tradeDays[1]
     
-    if(length(obj[tradeDays[1]]) == 0)
+    goodDate <- NULL
+    if(!is.null(filterMap))
     {
-      print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[1]))
-      
-      badData <- c(badData, sprintf("%s %s", symbol, tradeDays[1]))
-      #getQuoteDay(symbol, tradeDays[1])
+      goodDate <- filterMap[[symbol]]
     }
     
     k <- 0
-    for(j in 2:length(tradeDays))
+    for(tradeDay in tradeDays)
     {
-      if(length(obj[tradeDays[j]]) == 0)
+      if(length(obj[tradeDay]) == 0)
       {
-        print(sprintf("Bad data on symbol %s[%s]", symbol, tradeDays[j]))
+        badData <- c(badData, sprintf("%s %s", symbol, tradeDay))
         
-        badData <- c(badData, sprintf("%s %s", symbol, tradeDays[j]))
-        #getQuoteDay(symbol, tradeDays[j])
-        
-        if(as.integer(as.Date(lastError) - as.Date(tradeDays[j])) < 2)
+        if(as.integer(as.Date(lastError) - as.Date(tradeDay)) < 2)
           k <- k + 1
         else
           k <- 0
         
-        lastError <- tradeDays[j]
+        lastError <- tradeDay
         
-        if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 10) && k >= 1)
+        if((as.integer(Sys.Date() - as.Date(tradeDay)) < 10) && k >= 1)
         {
           exclude <- TRUE 
         }
-        else if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 60) && k >= 2)
+        else if((as.integer(Sys.Date() - as.Date(tradeDay)) < 60) && k >= 2)
         {
           exclude <- TRUE
         }
-        else if((as.integer(Sys.Date() - as.Date(tradeDays[j])) < 120) && k >= 3)
+        else if((as.integer(Sys.Date() - as.Date(tradeDay)) < 120) && k >= 3)
         {
           exclude <- TRUE
         }
-        else if (k >= 4)
+        else if(k >= 4)
         {
           exclude <- TRUE
         }
+      }
+      else if(!is.null(goodDate) && as.Date(tradeDay) <= as.Date(goodDate))
+      {
+        print(sprintf("good data up to %s", as.Date(tradeDay)))
+        break
       }
     }
     
@@ -337,7 +341,10 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     }
     
     symbols <- c(symbols, symbol)
+    filterMap[[symbol]] <- as.Date(last(index(obj)))
   }
+  
+  saveRDS(filterMap, file=cacheFileName)
   
   return (symbols)
 }

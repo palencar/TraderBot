@@ -3,8 +3,8 @@ library('parallel')
 source('mysql_stocks.R')
 
 
-require(compiler)
-enableJIT(3)
+#require(compiler)
+#enableJIT(3)
 
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
@@ -103,6 +103,7 @@ getQuoteDay <- function(Symbol, Day)
 
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         originalName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
+    print(get(Symbol))
     
     getQuery(queryStr)
   }

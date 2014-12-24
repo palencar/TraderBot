@@ -26,12 +26,6 @@ polyRegression <- function (SymbolName, DateInterval, Period)
   
   yp <- predict.mlm(r)+mean(r$residuals)
   
-  #lastDay <- as.Date(xts::last(index(Symbol)))
-  #next10Day <- as.Date(lastDay + 10)
-  #dataextra<-data.frame(x=seq(lastDay,next10Day,1))
-  
-  #ep <- predict(lm(y~poly(x,2)),dataextra) 
-  
   yr <- xts(yp, as.Date(x))
   
   return(list(regression=yr, sigma=sd(r$residuals), name=SymbolName,
@@ -127,6 +121,16 @@ computeRegressions <- function(Symbol, StartDate, EndDate)
   return(lista)
 }
 
+changeRatio <- function(regIndicator)
+{
+  first <- as.Date(substr(regIndicator$interval, 1, 10))
+  last  <- as.Date(substr(regIndicator$interval, 13, 23))
+  
+  days <- as.integer(difftime(last, first))
+             
+  return(abs(as.double(first(regIndicator$regression)) - as.double(last(regIndicator$regression))) / (days/30))
+}
+
 getPolyRegs <- function(Symbol, endDate=NULL)
 {
   ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
@@ -149,7 +153,7 @@ getPolyRegs <- function(Symbol, endDate=NULL)
     {
       for(i in 1:(length(alertas)-1))
       {
-        if(as.Date(substr(name, 1, 10)) <= endDate)
+        if(as.Date(substr(name, 1, 10)) <= endDate && changeRatio(alertas[[i]]) > 3.0) #3% a.m.
         {
           objName <- sprintf("poly%s.p%d", Symbol, k)
           assign(objName, alertas[[i]]$regression, .GlobalEnv)

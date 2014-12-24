@@ -18,5 +18,5 @@ Symbols <- startProbe(symbolNames, FALSE)
 
 filterSymbols <- filterIncomplete(Symbols)
 
-for(symbol in Symbols)
-  chartSymbols(filterSymbols[i], dev="png")
+for(symbol in filterSymbols)
+  chartSymbols(symbol, dev="png")

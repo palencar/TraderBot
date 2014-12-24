@@ -8,7 +8,6 @@ source("smaSD.R")
 chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "smaSD", "lriOrders"))
 {
-  #chartedSymbols <- foreach(i = 1:length(Symbols), .errorhandling="remove") %dopar%
   for(i in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
