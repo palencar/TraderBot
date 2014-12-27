@@ -2,11 +2,7 @@ source("startProbe.R")
 source("filters.R")
 source("polyReg.R")
 source("chart.R")
-library(parallel)
-library(doParallel)
 
-cl <- makeCluster(detectCores())
-registerDoParallel(cl)
 
 stopdtime <- "18:20:00"
 fsmState <- "startProbe"
@@ -253,8 +249,7 @@ while(fsmState != "end")
     if(stream == TRUE)
       print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
     
-    for(symbol in alertSymbols)
-      chartSymbols(alertSymbols, dev="png")
+    chartSymbols(alertSymbols, dev="png")
     
     if(stream == FALSE)
       fsmState <- "end"

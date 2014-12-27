@@ -1,7 +1,5 @@
 library("RcppEigen")
-library("parallel")
 library("foreach")
-library("parallel")
 
 
 polyRegression <- function (SymbolName, DateInterval, Period)
@@ -22,9 +20,9 @@ polyRegression <- function (SymbolName, DateInterval, Period)
   
   x <- as.Date(index(Symbol))
 
-  r <- RcppEigen::fastLmPure(poly(x,2), y)
+  r <- RcppEigen::fastLm(poly(x,2), y)
   
-  yp <- predict.mlm(r)+mean(r$residuals)
+  yp <- predict(r)+mean(r$residuals)
   
   yr <- xts(yp, as.Date(x))
   
@@ -44,7 +42,7 @@ findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
     dt = as.Date(dateLimit)
   }
   
-  lista <- foreach (i = minDays:maxDays, .combine = rbind, .errorhandling="remove") %dopar%
+  lista <- foreach (i = minDays:maxDays, .combine = rbind, .errorhandling="remove") %do%
   { 
     list(polyRegression(SymbolName, sprintf("%s::%s", seq(dt, length=2, by=sprintf("-%d days", i))[2], dt), i))
   }
@@ -116,6 +114,11 @@ computeRegressions <- function(Symbol, StartDate, EndDate)
         }
       }
     }
+  }
+  
+  if(is.null(lista))
+  {
+    lista <- FALSE
   }
   
   return(lista)

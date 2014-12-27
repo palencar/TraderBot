@@ -205,7 +205,7 @@ filterLRI <- function(lri, threshold=1.2)
   for(i in 1:len)
   {
     nextIndex <- lastIndex + r$lengths[i]
-    
+    rdif[i] <- 0
     if(r$values[i] == 1)
     {
       high <- as.double(lri[nextIndex])
@@ -217,10 +217,6 @@ filterLRI <- function(lri, threshold=1.2)
       high <- as.double(lri[lastIndex])
       low  <- as.double(lri[nextIndex]) 
       rdif[i] <- (low-high)/high
-    }
-    else
-    {
-      rdif[i] <- Inf
     }
     lastIndex <- nextIndex
   }

@@ -33,8 +33,6 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .
     Symbols <- intersect(Symbols, fr$symbol)
   }
   
-  #select * from (select symbol, count(*) as cnt from stockprices where volume = 0 group by symbol) as volume where cnt > 100
-  
   for (i in 1:length(Symbols))
   {
     query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  Symbols[[i]], "' ORDER BY date", sep = "")

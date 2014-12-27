@@ -32,7 +32,7 @@ linearRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma))
 }
 
-linearRegressionIndicator <- function (SymbolName, window=720, n=50)
+linearRegressionIndicator <- function (SymbolName, window=720, n=30)
 {
   require(quantmod)
   
@@ -103,12 +103,17 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=50)
     xi <- xts(lri, index(dateInterval))
   }
 
+  xi<-xi[!duplicated(index(xi)),]
+  
   saveRDS(xi, file=fileName)
+  
+  xi <- DEMA(xi, n = 10)
+  xi <- xi[!is.na(xi),]
   
   return(xi)
 }
 
-getLinRegIndicators <- function(SymbolName, n=c(50))
+getLinRegIndicators <- function(SymbolName, n=c(30))
 {
   lri <- c()
     
@@ -145,22 +150,21 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=1.2)
     nextIndex <- lastIndex + r$lengths[i]
     
     tryCatch({
-      dif = Inf
+      rdif[i] <- 0
       if(r$values[i] == 1)
       {
         high <- as.double(lri[nextIndex])
         low  <- as.double(lri[lastIndex])
         
-        dif <- (high-low)/low
+        rdif[i] <- (high-low)/low
       }
       else if(r$values[i] == -1)
       {
         high <- as.double(lri[lastIndex])
         low  <- as.double(lri[nextIndex])
         
-        dif <- (low-high)/high
+        rdif[i] <- (low-high)/high
       }
-      rdif[i] <- dif  
     }, warning = function(war) {
       print(war)
       return(Inf)

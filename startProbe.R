@@ -1,10 +1,6 @@
 library('quantmod')
-library('parallel')
 source('mysql_stocks.R')
 
-
-#require(compiler)
-#enableJIT(3)
 
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {

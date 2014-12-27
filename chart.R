@@ -69,7 +69,7 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       lri <- NULL
     
     if("lriOrders" %in% indicators)
-      lriOrders <- getLinRegOrders(SymbolName, get(SymbolName)[sprintf("/%s", ed)], linearRegressionIndicator(SymbolName)[sprintf("/%s", ed)], threshold=1.2)
+      lriOrders <- getLinRegOrders(SymbolName, get(SymbolName)[sprintf("/%s", ed)], linearRegressionIndicator(SymbolName)[sprintf("/%s", ed)], threshold=0.6)
     else
       lriOrders <- NULL
     
