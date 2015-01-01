@@ -110,7 +110,8 @@ if(length(args) > 0)
         
         if(!is.null(alertR) && !(symbol %in% alertSymbols))
         {
-          alertSymbols <- c(alertSymbols, symbol)
+          if(alertR == symbol)
+            alertSymbols <- c(alertSymbols, symbol)
         }
         
         if(!is.null(alertL) && !(symbol %in% alertSymbols))
@@ -167,9 +168,7 @@ while(fsmState != "end")
     if(is.null(toFilter))
     {
       toFilter <- setdiff(AllSymbols, Symbols)
-      Rprof("filterIncomplete.out")
       accepted <- filterIncomplete(toFilter)
-      Rprof(NULL)
       Symbols <- union(accepted, Symbols)
     }
     
@@ -227,7 +226,8 @@ while(fsmState != "end")
       
       if(!is.null(alertR) && !(symbol %in% alertSymbols))
       {
-        alertSymbols <- c(alertSymbols, symbol)
+        if(alertR == symbol)
+          alertSymbols <- c(alertSymbols, symbol)
       }
       
       if(!is.null(alertL) && !(symbol %in% alertSymbols))
