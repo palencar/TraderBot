@@ -154,7 +154,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
       print(reg$name)
     }
     
-    if(changeRatio(reg) < 3.0) #3% a.m.
+    if(changeRatio(reg) < 1.5) #1.5% a.m.
     {
       next
     }
@@ -416,74 +416,74 @@ filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months"
   return(symbols)
 }
 
-filterObjectsSets <- function(Symbols, ChartDate)
+filterObjectsSets <- function(symbol, ChartDate)
 {
   k1 <- 10
   k2 <- 730
   
   k <- 1
-  symbolList <- c()
+  alerts <- c()
   
-  for(symbol in Symbols)
+  strOut <- sprintf("filterObjectsSets %s", symbol)
+  print(strOut)
+  
+  if(length(get(symbol)[ChartDate]) == 0)
   {
-    if(length(get(symbol)[ChartDate]) == 0)
-    {
-      next
-    }
-    
-    if(exists(sprintf("%s.regset", symbol)) == FALSE)
-    {
-      next
-    }
-    
-    regset <- get(sprintf("%s.regset", symbol), envir=.GlobalEnv)
-    
-    if(exists(sprintf("%s.regset", symbol), envir=.GlobalEnv) == TRUE)
-    {
-      rm(list=sprintf("%s.regset", symbol), envir=.GlobalEnv)
-    }
-    
-    if(length(regset) == 0)
-    {
-      next
-    }
-    
-    print(sprintf("filterRevert %s %d %d %s", symbol, k1, k2, ChartDate))
-    
-    alertas <- turnPoints(regset)
-    
-    trends <- c("r_up")
-    alertas_r_up <- filterRevert(alertas, trends, 3)
-    
-    if(length(alertas_r_up) > 0)
-    {
-      objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
-      
-      if((symbol %in% symbolList) == FALSE)
-      {
-        symbolList[k] <- symbol
-        k <- k+1
-      }
-      
-      saveRDS(alertas_r_up, file=objectName)
-    }
-    
-    trends <- c("r_down")
-    alertas_r_dow <- filterRevert(alertas, trends, 3)
-    
-    if(length(alertas_r_dow) > 0)
-    {
-      objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
-      
-      if((symbol %in% symbolList) == FALSE)
-      {
-        symbolList[k] <- symbol
-        k <- k+1
-      }
-      
-      saveRDS(alertas_r_dow, file=objectName)
-    }
+    next
   }
   
-  return(symbolList)
+  if(exists(sprintf("%s.regset", symbol)) == FALSE)
+  {
+    next
+  }
+  
+  regset <- get(sprintf("%s.regset", symbol), envir=.GlobalEnv)
+  
+  if(exists(sprintf("%s.regset", symbol), envir=.GlobalEnv) == TRUE)
+  {
+    rm(list=sprintf("%s.regset", symbol), envir=.GlobalEnv)
+  }
+  
+  if(length(regset) == 0)
+  {
+    next
+  }
+  
+  print(sprintf("filterRevert %s %d %d %s", symbol, k1, k2, ChartDate))
+  
+  alertas <- turnPoints(regset)
+  
+  trend <- c("r_up")
+  alertas_r_up <- filterRevert(alertas, trend, 3)
+  
+  if(length(alertas_r_up) > 0)
+  {
+    objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
+    
+    if((trend %in% alerts) == FALSE)
+    {
+      alerts[k] <- trend
+      k <- k+1
+    }
+    
+    saveRDS(alertas_r_up, file=objectName)
+  }
+  
+  trend <- c("r_down")
+  alertas_r_dow <- filterRevert(alertas, trend, 3)
+  
+  if(length(alertas_r_dow) > 0)
+  {
+    objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
+    
+    if((trend %in% alerts) == FALSE)
+    {
+      alerts[k] <- trend
+      k <- k+1
+    }
+    
+    saveRDS(alertas_r_dow, file=objectName)
+  }
+  
+  return(alerts)
 }

@@ -93,9 +93,15 @@ if(length(args) > 0)
         ssd <- sd(as.double(na.omit(seq-sma)))
         
         alertS <- FALSE
-        if(last(seq) > (last(sma) + (2*ssd)) || last(seq) < (last(sma) - (2*ssd)))  
-          alertS <- TRUE
+        seql = tail(seq, 2)
+        smal = tail(sma, 2)
+
+        if(seql[2] > (smal[2] + (2*ssd)) && seql[1] <= (smal[1] + (2*ssd)))  
+          alertS <- "upper"
         
+        if(seql[2] < (smal[2] - (2*ssd)) && seql[1] >= (smal[1] - (2*ssd)))  
+          alertS <- "lower"
+
         if(!is.null(alertR))
           print(sprintf("%s %s: alertR %s", as.Date(dt), symbol, alertR))
         
@@ -120,16 +126,21 @@ if(length(args) > 0)
             alertSymbols <- c(alertSymbols, symbol)
         }
         
-        if(alertS && !(symbol %in% alertSymbols))
+        if(alertS != FALSE && !(symbol %in% alertSymbols))
         {
           alertSymbols <- c(alertSymbols, symbol)
+        }
+
+        if(symbol %in% alertSymbols)
+        {
+          chartSymbols(symbol, dev="png")
         }
       }
     }
     
     if(is.null(alertSymbols) == FALSE)
     {
-      print(alertSymbols) 
+      print(alertSymbols)
     }
     
     quit()
@@ -209,8 +220,14 @@ while(fsmState != "end")
       ssd <- sd(as.double(na.omit(seq-sma)))
       
       alertS <- FALSE
-      if(last(seq) > (last(sma) + (2*ssd)) || last(seq) < (last(sma) - (2*ssd)))  
-        alertS <- TRUE
+      seql = tail(seq, 2)
+      smal = tail(sma, 2)
+      
+      if(seql[2] > (smal[2] + (2*ssd)) && seql[1] <= (smal[1] + (2*ssd)))  
+        alertS <- "upper"
+      
+      if(seql[2] < (smal[2] - (2*ssd)) && seql[1] >= (smal[1] - (2*ssd)))  
+        alertS <- "lower"
       
       if(!is.null(alertR))
         print(sprintf("%s %s: alertR %s", as.Date(endDate), symbol, alertR))
@@ -236,7 +253,7 @@ while(fsmState != "end")
           alertSymbols <- c(alertSymbols, symbol)
       }
       
-      if(alertS && !(symbol %in% alertSymbols))
+      if(alertS != FALSE && !(symbol %in% alertSymbols))
       {
         alertSymbols <- c(alertSymbols, symbol)
       }
@@ -269,7 +286,7 @@ while(fsmState != "end")
         imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
 
       wal <- wallet()
-      if(alertSymbols %in% wal)
+      if(length(intersect(alertSymbols,wal)) > 0)
         muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert W\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))
       else
         muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" pbalencar@yahoo.com %s", sprintf("Snapshot time: %s", startTime), paste(imgAttachmets, collapse=" "))

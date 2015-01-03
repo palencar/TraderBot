@@ -156,7 +156,7 @@ getPolyRegs <- function(Symbol, endDate=NULL)
     {
       for(i in 1:(length(alertas)-1))
       {
-        if(as.Date(substr(name, 1, 10)) <= endDate && changeRatio(alertas[[i]]) > 3.0) #3% a.m.
+        if(as.Date(substr(name, 1, 10)) <= endDate && changeRatio(alertas[[i]]) > 1.5) #1.5% a.m.
         {
           objName <- sprintf("poly%s.p%d", Symbol, k)
           assign(objName, alertas[[i]]$regression, .GlobalEnv)
