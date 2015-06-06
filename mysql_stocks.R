@@ -49,7 +49,7 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .
     assign(Symbols[[i]], fr, env)
   }
   
-  dbDisconnect(dbMysqlCon_)
+  #dbDisconnect(dbMysqlCon_)
   
   return(Symbols)
 }
@@ -62,7 +62,7 @@ getSymbolNamesMySQL <- function()
   #fr <- fetch(rs, n = -1)
   fr <- dbGetQuery(dbMysqlCon_, "SELECT distinct(symbol) from stockprices")
 
-  dbDisconnect(dbMysqlCon_)
+  #dbDisconnect(dbMysqlCon_)
   
   return(fr$symbol)
 }
@@ -80,9 +80,9 @@ getPositions <- function(symbol = NULL)
   #fr <- fetch(rs, n = -1)
   fr <- dbGetQuery(dbMysqlCon_, queryStr)
   
-  dbDisconnect(dbMysqlCon_)
+  #dbDisconnect(dbMysqlCon_)
   
-  return(fr[,1])
+  return(fr)
 }
 
 getWallet <- function() 
@@ -93,9 +93,9 @@ getWallet <- function()
   #fr <- fetch(rs, n = -1)
   fr <- dbGetQuery(dbMysqlCon_, "select distinct(symbol) from positions where closeVal is null")
   
-  dbDisconnect(dbMysqlCon_)
+  #dbDisconnect(dbMysqlCon_)
   
-  return(fr[,1])
+  return(fr)
 }
 
 getQuery <- function(queryStr = "") 
@@ -104,7 +104,7 @@ getQuery <- function(queryStr = "")
 
   fr <- dbGetQuery(dbMysqlCon_, queryStr)
   
-  dbDisconnect(dbMysqlCon_)
+  #dbDisconnect(dbMysqlCon_)
   
   return(fr)
 }

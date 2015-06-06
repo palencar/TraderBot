@@ -87,17 +87,16 @@ wallet <- function()
   return (wall)
 }
 
-getQuoteDay <- function(Symbol, Day)
+getQuoteDay <- function(SymbolName, Day)
 {
-  print(sprintf("getQuoteDay [%s][%s]", Symbol, Day))
+  print(sprintf("getQuoteDay [%s][%s]", SymbolName, Day))
   
   modes <- c('google', 'yahoo')
   
   for(mode in modes)
   {
-    originalName <- Symbol
     if(mode == 'google')
-      Symbol <- sprintf("BVMF:%s", unlist(strsplit(Symbol, "[.]"))[1])
+      Symbol <- sprintf("BVMF:%s", unlist(strsplit(SymbolName, "[.]"))[1])
     
     try(getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day)), silent=TRUE)
     if(exists(Symbol) == FALSE)
@@ -118,11 +117,12 @@ getQuoteDay <- function(Symbol, Day)
     names(table)[4]<-paste("day_close")
     names(table)[5]<-paste("volume")
     table["date"] <- as.Date(Day)
-    table["symbol"] <- originalName
+    table["symbol"] <- SymbolName
     table[6] <- NULL
 
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
-                        originalName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
+                        SymbolName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
+    
     print(get(Symbol))
     
     getQuery(queryStr)

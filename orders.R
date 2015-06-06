@@ -5,7 +5,7 @@ getOrders <- function(symbol, name)
 {
   pos <- positions(name)
   
-  if(length(pos) == 0)
+  if(length(pos[,1]) == 0)
   {
     return()
   }
