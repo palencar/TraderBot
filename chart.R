@@ -5,19 +5,19 @@ source("orders.R")
 source("meanPrice.R")
 source("smaSD.R")
 
-chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "sma", "lri", "smaSD", "lriOrders"))
+chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders"), timeFrame="daily")
 {
   for(i in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
-    if(startDate == "")
+    if(period == "")
     {
-      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-730 days")[2]
+      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-2 years")[2]
     }  
     else
     {
-      st <- startDate
+      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by=paste("-", period, sep = ""))[2]
     }
     
     if(dateLimit == "")
@@ -29,9 +29,12 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       ed <- dateLimit
     }
     
-    dateLimit <- sprintf("%s::%s", st, ed)
+    datePeriod <- sprintf("%s::%s", st, ed)
     
-    Symbol <- get(SymbolName)
+    if(timeFrame == "weekly")
+      Symbol <- to.weekly(get(SymbolName))
+    else
+      Symbol <- get(SymbolName)
     
     if(dev == "png")
     {
@@ -48,16 +51,11 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
     else
       polyRegs <- NULL
     
-    if("sma" %in% indicators)
-      sma <- "addSMA(200)"
-    else
-      sma <- NULL
-
     if("smaSD" %in% indicators)
       smasd <- smaSD(SymbolName, 200)
     else
       smasd <- NULL
-    
+        
     if("vol" %in% indicators)
       vol <- "addVo()"
     else
@@ -98,12 +96,16 @@ chartSymbols <- function(Symbols, startDate="", dateLimit="", xres=1900, yres=72
       mePrice <- NULL
     }
     
-    chartSeries(Symbol, name=SymbolName, subset=dateLimit,
-                TA=paste(c(polyRegs, sma, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; "))
+    chartSeries(Symbol, name=SymbolName, subset=datePeriod,
+                TA=paste(c(polyRegs, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; "))
     
     if(dev == "png")
     {
       dev.off()
+      
+      imagePath <- sprintf("chart-history/%s", symbol)
+      dir.create(imagePath, showWarnings=FALSE)
+      file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
     }
    
     list <- ls(pattern=sprintf("*%s*", SymbolName))

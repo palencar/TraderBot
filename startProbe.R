@@ -4,11 +4,35 @@ source('mysql_stocks.R')
 
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
-  if(update)
-    system("beancounter update today 2> /dev/null")
-
   if(is.null(symbolNames))
     symbolNames <- getSymbolNamesMySQL()
+  
+  if(update)
+  {
+    quotes = getQuote(symbolNames, what = yahooQuote.EOD)
+
+    for(i in 1:length(symbolNames))
+    {
+      if(is.na(quotes[i, 1]))
+        next
+      
+      table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
+      #table$Adjusted <- table[, 'Close']
+      
+      #if( (!is.na(table[2]) && !is.na(table[3]) && !is.na(table[4])) )
+      if(table[1] == "N/A")
+        table[1] <- table[3]
+      
+      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+                          symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
+                          as.double(table[1,5]))
+      #print(get(Symbol))
+ 
+      getQuery(queryStr)
+    }
+  }
+  
+  ##  system("beancounter update today 2> /dev/null")
   
   symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update, FilterAge=minAge)
   

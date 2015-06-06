@@ -88,7 +88,7 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
 computeRegressions <- function(Symbol, StartDate, EndDate)
 {
   k1 <- 10
-  k2 <- 730
+  k2 <- 200
   
   lista <- NULL
   

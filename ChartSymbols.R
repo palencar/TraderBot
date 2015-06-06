@@ -17,6 +17,20 @@ if(length(args_cmd) >= 1)
 Symbols <- startProbe(symbolNames, FALSE)
 
 filterSymbols <- filterIncomplete(Symbols)
+#filterSymbols <- Symbols 
 
 for(symbol in filterSymbols)
+{
   chartSymbols(symbol, dev="png")
+  
+  tryCatch({
+    chartSymbols(Symbols=symbol, period="5 years", timeFrame = "weekly", dev = "png", path = "chart-weekly/")
+  }, warning = function(war) {
+    print(war)
+    return(NULL)
+  }, error = function(err) {
+    print(err)
+    return(NULL)
+  }, finally={
+  })
+}
