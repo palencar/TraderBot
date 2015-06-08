@@ -36,7 +36,7 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=30)
 {
   require(quantmod)
   
-  fileName <- sprintf("backtest_dir/%s_%d_lri.rds", SymbolName, n)
+  fileName <- sprintf("data/%s_%d_lri.rds", SymbolName, n)
   
   Symbol <- get(SymbolName)
   

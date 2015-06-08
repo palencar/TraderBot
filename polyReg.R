@@ -137,7 +137,7 @@ changeRatio <- function(regIndicator)
 getPolyRegs <- function(Symbol, endDate=NULL)
 {
   ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
-  objFiles <- list.files("backtest_dir", pattern=ptrnStr)
+  objFiles <- list.files("data", pattern=ptrnStr)
   
   print(Symbol)
 
@@ -149,7 +149,7 @@ getPolyRegs <- function(Symbol, endDate=NULL)
   
   for(name in objFiles)
   {
-    fileName <- sprintf("backtest_dir/%s", name)
+    fileName <- sprintf("data/%s", name)
     alertas <- readRDS(file=fileName)
     
     if(length(alertas) > 0)

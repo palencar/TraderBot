@@ -250,7 +250,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     return
   }
   
-  cacheFileName <- "backtest_dir/filter.rds"
+  cacheFileName <- "data/filter.rds"
   filterMap <- new.env(hash=T, parent=emptyenv())
   if(file.exists(cacheFileName))
   {
@@ -458,7 +458,7 @@ filterObjectsSets <- function(symbol, ChartDate)
   
   if(length(alertas_r_up) > 0)
   {
-    objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
+    objectName <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
     
     if((trend %in% alerts) == FALSE)
     {
@@ -474,7 +474,7 @@ filterObjectsSets <- function(symbol, ChartDate)
   
   if(length(alertas_r_dow) > 0)
   {
-    objectName <- sprintf("backtest_dir/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
+    objectName <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
     
     if((trend %in% alerts) == FALSE)
     {
