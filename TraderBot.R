@@ -55,6 +55,7 @@ if(length(args) > 0)
       Symbols <- AllSymbols
     }
     
+    Symbols <- filterVolume(Symbols)
     Symbols <- filterIncomplete(Symbols)
     
     alertSymbols <- NULL
@@ -179,6 +180,7 @@ while(fsmState != "end")
     if(is.null(toFilter))
     {
       toFilter <- setdiff(AllSymbols, Symbols)
+      toFilter <- filterVolume(toFilter)
       accepted <- filterIncomplete(toFilter)
       Symbols <- union(accepted, Symbols)
     }
@@ -305,7 +307,8 @@ while(fsmState != "end")
     if(stream == TRUE)
       print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
     
-    chartSymbols(alertSymbols, dev="png")
+    if(length(alertSymbols) > 0)
+      chartSymbols(alertSymbols, dev="png")
     
     if(stream == FALSE)
       fsmState <- "end"

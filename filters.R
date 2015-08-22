@@ -381,7 +381,7 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
   return(symbols)
 }
 
-filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months")
+filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
 {
   if(dateLimit == "")
   {
@@ -398,19 +398,38 @@ filterVolume <- function(SymbolNames, volume=10000, dateLimit="", age="6 months"
   
   symbols <- c()
   
-  i <- 1
   for(symb in SymbolNames)
   {
     period <- sprintf("%s::%s", ds[2], ds[1])
     
-    if(length(get(symb)[period]) > 0)
+    obj <- (get(symb)[period])
+    
+    vol <- as.double(Vo(obj))
+    
+    if(length(vol) < 90)
     {
-      print(period)
-      print(symb)
-      
-      symbols[i] <- symb
-      i <- i+1
+      print(sprintf("excluding %s length(vol) < 90", symb))
+      next
     }
+    #print(vol)
+    meanVol <- as.double(mean(vol))
+    maxVol <- as.double(max(vol))
+    
+    if(is.null(meanVol) || !is.numeric(meanVol) || is.null(maxVol) || !is.numeric(maxVol))
+      next
+    
+    if(meanVol < 50000)
+    {
+      print(sprintf("excluding %s meanVol: %s < 50000", symb, meanVol))
+      next  
+    }
+    #if(meanVol/maxVol < 0.10)
+    #{
+    #  print(sprintf("excluding %s meanVol/maxVol: %s < 0.10", symb, meanVol/maxVol, meanVol))
+    #  next
+    #}
+    
+    symbols <- c(symbols, symb)
   }
   
   return(symbols)

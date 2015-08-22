@@ -16,6 +16,7 @@ if(length(args_cmd) >= 1)
 
 Symbols <- startProbe(symbolNames, FALSE)
 
+#Symbols <- filterVolume(Symbols)
 filterSymbols <- filterIncomplete(Symbols)
 #filterSymbols <- Symbols 
 
