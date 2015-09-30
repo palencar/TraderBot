@@ -154,7 +154,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
       print(reg$name)
     }
     
-    if(changeRatio(reg) < 1.5) #1.5% a.m.
+    if(is.null(reg) || changeRatio(reg) < 1.5) #1.5% a.m.
     {
       next
     }
@@ -418,11 +418,12 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
     if(is.null(meanVol) || !is.numeric(meanVol) || is.null(maxVol) || !is.numeric(maxVol))
       next
     
-    if(meanVol < 50000)
-    {
-      print(sprintf("excluding %s meanVol: %s < 50000", symb, meanVol))
-      next  
-    }
+    #if(meanVol < 50000)
+    #{
+    #  print(sprintf("excluding %s meanVol: %s < 50000", symb, meanVol))
+    #  next  
+    #}
+    
     #if(meanVol/maxVol < 0.10)
     #{
     #  print(sprintf("excluding %s meanVol/maxVol: %s < 0.10", symb, meanVol/maxVol, meanVol))
@@ -442,9 +443,6 @@ filterObjectsSets <- function(symbol, ChartDate)
   
   k <- 1
   alerts <- c()
-  
-  strOut <- sprintf("filterObjectsSets %s", symbol)
-  print(strOut)
   
   if(length(get(symbol)[ChartDate]) == 0)
   {
@@ -467,8 +465,6 @@ filterObjectsSets <- function(symbol, ChartDate)
   {
     next
   }
-  
-  print(sprintf("filterRevert %s %d %d %s", symbol, k1, k2, ChartDate))
   
   alertas <- turnPoints(regset)
   
