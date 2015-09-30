@@ -46,112 +46,23 @@ computeStream <- function(Symbols)
       alertSymbols <- NULL
       alertLog <- NULL
       
+      dt <- endDate
+      
       for(symbol in Symbols)
       {
         print(symbol)
         
-        alertR = tryCatch({
-          computeRegressions(symbol, startDate, endDate)
-        }, warning = function(war) {
-          print(war)
-          return(NULL)
-        }, error = function(err) {
-          print(err)
-          return(NULL)
-        }, finally={
-        })    
+        decision <- trade(symbol, dt)
         
-        alertL = tryCatch({
-          filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", endDate)], threshold=1.2)
-        }, warning = function(war) {
-          print(war)
-          return(NULL)
-        }, error = function(err) {
-          print(err)
-          return(NULL)
-        }, finally={
-        })
-        
-        obj <- get(symbol)
-        seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
-        sma <- SMA(seq, n=200)
-        ssd <- sd(as.double(na.omit(seq-sma)))
-        
-        alertS <- FALSE
-        seql = tail(seq, 2)
-        smal = tail(sma, 2)
-        
-        if(seql[2] > (smal[2] + (2*ssd)) && seql[1] <= (smal[1] + (2*ssd)))  
-          alertS <- "upper"
-        
-        if(seql[2] < (smal[2] - (2*ssd)) && seql[1] >= (smal[1] - (2*ssd)))  
-          alertS <- "lower"
-        
-        #TODO utilizar valor Hi e Lo em vez da media
-        sdp <- (seql[2]-smal[2])/ssd
-        
-        alertA <- FALSE
-        alertB <- FALSE
-        #TODO utilizar valor Hi e Lo em vez da media
-        objOHLC <- obj[paste(rev(seq(as.Date(endDate), length=2, by="-4 years")),collapse = "::")]
-        objLen <- length(index(objOHLC))
-        totAb <- length(which(Hi(objOHLC) > as.double(Hi(tail(obj, 1)))))
-        totBl <- length(which(Lo(objOHLC) < as.double(Lo(tail(obj, 1)))))
-        
-        if((totAb/objLen) < 0.1)  #10%
-          alertA <- totAb/objLen
-        
-        if((totBl/objLen) < 0.1)  #10%
-          alertB <- totBl/objLen
-        
-        if(!is.null(alertR))
-          print(sprintf("%s %s: alertR %s", as.Date(endDate), symbol, alertR))
-        
-        if(!is.null(alertL))
-          print(sprintf("%s %s: alertL %s", as.Date(endDate), symbol, alertL))
-        
-        print(sprintf("%s %s: alertS %s", as.Date(endDate), symbol, alertS))
-        
-        if(alertA != FALSE)
-          print(sprintf("%s %s: alertA %s", as.Date(endDate), symbol, alertA))
-        
-        if(alertB != FALSE)
-          print(sprintf("%s %s: alertB %s", as.Date(endDate), symbol, alertB))
-        
-        logLine <- paste(as.Date(endDate), paste(as.double(tail(obj, 1)), collapse = " "), alertR, alertL, alertS, alertA, alertB, sdp)
-        logFile <- paste("training/",symbol,".log", sep = "")
-        cat(logLine, file=logFile, sep = "\n", append=TRUE)
-        
-        #TODO armazenar os alertas para cada simbolo no dia
-        #TODO enviar por email a descricao dos alertas
-        
-        obj <- get(symbol)
-        lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
-        lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
-        
-        if(!is.null(alertR) && alertR != FALSE && !(symbol %in% alertSymbols))
+        if(decision != "hold")
         {
           alertSymbols <- c(alertSymbols, symbol)
-        }
-        
-        if(!is.null(alertL) && alertL != FALSE && !(symbol %in% alertSymbols))
-        {
-          if((alertL == "down" && lsma < lst) || (alertL == "up" && lsma > lst))
-            alertSymbols <- c(alertSymbols, symbol)
-        }
-        
-        if(alertS != FALSE && !(symbol %in% alertSymbols))
-        {
-          alertSymbols <- c(alertSymbols, symbol)
-        }
-        
-        #if((alertA != FALSE || alertB != FALSE) && !(symbol %in% alertSymbols))
-        #{
-        #  alertSymbols <- c(alertSymbols, symbol)
-        #}
-        if(symbol %in% alertSymbols)
-        {
-          alertLog <- paste(alertLog, paste(symbol, logLine, collapse = " "), sep = "\n")
+          
+          price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(dt)]))/3)
+          logLine <- paste(symbol, as.Date(dt), decision, price, collapse = " ")
+          logFile <- paste("training/",symbol,".log", sep = "")
+          cat(logLine, file=logFile, sep = "\n", append=TRUE)
+          alertLog <- paste(alertLog, logLine, sep = "\n")
         }
       }
       
