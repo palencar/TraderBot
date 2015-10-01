@@ -103,7 +103,7 @@ chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, 
     {
       dev.off()
       
-      imagePath <- sprintf("chart-history/%s", symbol)
+      imagePath <- sprintf("chart-history/%s", SymbolName)
       dir.create(imagePath, showWarnings=FALSE)
       file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
     }

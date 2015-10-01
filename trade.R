@@ -87,7 +87,7 @@ trade <- function(symbol, tradeDate)
       decision <- "buy"
     }
     
-    if(alertR == "r_down" && sdp > 1.0) #reversao "para baixo" e acima de 1x o desvio padrao
+    if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
       decision <- "sell"
     }
@@ -100,7 +100,7 @@ trade <- function(symbol, tradeDate)
       decision <- "buy"
     }
     
-    if(alertL == "down" && sdp > 1.0) #reversao "para baixo" e acima de 1x o desvio padrao
+    if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
       decision <- "sell"
     }
