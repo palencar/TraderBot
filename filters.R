@@ -139,14 +139,11 @@ revertTrend <- function(TimeSeries, n=3)
 
 filterRevert <- function(Regressions, trend=NULL, period=NULL)
 {
-  j <- 1
-  lista <- c()
-  names <- c()
+  lista <- NULL
+  names <- NULL
   
-  for(i in 1:length(Regressions))
+  for(reg in Regressions)
   {
-    reg <- Regressions[[i]]
-    
     treg <- reg$regression
     if(length(treg) == 0)
     {
@@ -170,15 +167,17 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
     
     if(dtrend %in% trend)
     {
-      lista[[j]] <- reg
-      names[[j]] <- reg$name
-      lista[[j]]$trend <- dtrend
-      
-      j <- j + 1 
+      regr <- reg
+      regr$trend <- dtrend
+      lista <- c(lista, regr)
+      names <- c(names, reg$name)
     }
   }
   
-  lista$names <- names
+  if(is.null(lista) == FALSE)
+  {
+    lista$names <- names
+  }
   
   return(lista)
 }

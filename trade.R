@@ -2,6 +2,8 @@ trade <- function(symbol, tradeDate)
 {
   decision <- "hold"
   
+  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
+  
   alertR = tryCatch({
     computeRegressions(symbol, as.Date(tradeDate), as.Date(tradeDate))
   }, warning = function(war) {
@@ -14,7 +16,7 @@ trade <- function(symbol, tradeDate)
   })    
   
   alertL = tryCatch({
-    filterLRI(linearRegressionIndicator(symbol)[sprintf("/%s", as.Date(tradeDate))], threshold=1.2)
+    filterLRI(linearRegressionIndicator(symbol)[period], threshold=1.2)
   }, warning = function(war) {
     print(war)
     return(NULL)
@@ -24,7 +26,7 @@ trade <- function(symbol, tradeDate)
   }, finally={
   })
   
-  obj <- get(symbol)[sprintf("/%s", as.Date(tradeDate))]
+  obj <- get(symbol)[period]
   seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
   sma <- SMA(seq, n=200)
   ssd <- sd(as.double(na.omit(seq-sma)))
@@ -41,16 +43,14 @@ trade <- function(symbol, tradeDate)
   if(seql[2] < (smal[2] - (2*ssd)) && seql[1] >= (smal[1] - (2*ssd)))  
     alertS <- "lower"
   
-  #TODO utilizar valor Hi e Lo em vez da media
   sdp <- (seql[2]-smal[2])/ssd
   
   alertA <- FALSE
   alertB <- FALSE
-  #TODO utilizar valor Hi e Lo em vez da media
-  objOHLC <- obj[paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")]
-  objLen <- length(index(objOHLC))
-  totAb <- length(which(Hi(objOHLC) > as.double(Hi(tail(obj, 1)))))
-  totBl <- length(which(Lo(objOHLC) < as.double(Lo(tail(obj, 1)))))
+
+  objLen <- length(index(obj))
+  totAb <- length(which(Hi(obj) > as.double(Hi(tail(obj, 1)))))
+  totBl <- length(which(Lo(obj) < as.double(Lo(tail(obj, 1)))))
   
   if((totAb/objLen) < 0.1)  #Valor nos 10% superiores
     alertA <- totAb/objLen
@@ -58,25 +58,7 @@ trade <- function(symbol, tradeDate)
   if((totBl/objLen) < 0.1)  #Valor nos 10% inferiores
     alertB <- totBl/objLen
   
-  #if(!is.null(alertR))
-  #  print(sprintf("%s %s: alertR %s", as.Date(tradeDate), symbol, alertR))
-  
-  #if(!is.null(alertL))
-  #  print(sprintf("%s %s: alertL %s", as.Date(tradeDate), symbol, alertL))
-  
-  #print(sprintf("%s %s: alertS %s", as.Date(tradeDate), symbol, alertS))
-  
-  #if(alertA != FALSE)
-  #  print(sprintf("%s %s: alertA %s", as.Date(tradeDate), symbol, alertA))
-  
-  #if(alertB != FALSE)
-  #  print(sprintf("%s %s: alertB %s", as.Date(tradeDate), symbol, alertB))
-  
-  #logLine <- paste(as.Date(tradeDate), paste(as.double(tail(obj, 1)), collapse = " "), alertR, alertL, alertS, alertA, alertB, sdp)
-  #logFile <- paste("training/",symbol,".log", sep = "")
-  #cat(logLine, file=logFile, sep = "\n", append=TRUE)
-  
-  obj <- get(symbol)
+  #obj <- get(symbol)
   lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
   lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
   

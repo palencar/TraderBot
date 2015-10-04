@@ -98,9 +98,6 @@ computeRegressions <- function(Symbol, StartDate, EndDate)
     
     if(length(get(Symbol)[chartDate]) > 0)
     {
-      #strOut <- sprintf("findCurves %s %d %d %s", Symbol, k1, k2, chartDate)
-      #print(strOut)
-      
       alertas <- findCurves(Symbol, k1, k2, dateLimit=chartDate)
       
       if(length(alertas) > 0)

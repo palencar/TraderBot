@@ -11,12 +11,26 @@ symbolNames <- NULL
 
 if(length(args_cmd) >= 1)
 {
-  symbolNames <- args_cmd
+  if(args_cmd[1] == "wallet")
+    symbolNames <- wallet()
+  else if(args_cmd[1] == "alerts")
+  {
+    alerts <- NULL
+    alertsFile <- "data/alerts.rds"
+
+    if(file.exists(alertsFile))
+      alerts <- readRDS(alertsFile)
+
+    symbolNames <- alerts
+  }
+  else
+    symbolNames <- args_cmd
 }
+
 
 Symbols <- startProbe(symbolNames, FALSE)
 
-#Symbols <- filterVolume(Symbols)
+Symbols <- filterVolume(Symbols)
 filterSymbols <- filterIncomplete(Symbols)
 #filterSymbols <- Symbols 
 
