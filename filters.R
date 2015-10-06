@@ -141,6 +141,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
 {
   lista <- NULL
   names <- NULL
+  k <- 1
   
   for(reg in Regressions)
   {
@@ -148,6 +149,12 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
     if(length(treg) == 0)
     {
       print("zero")
+      print(reg$name)
+    }
+    
+    if(length(reg$interval) == 0)
+    {
+      print("nulo")
       print(reg$name)
     }
     
@@ -167,9 +174,9 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
     
     if(dtrend %in% trend)
     {
-      regr <- reg
-      regr$trend <- dtrend
-      lista <- c(lista, regr)
+      reg$trend <- dtrend
+      lista[[k]] <- reg
+      k <- k+1
       names <- c(names, reg$name)
     }
   }
@@ -440,8 +447,7 @@ filterObjectsSets <- function(symbol, ChartDate)
   k1 <- 10
   k2 <- 730
   
-  k <- 1
-  alerts <- c()
+  alerts <- NULL
   
   if(length(get(symbol)[ChartDate]) == 0)
   {
@@ -476,8 +482,7 @@ filterObjectsSets <- function(symbol, ChartDate)
     
     if((trend %in% alerts) == FALSE)
     {
-      alerts[k] <- trend
-      k <- k+1
+      alerts <- c(alerts, trend)
     }
     
     saveRDS(alertas_r_up, file=objectName)
@@ -492,8 +497,7 @@ filterObjectsSets <- function(symbol, ChartDate)
     
     if((trend %in% alerts) == FALSE)
     {
-      alerts[k] <- trend
-      k <- k+1
+      alerts <- c(alerts, trend)
     }
     
     saveRDS(alertas_r_dow, file=objectName)

@@ -65,8 +65,9 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   }
   
   for(i in minDays:maxDays)
-  {  
-    lista <- polyRegression(SymbolName, sprintf("%s::%s", seq(dt, length=2, by=sprintf("-%d days", i))[2], dt), i)    
+  {
+    dateInterval <- sprintf("%s::%s", seq(dt, length=2, by=sprintf("-%d days", i))[2], dt)
+    lista <- polyRegression(SymbolName, dateInterval, i)
     if(lista$sigma < minSigmaValue)
     {
       minSigmaPeriod <- i
