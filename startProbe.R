@@ -108,8 +108,6 @@ getQuoteDay <- function(SymbolName, Day)
          as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
       return(NULL)
     
-    print(get(Symbol))
-    
     table <- as.data.frame(get(Symbol))
     names(table)[1]<-paste("day_open")
     names(table)[2]<-paste("day_high")

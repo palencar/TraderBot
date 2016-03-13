@@ -5,9 +5,11 @@ getMeanPrice <- function(Symbol, SymbolName)
   mePrice <- meanPrice(SymbolName)
   
   if(is.na(mePrice))
-    return(null)
+    return(NULL)
     
   mPrice = xts(rep(mePrice,length(index(Symbol))), index(Symbol))
+  
+  assign("mPrice", mPrice, .GlobalEnv)
   
   col <- 3
   if(as.double(last(Cl(Symbol))) < mePrice)

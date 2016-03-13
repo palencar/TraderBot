@@ -263,7 +263,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     filterMap <- readRDS(cacheFileName)
   }
   
-  tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 5 year) order by date desc")[,1]
+  tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 1 year) order by date desc")[,1]
   
   symbols <- NULL
   k <- 0

@@ -96,3 +96,9 @@ trade <- function(symbol, tradeDate)
   
   return(decision)
 }
+
+
+#
+# Profit = (Money Obtained/Seed Money)^(364/d) - 1
+#
+#

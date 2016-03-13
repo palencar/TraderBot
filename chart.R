@@ -6,7 +6,7 @@ source("meanPrice.R")
 source("smaSD.R")
 
 chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders"), timeFrame="daily")
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily")
 {
   for(i in 1:length(Symbols))
   { 

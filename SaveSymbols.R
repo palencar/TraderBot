@@ -4,14 +4,20 @@ library('RMySQL')
 
 args_cmd <- commandArgs(trailingOnly=TRUE)                                                                                                                                                                                                   
 
-symbols <- getSymbolNamesMySQL(user = 'paulo', dbname = 'beancounter') 
+#symbols <- getSymbolNamesMySQL() 
 
-con <- dbConnect(MySQL(), user = "paulo", dbname = "beancounter")
+con <- dbConnect(MySQL(), default.file='mysql.config', db="beancounter")
 
 mode = 'yahoo'
 
-if(length(args_cmd) >= 1)
-  mode <- args_cmd[1]
+if(length(args_cmd) < 2)
+{
+  print("Use [google|yahoo] symbol")
+  quit()
+}
+
+mode <- args_cmd[1]
+symbols <- tail(args, n=(length(args)-1))
 
 for(i in symbols)
 {
@@ -30,9 +36,9 @@ for(i in symbols)
   table["symbol"] <- i
   table[6] <- NULL
   
-  dbWriteTable(con, name = "stockprices", table, append = T, row.names = F)
-  Sys.sleep(10)
-  #print(get(i))
+  #dbWriteTable(con, name = "stockprices", table, append = T, row.names = F)
+  #Sys.sleep(10)
+  print(get(i))
 }
 
 dbDisconnect(con)

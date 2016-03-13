@@ -37,7 +37,7 @@ getOrders <- function(symbol, name)
     xNew = xts(rep(NA,length(index(symbol[period]))), index(symbol[period]))
     
     if(firstVal == 0)
-      xNew[time(firstReg)] <- as.double((Hi(firstReg)+Lo(firstReg)+Cl(firstReg))/3)
+      xNew[time(firstReg)] <- as.double(Cl(firstReg))
     else
       xNew[time(firstReg)] <- firstVal
     
@@ -47,7 +47,7 @@ getOrders <- function(symbol, name)
     }
     else
     {
-      xNew[time(lastReg)] <- as.double((Hi(lastReg)+Lo(lastReg)+Cl(lastReg))/3)
+      xNew[time(lastReg)] <- as.double(Cl(lastReg))
     }
     
     if(as.double(xNew[time(firstReg)]) < as.double(xNew[time(lastReg)]))
