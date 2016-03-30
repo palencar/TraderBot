@@ -51,7 +51,7 @@ if(length(args) > 0)
     Symbols <- filterVolume(Symbols)
     Symbols <- filterIncomplete(Symbols)
     
-    computeBacktest(Symbols, startDate, endDate)
+    computeBacktest(Symbols, startDate, endDate, TRUE)
   }
 }
 

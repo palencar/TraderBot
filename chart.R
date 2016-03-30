@@ -5,22 +5,14 @@ source("orders.R")
 source("meanPrice.R")
 source("smaSD.R")
 
-chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily")
 {
   for(i in 1:length(Symbols))
   { 
     SymbolName <- Symbols[i]
-    if(period == "")
-    {
-      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by="-2 years")[2]
-    }  
-    else
-    {
-      st <- seq(as.Date(format(Sys.time(), "%Y-%m-%d")), length=2, by=paste("-", period, sep = ""))[2]
-    }
-    
-    if(dateLimit == "")
+
+    if(is.null(dateLimit))
     {
       ed <- format(Sys.time(), "%Y-%m-%d")
     }
@@ -28,13 +20,22 @@ chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, 
     {
       ed <- dateLimit
     }
-    
+
+    if(is.null(period))
+    {
+      st <- seq(as.Date(ed), length=2, by="-2 years")[2]
+    }  
+    else
+    {
+      st <- seq(as.Date(ed), length=2, by=paste("-", period, sep = ""))[2]
+    }
+
     datePeriod <- sprintf("%s::%s", st, ed)
     
     if(timeFrame == "weekly")
-      Symbol <- to.weekly(get(SymbolName))
+      Symbol <- to.weekly(get(SymbolName)[datePeriod])
     else
-      Symbol <- get(SymbolName)
+      Symbol <- get(SymbolName)[datePeriod]
     
     if(dev == "png")
     {
@@ -62,12 +63,12 @@ chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, 
       vol <- NULL
     
     if("lri" %in% indicators)
-      lri <- getLinRegIndicators(SymbolName)
+      lri <- getLinRegIndicators(SymbolName, Symbol)
     else
       lri <- NULL
-    
+  
     if("lriOrders" %in% indicators)
-      lriOrders <- getLinRegOrders(SymbolName, get(SymbolName)[sprintf("/%s", ed)], linearRegressionIndicator(SymbolName)[sprintf("/%s", ed)], threshold=0.6)
+      lriOrders <- getLinRegOrders(SymbolName, Symbol, linearRegressionIndicator(SymbolName, Symbol))
     else
       lriOrders <- NULL
     
@@ -75,7 +76,7 @@ chartSymbols <- function(Symbols, period="", dateLimit="", xres=1900, yres=720, 
     {
       if(is.null(Posit) == TRUE)
       {
-        posit <- getOrders(Symbol, SymbolName)
+        posit <- getOrders(SymbolName)
       }
       else
       {

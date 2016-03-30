@@ -1,9 +1,10 @@
 source("startProbe.R")
 
 
-getOrders <- function(symbol, name)
+getOrders <- function(name)
 {
   pos <- positions(name)
+  symbol <- get(name)
   
   if(length(pos[,1]) == 0)
   {

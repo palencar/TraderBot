@@ -19,6 +19,8 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       
       if(decision != "hold")
       {
+        print(paste(symbol, as.Date(dt), decision))
+        
         if(symbol %in% alertSymbols == FALSE)
         {
           alertSymbols <- c(alertSymbols, symbol)
@@ -28,16 +30,13 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
         logLine <- paste(symbol, as.Date(dt), decision, price, collapse = " ")
         logFile <- paste("training/",symbol,".log", sep = "")
         cat(logLine, file=logFile, sep = "\n", append=TRUE)
-      }
-      
-      if(printCharts)
-      {
-        #TODO imprimir aqui levando em consideracao as decisoes previas de buy/hold/sell (ordens "virtuais")
+        cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)
+        system(cmdLine)
         
-        #TODO mover sabosta
-        #imagePath <- sprintf("chart-history/%s", symbolName)
-        #dir.create(imagePath, showWarnings=FALSE)
-        #chartSymbols(symbolName, startDate=startChart, dateLimit=endChart, dev="png", path=imagePath, suffix=sprintf(format(as.Date(dt), "%Y-%m-%d")))
+        if(printCharts)
+        {
+          chartSymbols(symbol, dateLimit=as.Date(dt), dev="png")
+        }
       }
     }
   }

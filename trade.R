@@ -16,7 +16,7 @@ trade <- function(symbol, tradeDate)
   })    
   
   alertL = tryCatch({
-    filterLRI(linearRegressionIndicator(symbol)[period], threshold=1.2)
+    filterLRI(linearRegressionIndicator(symbol, get(symbol)[period]))
   }, warning = function(war) {
     print(war)
     return(NULL)
@@ -58,7 +58,6 @@ trade <- function(symbol, tradeDate)
   if((totBl/objLen) < 0.1)  #Valor nos 10% inferiores
     alertB <- totBl/objLen
   
-  #obj <- get(symbol)
   lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
   lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
   

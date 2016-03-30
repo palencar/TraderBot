@@ -62,6 +62,8 @@ computeStream <- function(Symbols)
           logLine <- paste(symbol, as.Date(dt), decision, price, collapse = " ")
           logFile <- paste("training/",symbol,".log", sep = "")
           cat(logLine, file=logFile, sep = "\n", append=TRUE)
+          cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)
+          system(cmdLine)
           alertLog <- paste(alertLog, logLine, sep = "\n")
         }
       }
@@ -81,16 +83,12 @@ computeStream <- function(Symbols)
     }
     else if(fsmState == "chartAlerts")
     {
-      if(stream == TRUE)
-        print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
+      print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
       
       if(length(alertSymbols) > 0)
         chartSymbols(alertSymbols, dev="png")
       
-      if(stream == FALSE)
-        fsmState <- "end"
-      else
-        fsmState <- "sendMail"
+      fsmState <- "sendMail"
       
       dtime <- format(Sys.time(), "%H:%M:%S")
       
@@ -113,7 +111,10 @@ computeStream <- function(Symbols)
         cmdOut <- system(muttCmd, intern=TRUE, ignore.stderr=TRUE)
       }
       
-      fsmState <- "startProbe"
+      if(stream == FALSE)
+        fsmState <- "end"
+      else
+        fsmState <- "startProbe"
     }
     else if(fsmState == "end")
     {

@@ -32,13 +32,11 @@ linearRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma))
 }
 
-linearRegressionIndicator <- function (SymbolName, window=720, n=30)
+linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 {
   require(quantmod)
   
   fileName <- sprintf("data/%s_%d_lri.rds", SymbolName, n)
-  
-  Symbol <- get(SymbolName)
   
   fileExists <- file.exists(fileName)
   
@@ -113,14 +111,14 @@ linearRegressionIndicator <- function (SymbolName, window=720, n=30)
   return(xi)
 }
 
-getLinRegIndicators <- function(SymbolName, n=c(30))
+getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))
 {
   lri <- c()
     
   for(i in n)
   {
     objName <- sprintf("lri%s.p%d", SymbolName, i)
-    obj <- linearRegressionIndicator(SymbolName, n=i)
+    obj <- linearRegressionIndicator(SymbolName, Symbol, n=i)
     assign(objName, obj, .GlobalEnv)
     lri <- c(lri, sprintf("addTA(%s, on=1, col=3)", objName))
   }
@@ -128,7 +126,7 @@ getLinRegIndicators <- function(SymbolName, n=c(30))
   return(lri)
 }
 
-getLinRegOrders <- function(SymbolName, symbol, lri, threshold=1.2)
+getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unificar esta funcao com filterLRI
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -176,9 +174,8 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=1.2)
     
     lastIndex <- nextIndex
   }
-  #indexes[len] <- lastIndex
   
-  sdev <- sd(rdif) #rdif -> variacao em %
+  sdev <- sd(rdif)
   
   signals <- NULL
   lastSignal <- "none"

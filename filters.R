@@ -189,7 +189,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(lri, threshold=1.2)
+filterLRI <- function(lri, threshold=0.6)
 {
   r <- rle(sign(diff(as.vector(lri))))
   
@@ -229,21 +229,30 @@ filterLRI <- function(lri, threshold=1.2)
   
   alert <- c()
   sdev <- sd(rdif)
- 
-  if(r$values[len-1] == -1 && r$values[len] == 1)
+  
+  lastSignal <- "none"
+  
+  for(i in 2:len)
   {
-    if(rdif[len-1] <= (-sdev*threshold))
+    if(r$values[i-1] == -1 && r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "up"))
     {
-      return("up")
+      lastSignal <- "up"
+    }
+    
+    if(r$values[i-1] == 1 && r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "down"))
+    {
+      lastSignal <- "down"
     }
   }
   
-  if(r$values[len-1] == 1 && r$values[len] == -1)
+  if(r$values[len-1] == -1 && r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
   {
-    if(rdif[len-1] >= (sdev*threshold))
-    {
-      return("down")
-    }
+    return("up")
+  }
+  
+  if(r$values[len-1] == 1 && r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
+  {
+    return("down")
   }
   
   return(FALSE)
