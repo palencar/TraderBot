@@ -1,4 +1,4 @@
-source("startProbe.R")
+source("dbInterface.R")
 
 getMeanPrice <- function(Symbol, SymbolName)
 {

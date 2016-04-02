@@ -1,6 +1,6 @@
 source("polyReg.R")
 source("linReg.R")
-source("startProbe.R")
+source("dbInterface.R")
 source("orders.R")
 source("meanPrice.R")
 source("smaSD.R")

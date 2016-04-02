@@ -1,4 +1,4 @@
-source("startProbe.R")
+source("dbInterface.R")
 
 conn <- file("baddata.txt", "r")
 while(length(line <- readLines(conn, 1)) > 0) {

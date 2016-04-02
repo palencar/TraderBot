@@ -1,6 +1,49 @@
-library('quantmod')
-source('mysql_stocks.R')
+library("xts")
+library("quantmod")
+require("RMySQL", quietly = TRUE)
 
+
+getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
+{
+  db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
+  
+  if(FilterToday)
+  {
+    query <- sprintf("select distinct(symbol) from stockprices where date = date(now()) and symbol in ('%s')", paste(Symbols, collapse = "','"))
+    
+    fr <- getQuery(query)
+    
+    Symbols <- fr$symbol
+  }
+  
+  if(!is.null(FilterAge))
+  {
+    query <- sprintf("select * from (select symbol, datediff(max(date),min(date)) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    
+    fr <- getQuery(query)
+    Symbols <- intersect(Symbols, fr$symbol)
+  }
+  
+  for (i in 1:length(Symbols))
+  {
+    query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  Symbols[[i]], "' ORDER BY date", sep = "")
+    
+    fr <- getQuery(query)
+    fr <- xts(as.matrix(fr[, -1]), order.by = as.Date(fr[,1], origin = "1970-01-01"), src = "beancounter", updated = Sys.time())
+    colnames(fr) <- paste(Symbols[[i]], c("Open", "High", "Low", "Close", "Volume"), sep = ".")
+    
+    assign(Symbols[[i]], fr, env)
+  }
+  
+  return(Symbols)
+}
+
+getSymbolNamesMySQL <- function() 
+{
+  fr <- getQuery("SELECT distinct(symbol) from stockprices")
+  
+  return(fr$symbol)
+}
 
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
@@ -10,21 +53,21 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
   if(update)
   {
     quotes = getQuote(symbolNames, what = yahooQuote.EOD)
-
+    
     for(i in 1:length(symbolNames))
     {
       if(is.na(quotes[i, 1]))
         next
       
       table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
-
+      
       if(table[1] == "N/A")
         table[1] <- table[3]
       
       queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                           symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
                           as.double(table[1,5]))
-
+      
       getQuery(queryStr)
     }
   }
@@ -70,7 +113,7 @@ positions <- function(symbol = NULL)
 wallet <- function()
 {
   wal <- getWallet()
-
+  
   wall <- c()
   
   if(length(wal[,1]) > 0)
@@ -95,12 +138,12 @@ getQuoteDay <- function(SymbolName, Day)
     
     try(getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day)), silent=TRUE)
     if(exists(Symbol) == FALSE)
-       return(NULL)
+      return(NULL)
     
     if(is.na(Op(get(Symbol))) || is.na(Hi(get(Symbol))) ||
-         is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))) ||
-         as.double(Op(get(Symbol))) == 0.0 || as.double(Hi(get(Symbol))) == 0.0 ||
-         as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
+       is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))) ||
+       as.double(Op(get(Symbol))) == 0.0 || as.double(Hi(get(Symbol))) == 0.0 ||
+       as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
       return(NULL)
     
     table <- as.data.frame(get(Symbol))
@@ -112,7 +155,7 @@ getQuoteDay <- function(SymbolName, Day)
     table["date"] <- as.Date(Day)
     table["symbol"] <- SymbolName
     table[6] <- NULL
-
+    
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         SymbolName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
     
@@ -142,3 +185,33 @@ loadLocalCSV <- function(symbol)
   queryStr <- sprintf("LOAD DATA LOCAL INFILE \'%s.csv\' INTO TABLE beancounter.stockprices_intraday FIELDS TERMINATED BY \',\' ENCLOSED BY \'\"\' LINES TERMINATED BY \'\n\' (symbol, datetime, min_open, min_low, min_high, min_close, volume)", symbol)
   return(getQuery(queryStr)[,1])
 }
+
+getPositions <- function(symbol = NULL) 
+{
+  if(is.null(symbol))
+    queryStr <- sprintf("SELECT * from positions")
+  else
+    queryStr <- sprintf("SELECT * from positions where symbol = '%s'", symbol)
+  
+  fr <- getQuery(queryStr)
+  
+  return(fr)
+}
+
+getWallet <- function() 
+{
+  fr <- getQuery("select distinct(symbol) from positions where closeVal is null")
+  
+  return(fr)
+}
+
+getQuery <- function(queryStr = "") 
+{
+  #TODO reusar conexao??
+  dbConn <- dbConnect(MySQL(), default.file='mysql.config', db="beancounter")
+  fr <- dbGetQuery(dbConn, queryStr)
+  dbDisconnect(dbConn)
+  
+  return(fr)
+}
+

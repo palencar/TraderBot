@@ -1,6 +1,6 @@
 library('quantmod')
-source('mysql_stocks.R')
 library('RMySQL')
+source('dbInterface.R')
 
 args_cmd <- commandArgs(trailingOnly=TRUE)                                                                                                                                                                                                   
 
