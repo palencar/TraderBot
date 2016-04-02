@@ -180,23 +180,44 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unifica
   signals <- NULL
   lastSignal <- "none"
   
+  longSignal <- NULL
+  shortSignal <- NULL
+  
   for(i in 2:len)
   {
-    objName <- sprintf("lriOrders%s.p%d", SymbolName, i)
-    
     if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "blue"))
     {
-      signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
-      assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+      bluePoint <- xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]])))
+      if(is.null(longSignal))
+        longSignal <- bluePoint
+      else
+        longSignal <- rbind(longSignal, bluePoint)
       lastSignal <- "blue"
     }
     
     if(r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "red"))
     {
-      signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
-      assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
+      redPoint <- xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]])))
+      if(is.null(shortSignal))
+        shortSignal <- redPoint
+      else
+        shortSignal <- rbind(shortSignal, redPoint)
       lastSignal <- "red"
     }
+  }
+  
+  if(is.null(longSignal) == FALSE)
+  {
+    objName <- sprintf("lriLong%s", SymbolName)
+    signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
+    assign(objName, longSignal, .GlobalEnv)
+  }
+  
+  if(is.null(shortSignal) == FALSE)
+  {
+    objName <- sprintf("lriShort%s", SymbolName)
+    signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
+    assign(objName, shortSignal, .GlobalEnv)
   }
   
   return(signals)
