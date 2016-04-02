@@ -1,9 +1,7 @@
 trade <- function(symbol, tradeDate)
 {
-  decision <- "hold"
-  
   period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
-  
+
   alertR = tryCatch({
     computeRegressions(symbol, as.Date(tradeDate), as.Date(tradeDate))
   }, warning = function(war) {
@@ -16,7 +14,7 @@ trade <- function(symbol, tradeDate)
   })    
   
   alertL = tryCatch({
-    filterLRI(linearRegressionIndicator(symbol, get(symbol)[period]))
+    filterLRI(linearRegressionIndicator(symbol, get(symbol)[period])[period])
   }, warning = function(war) {
     print(war)
     return(NULL)
@@ -61,15 +59,19 @@ trade <- function(symbol, tradeDate)
   lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
   lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
   
+  decision <- "hold"
+  
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
     if(alertR == "r_up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
+      print("alertR == \"r_up\" && sdp < -1.0 -> buy")
       decision <- "buy"
     }
     
     if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
+      print("alertR == \"r_down\" && sdp > 0.0 -> sell")
       decision <- "sell"
     }
   }
@@ -78,18 +80,16 @@ trade <- function(symbol, tradeDate)
   {
     if(alertL == "up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
+      print("alertL == \"up\" && sdp < -1.0 -> buy")
       decision <- "buy"
     }
     
     if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
+      print("alertL == \"down\" && sdp > 0.0 -> sell")
       decision <- "sell"
     }
   }
-  
-  #TODO
-  #talvez utilizar os indicadores alertA, alertB e alertS em para auxiliar na decisao de outro indicador
-  #NUNCA utilizar os indicadores isoladamente
   
   #alertLog <- paste(alertLog, paste(symbol, logLine, collapse = " "), sep = "\n")
   

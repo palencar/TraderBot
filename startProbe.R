@@ -17,22 +17,17 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
         next
       
       table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
-      #table$Adjusted <- table[, 'Close']
-      
-      #if( (!is.na(table[2]) && !is.na(table[3]) && !is.na(table[4])) )
+
       if(table[1] == "N/A")
         table[1] <- table[3]
       
       queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                           symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
                           as.double(table[1,5]))
-      #print(get(Symbol))
- 
+
       getQuery(queryStr)
     }
   }
-  
-  ##  system("beancounter update today 2> /dev/null")
   
   symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update, FilterAge=minAge)
   
@@ -135,6 +130,11 @@ meanPrice <- function(SymbolName)
 lastTradingSession <- function()
 {
   return(getQuery("select date from stockprices order by date desc limit 1")[,1])
+}
+
+lastPrice <- function(SymbolName)
+{
+  return(getQuery(sprintf("select day_close from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)))
 }
 
 loadLocalCSV <- function(symbol)

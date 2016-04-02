@@ -46,11 +46,6 @@ if(length(args) > 0)
       startDate <- endDate <- Sys.Date()
     }
 
-    Symbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
-    
-    Symbols <- filterVolume(Symbols)
-    Symbols <- filterIncomplete(Symbols)
-    
     computeBacktest(Symbols, startDate, endDate, TRUE)
   }
 }

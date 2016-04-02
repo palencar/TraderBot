@@ -197,12 +197,12 @@ filterLRI <- function(lri, threshold=0.6)
   
   if(r$lengths[len] > 1)
   {
-    return(FALSE)
+    return("none")
   }
   
   if(len <= 3)
   {
-    return(FALSE)
+    return("none")
   }
   
   rdif <- c()
@@ -229,33 +229,32 @@ filterLRI <- function(lri, threshold=0.6)
   
   alert <- c()
   sdev <- sd(rdif)
-  
   lastSignal <- "none"
   
   for(i in 2:len)
   {
-    if(r$values[i-1] == -1 && r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "up"))
+    if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold)))#tooo talvez funcione tudo dentro do loop
     {
       lastSignal <- "up"
     }
     
-    if(r$values[i-1] == 1 && r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "down"))
+    if(r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold)))
     {
       lastSignal <- "down"
     }
   }
   
-  if(r$values[len-1] == -1 && r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
+  if(r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
   {
     return("up")
   }
   
-  if(r$values[len-1] == 1 && r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
+  if(r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
   {
     return("down")
   }
   
-  return(FALSE)
+  return("none")
 }
 
 filterIncomplete <- function(SymbolNames=NULL, dateLimit="")

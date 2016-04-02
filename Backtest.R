@@ -2,7 +2,9 @@ source("trade.R")
 
 computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
 {
-  Symbols <- startProbe(Symbols, FALSE, 200)
+  Symbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
+  Symbols <- filterVolume(Symbols)
+  Symbols <- filterIncomplete(Symbols)
   
   tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 5 year) order by date desc")[,1]
   
@@ -10,24 +12,24 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   
   for(symbol in Symbols)
   {
-    for(dt in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
+    for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
     {
-      if((as.Date(dt) %in% as.Date(tradeDays)) == FALSE)
+      if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0)
          next
       
-      decision <- trade(symbol, dt)
+      decision <- trade(symbol, as.Date(tradeDate))
+      
+      print(paste(symbol, as.Date(tradeDate), decision))
       
       if(decision != "hold")
       {
-        print(paste(symbol, as.Date(dt), decision))
-        
         if(symbol %in% alertSymbols == FALSE)
         {
           alertSymbols <- c(alertSymbols, symbol)
         }
         
-        price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(dt)]))/3)
-        logLine <- paste(symbol, as.Date(dt), decision, price, collapse = " ")
+        price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
+        logLine <- paste(symbol, as.Date(tradeDate), decision, price, collapse = " ")
         logFile <- paste("training/",symbol,".log", sep = "")
         cat(logLine, file=logFile, sep = "\n", append=TRUE)
         cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)
@@ -35,7 +37,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
         
         if(printCharts)
         {
-          chartSymbols(symbol, dateLimit=as.Date(dt), dev="png")
+          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png")
         }
       }
     }

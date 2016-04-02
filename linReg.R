@@ -184,14 +184,14 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unifica
   {
     objName <- sprintf("lriOrders%s.p%d", SymbolName, i)
     
-    if(r$values[i-1] == -1 && r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "blue"))
+    if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "blue"))
     {
       signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
       assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
       lastSignal <- "blue"
     }
     
-    if(r$values[i-1] == 1 && r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "red"))
+    if(r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "red"))
     {
       signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
       assign(objName, xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]]))), .GlobalEnv)
