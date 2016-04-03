@@ -17,11 +17,11 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0)
          next
       
-      decision <- trade(symbol, as.Date(tradeDate))
+      tradeDecision <- trade(symbol, as.Date(tradeDate))
       
-      print(paste(symbol, as.Date(tradeDate), decision))
+      print(paste(symbol, as.Date(tradeDate), tradeDecision$decision))
       
-      if(decision != "hold")
+      if(tradeDecision$decision != "hold")
       {
         if(symbol %in% alertSymbols == FALSE)
         {
@@ -29,7 +29,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
         }
         
         price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
-        logLine <- paste(symbol, as.Date(tradeDate), decision, price, collapse = " ")
+        logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
         logFile <- paste("training/",symbol,".log", sep = "")
         cat(logLine, file=logFile, sep = "\n", append=TRUE)
         cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)

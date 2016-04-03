@@ -52,14 +52,14 @@ computeStream <- function(Symbols)
       {
         print(symbol)
         
-        decision <- trade(symbol, dt)
+        tradeDecision <- trade(symbol, dt)
         
-        if(decision != "hold")
+        if(tradeDecision$decision != "hold")
         {
           alertSymbols <- c(alertSymbols, symbol)
           
           price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(dt)]))/3)
-          logLine <- paste(symbol, as.Date(dt), decision, price, collapse = " ")
+          logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
           logFile <- paste("training/",symbol,".log", sep = "")
           cat(logLine, file=logFile, sep = "\n", append=TRUE)
           cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)

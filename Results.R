@@ -1,3 +1,4 @@
+source("dbInterface.R")
 
 filePath <- "training"
 
@@ -19,7 +20,7 @@ for(logFile in objFiles)
       {
         sell_price <- (length(positions)*as.double(elements[4])*100)
         buy_price <- (sum(positions)*100)
-        print(paste(elements[1], (100*length(positions)), (sell_price - buy_price), ((sell_price - buy_price) / buy_price)))
+        print(paste("closed", elements[1], (100*length(positions)), (sell_price - buy_price), ((sell_price - buy_price) / buy_price)))
         positions <- NULL
       }
     }
@@ -32,9 +33,9 @@ for(logFile in objFiles)
   
   if(is.null(positions) == FALSE)
   {
-    #sell_price <- (length(positions)*as.double(elements[4])*100)
+    sell_price <- (length(positions)*as.double(lastPrice(elements[1]))*100)
     buy_price <- (sum(positions)*100)
-    print(paste(elements[1], buy_price)) # TODO buscar o preco do ultimo negocio, explicitar que a posicao esta em aberto
+    print(paste("open", elements[1], (100*length(positions)), (sell_price - buy_price), ((sell_price - buy_price) / buy_price)))
     positions <- NULL
   }
 }

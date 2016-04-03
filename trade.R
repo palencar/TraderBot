@@ -60,19 +60,20 @@ trade <- function(symbol, tradeDate)
   lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
   
   decision <- "hold"
+  reason <- NULL
   
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
     if(alertR == "r_up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
-      print("alertR == \"r_up\" && sdp < -1.0 -> buy")
       decision <- "buy"
+      reason <- "alertR == r_up && sdp < -1.0 -> buy"
     }
     
     if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
-      print("alertR == \"r_down\" && sdp > 0.0 -> sell")
       decision <- "sell"
+      reason <- "alertR == r_dow && sdp > 0.0 -> sell"
     }
   }
   
@@ -80,24 +81,20 @@ trade <- function(symbol, tradeDate)
   {
     if(alertL == "up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
-      print("alertL == \"up\" && sdp < -1.0 -> buy")
       decision <- "buy"
+      reason <- "alertL == up && sdp < -1.0 -> buy"
     }
     
     if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
     {
-      print("alertL == \"down\" && sdp > 0.0 -> sell")
       decision <- "sell"
+      reason <- "alertL == down && sdp > 0.0 -> sell"
     }
   }
   
-  #alertLog <- paste(alertLog, paste(symbol, logLine, collapse = " "), sep = "\n")
+  tradeDecision <- list()
+  tradeDecision$decision <- decision
+  tradeDecision$reason <- reason
   
-  return(decision)
+  return(tradeDecision)
 }
-
-
-#
-# Profit = (Money Obtained/Seed Money)^(364/d) - 1
-#
-#
