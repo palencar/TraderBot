@@ -513,3 +513,22 @@ filterObjectsSets <- function(symbol, ChartDate)
   
   return(alerts)
 }
+
+filterSMA <- function(rleSeq, period=(30*6))
+{
+  daysUp <- 0
+  daysDown <- 0
+  for(i in length(rleSeq$values):1)
+  {
+    if(rleSeq$values[i] == -1)
+      daysDown <- daysDown + rleSeq$lengths[i]
+    
+    if(rleSeq$values[i] == 1)
+      daysUp <- daysDown + rleSeq$lengths[i]
+    
+    if((daysUp + daysDown) > period)
+      break
+  }
+  
+  return (as.double((daysUp) / (daysDown + daysUp)))
+}

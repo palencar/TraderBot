@@ -56,18 +56,29 @@ trade <- function(symbol, tradeDate)
   if((totBl/objLen) < 0.1)  #Valor nos 10% inferiores
     alertB <- totBl/objLen
   
-  lsma <- last(SMA(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), n=200))
-  lst <- last(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3))
+  lsma <- last(sma)
+  lst <- last(seq)
   
   decision <- "hold"
   reason <- NULL
   
+  #TODO integrar uma funcao "long tail" para os intervalos crescentes e decrescentes (somar a integracao dos intervalos)
+  #r <- rle(sign(diff(as.vector(sma))))
+  #r$lengths r$values
+  #usar o resultado para estimar quantas vezes o sdp sera aceito o sinal
+  #integrand <- function(x) {1/((x+1)*sqrt(x))}
+  #integrate(integrand, lower = 0, upper = Inf)
+  
+  r <- rle(sign(diff(as.vector(sma))))
+  ratio <- filterSMA(r) #%up/%down
+  print(ratio)
+  
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
-    if(alertR == "r_up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(alertR == "r_up" && sdp < -1.0 && ratio > 0.10) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
       decision <- "buy"
-      reason <- "alertR == r_up && sdp < -1.0 -> buy"
+      reason <- "alertR == r_up && sdp < -1.0 -> buy && ratio > 0.10"
     }
     
     if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
@@ -79,10 +90,10 @@ trade <- function(symbol, tradeDate)
   
   if(!is.null(alertL) && alertL != FALSE) #valor valido
   {
-    if(alertL == "up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(alertL == "up" && sdp < -1.0 && ratio > 0.10) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
       decision <- "buy"
-      reason <- "alertL == up && sdp < -1.0 -> buy"
+      reason <- "alertL == up && sdp < -1.0 -> buy && ratio > 0.10"
     }
     
     if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
