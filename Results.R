@@ -10,6 +10,7 @@ for(logFile in objFiles)
   
   positions <- NULL
   openDate <- NULL
+  closePosition <- FALSE
   
   for(line in lines)
   {
@@ -19,12 +20,17 @@ for(logFile in objFiles)
     {
       if(is.null(positions) == FALSE)
       {
-        sell_price <- (length(positions)*as.double(elements[4])*100)
-        buy_price <- (sum(positions)*100)
-        print(paste("closed", elements[1], signif((sell_price - buy_price), 2), signif((100*length(positions)), 2), signif(((sell_price - buy_price) / buy_price), 2)))
-        #print(paste(openDate, elements[2], collapse = " "))
+        i <- 1
+        for(position in positions)
+        {
+          sell_price <- (as.double(elements[4])*100)
+          buy_price <- (position*100)
+          print(paste("closed", elements[1], buy_price, sell_price, signif((sell_price - buy_price), 2), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2]))
+          i <- i + 1
+        }
         positions <- NULL
         openDate <- NULL
+        closePosition <- TRUE
       }
     }
         
@@ -35,14 +41,18 @@ for(logFile in objFiles)
     }
   }
   
-  if(is.null(positions) == FALSE)
+  if(closePosition == FALSE)
   {
-    sell_price <- (length(positions)*as.double(lastPrice(elements[1]))*100)
-    buy_price <- (sum(positions)*100)
-    print(paste("open  ", elements[1], signif((sell_price - buy_price), 2), signif((100*length(positions)), 2), signif(((sell_price - buy_price) / buy_price), 2)))
-    #print(paste(openDate, elements[2], collapse = " "))
+    for(position in positions)
+    {
+      sell_price <- (as.double(lastPrice(elements[1]))*100)
+      buy_price <- (position*100)
+      print(paste("open  ", elements[1], buy_price, sell_price, signif((sell_price - buy_price), 2), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2]))
+      i <- i + 1
+    }
     positions <- NULL
     openDate <- NULL
   }
+  closePosition <- FALSE
 }
 
