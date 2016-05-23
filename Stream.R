@@ -11,7 +11,7 @@ computeStream <- function(Symbols)
     
     if(fsmState == "startProbe")
     {
-      AllSymbols <- startProbe(minAge=200)
+      AllSymbols <- startProbe(minAge=400)
       
       fsmState <- "computeRegressions"
     }

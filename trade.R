@@ -75,10 +75,10 @@ trade <- function(symbol, tradeDate)
   
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
-    if(alertR == "r_up" && sdp < -1.0 && ratio > 0.10) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(alertR == "r_up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
       decision <- "buy"
-      reason <- "alertR == r_up && sdp < -1.0 -> buy && ratio > 0.10"
+      reason <- "alertR == r_up && sdp < -1.0 -> buy"
     }
     
     if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
@@ -90,10 +90,10 @@ trade <- function(symbol, tradeDate)
   
   if(!is.null(alertL) && alertL != FALSE) #valor valido
   {
-    if(alertL == "up" && sdp < -1.0 && ratio > 0.10) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(alertL == "up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
     {
       decision <- "buy"
-      reason <- "alertL == up && sdp < -1.0 -> buy && ratio > 0.10"
+      reason <- "alertL == up && sdp < -1.0 -> buy"
     }
     
     if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel

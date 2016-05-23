@@ -10,12 +10,13 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   
   alertSymbols <- NULL
   
-  for(symbol in Symbols)
+  for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
   {
-    for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
+    if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0)
+       next
+    
+    for(symbol in Symbols)
     {
-      if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0)
-         next
       
       tradeDecision <- trade(symbol, as.Date(tradeDate))
       

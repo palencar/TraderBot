@@ -180,6 +180,11 @@ lastPrice <- function(SymbolName)
   return(getQuery(sprintf("select day_close from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)))
 }
 
+lastTradeDay <- function(SymbolName)
+{
+  return(getQuery(sprintf("select date from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)))
+}
+
 loadLocalCSV <- function(symbol)
 {
   queryStr <- sprintf("LOAD DATA LOCAL INFILE \'%s.csv\' INTO TABLE beancounter.stockprices_intraday FIELDS TERMINATED BY \',\' ENCLOSED BY \'\"\' LINES TERMINATED BY \'\n\' (symbol, datetime, min_open, min_low, min_high, min_close, volume)", symbol)
