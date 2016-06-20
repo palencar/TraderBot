@@ -12,7 +12,7 @@ symbolNames <- NULL
 if(length(args_cmd) >= 1)
 {
   if(args_cmd[1] == "wallet")
-    symbolNames <- wallet()
+    symbolNames <- getWallet()
   else if(args_cmd[1] == "alerts")
   {
     alerts <- NULL

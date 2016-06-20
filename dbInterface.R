@@ -96,35 +96,6 @@ updateProbe <- function(Symbols, date)
   }
 }
 
-positions <- function(symbol = NULL)
-{
-  if(is.null(symbol))
-  {
-    pos <- getPositions()
-  }
-  else
-  {
-    pos <- getPositions(symbol)
-  }
-  
-  return (pos)
-}
-
-wallet <- function()
-{
-  wal <- getWallet()
-  
-  wall <- c()
-  
-  if(length(wal[,1]) > 0)
-  {  
-    for(i in 1:length(wal[,1]))
-      wall[i] <- toupper(wal[,1][i])
-  }
-  
-  return (wall)
-}
-
 getQuoteDay <- function(SymbolName, Day)
 {
   print(sprintf("getQuoteDay [%s][%s]", SymbolName, Day))
@@ -167,7 +138,23 @@ getQuoteDay <- function(SymbolName, Day)
 
 meanPrice <- function(SymbolName)
 {
-  return(getQuery(sprintf("select avg(openVal) from positions where symbol = '%s' and closeVal is null", SymbolName))[,1])
+  positions <- getPositions(SymbolName)
+  opValue <- 0
+  opSize <- 0
+  
+  for(pos in positions)
+  {
+    if(is.na(pos$end))
+    {
+      opValue <- opValue + (pos$openVal * pos$size)
+      opSize <- opSize + pos$size
+    }
+  }
+  
+  if(opSize > 0)
+    return(opValue/opSize)
+  
+  return(NULL)
 }
 
 lastTradingSession <- function()
@@ -193,27 +180,117 @@ loadLocalCSV <- function(symbol)
 
 getPositions <- function(symbol = NULL) 
 {
-  if(is.null(symbol))
-    queryStr <- sprintf("SELECT * from positions")
-  else
-    queryStr <- sprintf("SELECT * from positions where symbol = '%s'", symbol)
+  queryStr <- sprintf("SELECT * from operations where symbol = '%s' order by date", symbol)
   
   fr <- getQuery(queryStr)
+  if(nrow(fr) == 0)
+  {
+    return(NULL)
+  }
   
-  return(fr)
+  acValue <- 0
+  acSize <- 0
+  n <- 0
+  positions <- c()
+  
+  date <- ''
+  price <- ''
+  
+  i <- 1
+  while(i <= nrow(fr))
+  {
+    if(fr[i,]$type == 'C')
+    {
+      acSize <- acSize + fr[i,]$size
+      
+      if(date != fr[i,]$date || price != fr[i,]$price)
+      {
+        n <- n + 1
+        position <- c()
+        position$start <- fr[i,]$date
+        position$openVal <- fr[i,]$price
+        position$size <- fr[i,]$size
+        position$end <- NA
+        position$closeVal <- NA
+        positions[[n]] <- position
+        
+        date <- fr[i,]$date
+        price <- fr[i,]$price
+      }
+    }
+    else if(fr[i,]$type == 'V')
+    {
+      if(date != fr[i,]$date || price != fr[i,]$price)
+      {
+        j <- 1
+        vSize <- fr[i,]$size
+        while(j <= length(positions) && j < i && acSize > 0)
+        {
+          position <- positions[[j]]
+          if(is.na(position$closeVal))
+          {
+            position$end <- fr[i,]$date
+            position$closeVal <- fr[i,]$price
+            positions[[j]] <- position
+            date <- fr[i,]$date
+            price <- fr[i,]$price
+            
+            #TODO validar acSize >= 0
+            
+            if(fr[j,]$size >= vSize)
+            {
+              acSize <- acSize - fr[i,]$size
+              break
+            }
+            else
+            {
+              acSize <- acSize - fr[j,]$size
+              vSize <- vSize - fr[j,]$size
+              j <- j + 1
+            }
+          }
+          else
+          {
+            j <- j + 1
+          }
+        }
+      }
+    }
+    i <- i + 1
+  }
+
+  #print(positions)
+  
+  return(positions)
 }
 
 getWallet <- function() 
 {
-  fr <- getQuery("select distinct(symbol) from positions where closeVal is null")
+  fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
   
-  return(fr)
+  symbols <- c()
+  
+  for(i in fr[[1]])
+  {
+    positions <- getPositions(i)
+    opSize <- 0
+    
+    for(pos in positions)
+    {
+      if(is.na(pos$end))
+      {
+        symbols <- c(symbols, i)   
+      }
+    }
+  }
+  
+  return(symbols)
 }
 
 getQuery <- function(queryStr = "") 
 {
   #TODO reusar conexao??
-  dbConn <- dbConnect(MySQL(), default.file='mysql.config', db="beancounter")
+  dbConn <- dbConnect(MySQL(), user='paulo', password='PP8w7em7D', dbname='beancounter', host='localhost')
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
   

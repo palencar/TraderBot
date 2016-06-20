@@ -3,20 +3,19 @@ source("dbInterface.R")
 
 getOrders <- function(name)
 {
-  pos <- positions(name)
+  pos <- getPositions(name)
   symbol <- get(name)
   
-  if(length(pos[,1]) == 0)
+  if(length(pos) == 0)
   {
     return()
   }
   
-  posit <- c()
+  posit <- NULL
+  i <- 0
   
-  for(i in 1:length(pos[,1]))
+  for(reg in pos)
   {
-    reg <- pos[i,]
-    
     if(is.na(reg$end) == TRUE)
     {
       endDate <- time(tail(symbol, n=1))
@@ -56,11 +55,12 @@ getOrders <- function(name)
     else
       col <- 2
     
+    i <- i + 1
     objName <- sprintf("%s.p%d", name, i)
     position <- xts(na.approx(xNew))
     assign(objName, position, .GlobalEnv)
     
-    posit[i] <- sprintf("addTA(%s, lwd=2, on=1, col=%d)", objName, col)
+    posit <- c(posit, sprintf("addTA(%s, lwd=2, on=1, col=%d)", objName, col))
   }
   
   return(posit)

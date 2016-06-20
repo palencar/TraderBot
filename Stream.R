@@ -102,7 +102,7 @@ computeStream <- function(Symbols)
         for(i in alertSymbols)
           imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
         
-        wal <- wallet()
+        wal <- getWallet()
         if(length(intersect(alertSymbols,wal)) > 0)
           muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert W\" pbalencar@yahoo.com %s", paste(sprintf("Snapshot time: %s", startTime), alertLog, collapse = "\n"), paste(imgAttachmets, collapse=" "))
         else

@@ -518,12 +518,18 @@ filterSMA <- function(rleSeq, period=(30*6))
 {
   daysUp <- 0
   daysDown <- 0
-  for(i in length(rleSeq$values):1)
+  
+  values <- rleSeq$values[!is.na(rleSeq$values)]
+  
+  for(i in length(values):1)
   {
-    if(rleSeq$values[i] == -1)
+    if(is.na(values[i]))
+      break
+    
+    if(values[i] == -1)
       daysDown <- daysDown + rleSeq$lengths[i]
     
-    if(rleSeq$values[i] == 1)
+    if(values[i] == 1)
       daysUp <- daysDown + rleSeq$lengths[i]
     
     if((daysUp + daysDown) > period)
