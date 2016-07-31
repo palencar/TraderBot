@@ -4,7 +4,7 @@ getMeanPrice <- function(Symbol, SymbolName)
 {
   mePrice <- meanPrice(SymbolName)
   
-  if(is.na(mePrice))
+  if(is.null(mePrice))
     return(NULL)
     
   mPrice = xts(rep(mePrice,length(index(Symbol))), index(Symbol))

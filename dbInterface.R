@@ -61,8 +61,11 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
       
       table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
       
-      if(table[1] == "N/A")
-        table[1] <- table[3]
+      if(table[1] == "N/A" || table[2] == "N/A" || table[3] == "N/A" || table[4] == "N/A" || table[5] == "N/A")
+      {
+        warning(sprintf("NA value in %s [%s %s %s %s %s]", symbolNames[i], table[1], table[2], table[3], table[4], table[5]))
+        next
+      }
       
       queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                           symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
@@ -264,11 +267,22 @@ getPositions <- function(symbol = NULL)
   return(positions)
 }
 
-getWallet <- function() 
+getWallet <- function(FilterClosed = TRUE) 
 {
   fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
   
   symbols <- c()
+  
+  if(FilterClosed == FALSE)
+  {
+    for(i in fr[[1]])
+    {
+      symbols <- c(symbols, i)
+    }
+    
+    return(symbols)
+  }
+  
   
   for(i in fr[[1]])
   {
@@ -284,7 +298,7 @@ getWallet <- function()
     }
   }
   
-  return(symbols)
+  return(unique(symbols))
 }
 
 getQuery <- function(queryStr = "") 

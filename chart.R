@@ -30,13 +30,6 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
       st <- seq(as.Date(ed), length=2, by=paste("-", period, sep = ""))[2]
     }
 
-    datePeriod <- sprintf("%s::%s", st, ed)
-    
-    if(timeFrame == "weekly")
-      Symbol <- to.weekly(get(SymbolName)[datePeriod])
-    else
-      Symbol <- get(SymbolName)[datePeriod]
-    
     if(dev == "png")
     {
       if(is.null(suffix) == FALSE)      
@@ -61,6 +54,13 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
       vol <- "addVo()"
     else
       vol <- NULL
+    
+    datePeriod <- sprintf("%s::%s", st, ed)
+    
+    if(timeFrame == "weekly")
+      Symbol <- to.weekly(get(SymbolName)[datePeriod])
+    else
+      Symbol <- get(SymbolName)[datePeriod]
     
     if("lri" %in% indicators)
       lri <- getLinRegIndicators(SymbolName, Symbol)
