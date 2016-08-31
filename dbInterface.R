@@ -9,7 +9,7 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .
   
   if(FilterToday)
   {
-    query <- sprintf("select distinct(symbol) from stockprices where date = date(now()) and symbol in ('%s')", paste(Symbols, collapse = "','"))
+    query <- sprintf("select distinct(symbol) from stockprices where symbol in ('%s')", paste(Symbols, collapse = "','"))
     
     fr <- getQuery(query)
     
@@ -52,7 +52,7 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
   
   if(update)
   {
-    quotes = getQuote(symbolNames, what = yahooQuote.EOD)
+    quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
     
     for(i in 1:length(symbolNames))
     {
@@ -61,7 +61,8 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
       
       table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
       
-      if(table[1] == "N/A" || table[2] == "N/A" || table[3] == "N/A" || table[4] == "N/A" || table[5] == "N/A")
+      if(table[1] == "N/A" || table[2] == "N/A" || table[3] == "N/A" || table[4] == "N/A" || table[5] == "N/A" ||
+         table[1] == 0.0   || table[2] == 0.0   || table[3] == 0.0   || table[4] == 0.0)
       {
         warning(sprintf("NA value in %s [%s %s %s %s %s]", symbolNames[i], table[1], table[2], table[3], table[4], table[5]))
         next
@@ -304,7 +305,7 @@ getWallet <- function(FilterClosed = TRUE)
 getQuery <- function(queryStr = "") 
 {
   #TODO reusar conexao??
-  dbConn <- dbConnect(MySQL(), user='paulo', password='PP8w7em7D', dbname='beancounter', host='localhost')
+  dbConn <- dbConnect(MySQL(), user='paulo', dbname='beancounter', host='localhost')
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
   

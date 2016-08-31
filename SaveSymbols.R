@@ -2,44 +2,98 @@ library('quantmod')
 library('RMySQL')
 source('dbInterface.R')
 
+invisible(Sys.setlocale("LC_MESSAGES", "C"))
+invisible(Sys.setlocale("LC_TIME", "C"))
+
 args_cmd <- commandArgs(trailingOnly=TRUE)                                                                                                                                                                                                   
 
 #symbols <- getSymbolNamesMySQL() 
 
-con <- dbConnect(MySQL(), default.file='mysql.config', db="beancounter")
+mode = 'google'
 
-mode = 'yahoo'
+#if(length(args_cmd) < 2)
+#{
+#  print("Use [google|yahoo] symbol")
+#  quit()
+#}
 
-if(length(args_cmd) < 2)
+symbols <- args_cmd #tail(args_cmd, n=(length(args_cmd)-1))
+
+if(length(args_cmd) < 1)
 {
-  print("Use [google|yahoo] symbol")
-  quit()
+  symbols <- getSymbolNamesMySQL() 
 }
+#else
+#{
+#  mode <- args_cmd[1]
+#  symbols <- tail(args_cmd, n=(length(args_cmd)-1))
+#}
 
-mode <- args_cmd[1]
-symbols <- tail(args, n=(length(args)-1))
+symbols <- sub("^([^.]*).*", "\\1", symbols)
+
+con <- dbConnect(MySQL(), user='paulo', dbname='beancounter', host='localhost')
+print(symbols)
 
 for(i in symbols)
 {
   if(mode == 'google')
-    i <- sprintf("BVMF:%s", gsub(".SA", "", i))
+    name <- sprintf("BVMF:%s", i)
+  if(mode == 'yahoo')
+    name <- sprintf("%s.SA", i)
   
-  print(i)
-  getSymbols(i, src=mode, from=as.Date('2010-01-01'), to=as.Date(Sys.Date()))
-  table <- as.data.frame(get(i))
-  names(table)[1]<-paste("day_open")
-  names(table)[2]<-paste("day_high")
-  names(table)[3]<-paste("day_low")
-  names(table)[4]<-paste("day_close")
-  names(table)[5]<-paste("volume")
-  table["date"] <- as.Date(index(get(i)))
-  table["symbol"] <- i
-  table[6] <- NULL
+  print(name)
   
-  #dbWriteTable(con, name = "stockprices", table, append = T, row.names = F)
-  #Sys.sleep(10)
-  print(get(i))
+  state <- tryCatch({
+    getSymbols(name, src=mode)
+    T
+  }, warning = function(war) {
+    print(war)
+    F
+  }, error = function(err) {
+    print(err)
+    F
+  }, finally={
+  })
+  
+  if(state == F)
+    next
+  
+  table <- as.data.frame(get(name))
+  dates <- index(get(name))
+  if(mode == 'google')
+  {
+    name <- sprintf("BVMF:%s", i)
+  }
+  if(mode == 'yahoo')
+  {
+    name <- sprintf("%s.SA", i)
+  }
+  
+  for(j in index(table))
+  {
+    row <- table[j,]
+    names(row)[1]<-paste("day_open")
+    names(row)[2]<-paste("day_high")
+    names(row)[3]<-paste("day_low")
+    names(row)[4]<-paste("day_close")
+    names(row)[5]<-paste("volume")
+    row["date"] <- dates[j]
+    row["symbol"] <- name
+    row[6] <- NULL
+    
+    if(is.na(row[1]) || is.na(row[2]) || is.na(row[3]) || is.na(row[4]) || is.na(row[5]))
+    {
+      warning(print(paste(row)))
+      next
+    }
+    
+#    dbWriteTable(con, name = "stockprices", row, append = T, overwrite = F, row.names = F)
+    queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+                        i, dates[j], as.double(row[1]), as.double(row[2]), as.double(row[3]), as.double(row[4]),
+                        as.double(row[5]))
+    getQuery(queryStr)
+  }
+  Sys.sleep(5)
 }
 
 dbDisconnect(con)
-

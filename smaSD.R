@@ -22,7 +22,5 @@ smaSD <- function(SymbolName, n=200)
   assign(objName, sma-(2*ssd), .GlobalEnv)
   smaSd <- c(smaSd, sprintf("addTA(%s, lwd=2, on=1, col=8)", objName, col))
   
-  #chartSeries(BBAS3.SA, TA=paste(smaSd, collapse="; "))
-  
   return(smaSd)
 }

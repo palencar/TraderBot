@@ -23,7 +23,7 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
 
     if(is.null(period))
     {
-      st <- seq(as.Date(ed), length=2, by="-2 years")[2]
+      st <- seq(as.Date(ed), length=2, by="-5 years")[2]
     }  
     else
     {

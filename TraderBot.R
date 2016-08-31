@@ -13,41 +13,40 @@ stream = FALSE
 Symbols = NULL
 alerts = NULL
 
-if(length(args) > 0)
+if(length(args) > 0 && args[1] == "compute")
 {
-  if(args[1] == "stream")
+  if(length(args) >= 3)
   {
-    stream = TRUE
-    
-    if(length(args) > 1)
+    startDate <- args[2]
+    endDate <- args[3]
+    if(length(args) > 3)
     {
-      Symbols <- tail(args, n=(length(args)-1))
+      Symbols <- tail(args, n=(length(args)-3))
     }
-    
-    computeStream(Symbols)
   }
-  else if(args[1] == "compute")
+  else if(length(args) == 2)
   {
-    if(length(args) >= 3)
-    {
-      startDate <- args[2]
-      endDate <- args[3]
-      if(length(args) > 3)
-      {
-        Symbols <- tail(args, n=(length(args)-3))
-      }
-    }
-    else if(length(args) == 2)
-    {
-      startDate <- endDate <- args[2]
-    }
-    else
-    {
-      startDate <- endDate <- Sys.Date()
-    }
+    startDate <- endDate <- args[2]
+  }
+  else
+  {
+    startDate <- endDate <- Sys.Date()
+  }
 
-    computeBacktest(Symbols, startDate, endDate, TRUE)
-  }
+  computeBacktest(Symbols, startDate, endDate, TRUE)
 }
 
+if(length(args) == 0 || args[1] == "stream")
+{
+  stream = TRUE
+  
+  if(length(args) > 1)
+  {
+    Symbols <- tail(args, n=(length(args)-1))
+  }
+  
+  computeStream(Symbols)
+}
+
+warnings()
 

@@ -4,6 +4,7 @@ computeStream <- function(Symbols)
   stopdtime <- "18:20:00"
   fsmState <- "startProbe"
   toFilter <- NULL
+  tradeAlerts <- NULL
   
   while(fsmState != "end")
   {
@@ -11,7 +12,7 @@ computeStream <- function(Symbols)
     
     if(fsmState == "startProbe")
     {
-      AllSymbols <- startProbe(minAge=400)
+      AllSymbols <- startProbe(minAge=720)
       
       fsmState <- "computeRegressions"
     }
@@ -32,10 +33,11 @@ computeStream <- function(Symbols)
       startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       startDay <- format(Sys.time(), "%Y-%m-%d")
       
-      if(is.null(toFilter))
+      #if(is.null(toFilter))
       {
         toFilter <- setdiff(AllSymbols, Symbols)
         toFilter <- filterVolume(toFilter)
+        toFilter <- filterBadData(toFilter)
         accepted <- filterIncomplete(toFilter)
         Symbols <- union(accepted, Symbols)
       }
@@ -53,10 +55,12 @@ computeStream <- function(Symbols)
         print(symbol)
         
         tradeDecision <- trade(symbol, dt)
+        tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         
-        if(tradeDecision$decision != "hold")
+        if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
         {
           alertSymbols <- c(alertSymbols, symbol)
+          tradeAlerts <- c(tradeAlert, tradeAlerts)
           
           price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(dt)]))/3)
           logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")

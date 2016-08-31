@@ -395,6 +395,83 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
   return(symbols)
 }
 
+filterBadData <- function(SymbolNames)
+{
+  symbols <- NULL
+  
+  for(symbol in SymbolNames)
+  {
+    pass <- TRUE
+    #print(symbol)
+    obj <- get(symbol)
+    mn  <- mean(Cl(obj))
+    
+    for(i in 2:(length(index(obj))))
+    {
+      prev <- obj[i-1]
+      cur  <- obj[i]
+      
+      if((is.double(Op(cur)) && is.double(Hi(cur)) && is.double(Lo(cur)) && is.double(Cl(cur)) && is.numeric(Vo(cur))) == FALSE)
+      {
+        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
+        pass <- FALSE
+        next
+      }
+      
+      if((is.double(Op(prev)) && is.double(Hi(prev)) && is.double(Lo(prev)) && is.double(Cl(prev)) && is.numeric(Vo(prev))) == FALSE)
+      {
+        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
+        pass <- FALSE
+        next
+      }
+             
+      prevVal <- c(as.double(Op(prev)), as.double(Hi(prev)), as.double(Lo(prev)), as.double(Cl(prev)))
+      curVal  <- c(as.double(Op(cur)), as.double(Hi(cur)), as.double(Lo(cur)), as.double(Cl(cur)))
+      
+      if(any(curVal == 0))
+      {
+        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
+        pass <- FALSE
+        next
+      }
+      
+      if(any(prevVal == 0))
+      {
+        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
+        pass <- FALSE
+        next
+      }
+      
+      if(max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
+         min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5)
+      {
+        #if(as.Date(index(obj[i])) < as.Date("2008-01-01") && (max(curVal) < 1.0|| max(prevVal) < 1.0))
+        #{
+        #  warning(print(sprintf("%s %s: Too old or insignificant, ignore..", symbol, as.Date.character(index(obj[i])))))
+        #}
+        #else
+        #{
+        #  pass <- FALSE
+        #}
+        
+        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
+        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
+        pass <- FALSE
+      }
+    }
+    
+    if(pass == TRUE)
+    {
+      symbols <- c(symbols, symbol)
+    }
+  }
+  
+  print("Excuding:")
+  print(setdiff(SymbolNames, symbols))
+  
+  return(symbols)
+}
+
 filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
 {
   if(dateLimit == "")
@@ -425,24 +502,12 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
       print(sprintf("excluding %s length(vol) < 90", symb))
       next
     }
-    #print(vol)
+
     meanVol <- as.double(mean(vol))
     maxVol <- as.double(max(vol))
     
     if(is.null(meanVol) || !is.numeric(meanVol) || is.null(maxVol) || !is.numeric(maxVol))
       next
-    
-    #if(meanVol < 50000)
-    #{
-    #  print(sprintf("excluding %s meanVol: %s < 50000", symb, meanVol))
-    #  next  
-    #}
-    
-    #if(meanVol/maxVol < 0.10)
-    #{
-    #  print(sprintf("excluding %s meanVol/maxVol: %s < 0.10", symb, meanVol/maxVol, meanVol))
-    #  next
-    #}
     
     symbols <- c(symbols, symb)
   }
