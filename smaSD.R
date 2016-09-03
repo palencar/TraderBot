@@ -4,6 +4,13 @@ smaSD <- function(SymbolName, n=200)
   obj<-obj_0[paste(rev(seq(as.Date(index(tail(obj_0,1))), length=2, by="-4 years")),collapse = "::")]
   
   seq <- as.xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
+  
+  if(length(seq) < n)
+  {
+    warning(sprintf("%s sma(%d, %d)", SymbolName, length(seq), n))
+    return(NULL)
+  }
+  
   sma <- SMA(seq, n)
   
   ssd <- sd(as.double(na.omit(seq-sma)))

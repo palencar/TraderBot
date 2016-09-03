@@ -1,6 +1,7 @@
 library("xts")
 library("quantmod")
-require("RMySQL", quietly = TRUE)
+library("RSQLite")
+library("DBI")
 
 
 getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
@@ -18,7 +19,7 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .
   
   if(!is.null(FilterAge))
   {
-    query <- sprintf("select * from (select symbol, datediff(max(date),min(date)) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    query <- sprintf("select * from (select symbol, (julianday(max(date))-julianday(min(date))) as days from stockprices group by symbol) as age where days > %d", FilterAge)
     
     fr <- getQuery(query)
     Symbols <- intersect(Symbols, fr$symbol)
@@ -38,7 +39,7 @@ getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .
   return(Symbols)
 }
 
-getSymbolNamesMySQL <- function() 
+getSymbolNames <- function() 
 {
   fr <- getQuery("SELECT distinct(symbol) from stockprices")
   
@@ -48,7 +49,7 @@ getSymbolNamesMySQL <- function()
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
   if(is.null(symbolNames))
-    symbolNames <- getSymbolNamesMySQL()
+    symbolNames <- getSymbolNames()
   
   if(update)
   {
@@ -304,8 +305,7 @@ getWallet <- function(FilterClosed = TRUE)
 
 getQuery <- function(queryStr = "") 
 {
-  #TODO reusar conexao??
-  dbConn <- dbConnect(MySQL(), user='paulo', dbname='beancounter', host='localhost')
+  dbConn <- dbConnect(RSQLite::SQLite(), "beancounter.sqlite")
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
   

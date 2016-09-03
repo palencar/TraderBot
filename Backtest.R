@@ -6,7 +6,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   Symbols <- filterVolume(Symbols)
   Symbols <- filterIncomplete(Symbols)
   
-  tradeDays <- getQuery("select distinct date from stockprices where date >= (select now() - interval 5 year) order by date desc")[,1]
+  tradeDays <- getQuery("select distinct date from stockprices where date >= (select date('1995-03-01','-5 year')) order by date desc")[,1]
   
   alertSymbols <- NULL
   

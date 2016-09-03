@@ -7,7 +7,7 @@ invisible(Sys.setlocale("LC_TIME", "C"))
 
 args_cmd <- commandArgs(trailingOnly=TRUE)                                                                                                                                                                                                   
 
-#symbols <- getSymbolNamesMySQL() 
+#symbols <- getSymbolNames() 
 
 mode = 'google'
 
@@ -21,7 +21,7 @@ symbols <- args_cmd #tail(args_cmd, n=(length(args_cmd)-1))
 
 if(length(args_cmd) < 1)
 {
-  symbols <- getSymbolNamesMySQL() 
+  symbols <- getSymbolNames() 
 }
 #else
 #{

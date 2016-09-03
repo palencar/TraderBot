@@ -71,6 +71,12 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
     endDate   <- as.Date(xDate)
     subsetSymbol <- Symbol[sprintf("%s::%s", startDate, endDate)]
 
+    if(nrow(subsetSymbol) < 3)
+    {
+      warning(sprintf("%s %s/%s", SymbolName, startDate, endDate))
+      return(NULL)
+    }
+    
     x <- as.integer(index(subsetSymbol))
     if(is.HLC(subsetSymbol))
     {
@@ -113,12 +119,16 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 
 getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))
 {
-  lri <- c()
+  lri <- NULL
     
   for(i in n)
   {
     objName <- sprintf("lri%s.p%d", SymbolName, i)
     obj <- linearRegressionIndicator(SymbolName, Symbol, n=i)
+    
+    if(is.null(obj))
+      next
+    
     assign(objName, obj, .GlobalEnv)
     lri <- c(lri, sprintf("addTA(%s, on=1, col=3)", objName))
   }
@@ -128,13 +138,18 @@ getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))
 
 getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unificar esta funcao com filterLRI
 {
+  if(is.null(lri))
+  {
+    return(NULL)
+  }
+  
   r <- rle(sign(diff(as.vector(lri))))
   
   len <- length(r$values)
   
   if(len <= 3)
   {
-    return(FALSE)
+    return(NULL)
   }
   
   rdif <- c()
