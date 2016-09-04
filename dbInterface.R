@@ -164,7 +164,7 @@ meanPrice <- function(SymbolName)
 
 lastTradingSession <- function()
 {
-  return(getQuery("select date from stockprices order by date desc limit 1")[,1])
+  return(getQuery("select max(date) from stockprices")[,1])
 }
 
 lastPrice <- function(SymbolName)
@@ -174,7 +174,7 @@ lastPrice <- function(SymbolName)
 
 lastTradeDay <- function(SymbolName)
 {
-  return(getQuery(sprintf("select date from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)))
+  return(getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName)))
 }
 
 loadLocalCSV <- function(symbol)
@@ -301,6 +301,12 @@ getWallet <- function(FilterClosed = TRUE)
   }
   
   return(unique(symbols))
+}
+
+getTradeDays <- function()
+{
+  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
+  return(getQuery(queryStr)[,1])
 }
 
 getQuery <- function(queryStr = "") 

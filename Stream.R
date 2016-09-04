@@ -33,14 +33,9 @@ computeStream <- function(Symbols)
       startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       startDay <- format(Sys.time(), "%Y-%m-%d")
       
-      #if(is.null(toFilter))
-      {
-        toFilter <- setdiff(AllSymbols, Symbols)
-        toFilter <- filterVolume(toFilter)
-        toFilter <- filterBadData(toFilter)
-        accepted <- filterIncomplete(toFilter)
-        Symbols <- union(accepted, Symbols)
-      }
+      toFilter <- setdiff(AllSymbols, Symbols)
+      accepted <- filterData(toFilter, endDate)
+      Symbols <- union(accepted, Symbols)
       
       print("COMPUTING:")
       print(Symbols)
@@ -52,8 +47,6 @@ computeStream <- function(Symbols)
       
       for(symbol in Symbols)
       {
-        print(symbol)
-        
         tradeDecision <- trade(symbol, dt)
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         

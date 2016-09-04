@@ -26,7 +26,16 @@ trade <- function(symbol, tradeDate)
   
   obj <- get(symbol)[period]
   seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
-  sma <- SMA(seq, n=200)
+  n <- 200
+  if(length(seq) <= n)
+  {
+    warning(sprintf("%s sma(%d, %d)", symbol, length(seq), n))
+    tradeDecision <- list()
+    tradeDecision$decision <- "hold"
+    tradeDecision$reason <- "bad data"
+    return(tradeDecision)
+  }
+  sma <- SMA(seq, n)
   ssd <- sd(as.double(na.omit(seq-sma)))
   
   alertS <- FALSE
@@ -69,9 +78,9 @@ trade <- function(symbol, tradeDate)
   #integrand <- function(x) {1/((x+1)*sqrt(x))}
   #integrate(integrand, lower = 0, upper = Inf)
   
-  r <- rle(sign(diff(as.vector(sma))))
-  ratio <- filterSMA(r) #%up/%down
-  print(ratio)
+  #r <- rle(sign(diff(as.vector(sma))))
+  #ratio <- filterSMA(r) #%up/%down
+  #print(ratio)
   
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {

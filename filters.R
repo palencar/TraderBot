@@ -257,7 +257,7 @@ filterLRI <- function(lri, threshold=0.6)
   return("none")
 }
 
-filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
+filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
 {
   if(is.null(SymbolNames))
   {
@@ -271,7 +271,13 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     filterMap <- readRDS(cacheFileName)
   }
   
-  tradeDays <- getQuery("select distinct date from stockprices where date >= (select date('1995-03-01','-1 year')) order by date desc")[,1]
+  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
+  allTradeDays <- getQuery(queryStr)[,1]
+  
+  if(dateLimit == "NOW")
+  {
+    dateLimit <- Sys.Date()
+  }
   
   symbols <- NULL
   k <- 0
@@ -286,21 +292,25 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       next
     }
     
-    if((sum(is.na(as.numeric(Op(obj)))) + sum(is.na(as.numeric(Hi(obj)))) + sum(is.na(as.numeric(Lo(obj)))) + sum(is.na(as.numeric(Cl(obj))))) > 0)
+    if(anyNA(as.numeric(OHLCV(obj))))
     {
       next
     }
-    
-    print(symbol)
-    
+
     err <- 0
     exclude <- FALSE
+    tradeDays <- allTradeDays[which(allTradeDays <= as.Date(dateLimit))]
     lastError <- tradeDays[1]
     
     goodDate <- NULL
     if(!is.null(filterMap))
     {
       goodDate <- filterMap[[symbol]]
+    }
+    
+    if(!is.null(goodDate))
+    {
+      tradeDays <- tradeDays[which(tradeDays >= as.Date(goodDate))]
     }
     
     k <- 0
@@ -336,17 +346,14 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
       }
       else if(!is.null(goodDate) && as.Date(tradeDay) <= as.Date(goodDate))
       {
-        print(sprintf("good data up to %s", as.Date(tradeDay)))
+        #print(sprintf("good data up to %s", as.Date(tradeDay)))
         break
       }
     }
     
-    if(!is.null(badData))
-      writeLines(badData, "baddata.txt")
-    
     if(exclude == TRUE)
     {
-      print(sprintf("excluding %s from symbols %s", symbol, lastError))
+      warning(sprintf("excluding %s from symbols %s", symbol, lastError))
       next
     }
     
@@ -354,7 +361,16 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="")
     filterMap[[symbol]] <- as.Date(last(index(obj)))
   }
   
+  if(!is.null(badData))
+    writeLines(badData, "baddata.txt")
+  
   saveRDS(filterMap, file=cacheFileName)
+  
+  exclude <- setdiff(SymbolNames, symbols)
+  if(length(exclude) > 0)
+  {
+    print(sprintf("Incomplete Excuding: %s", paste(exclude, collapse = " ")))
+  }
   
   return (symbols)
 }
@@ -395,68 +411,96 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
   return(symbols)
 }
 
-filterBadData <- function(SymbolNames)
+filterData <- function(SymbolNames, endDate)
+{
+  toFilter <- filterVolume(SymbolNames, endDate)
+  toFilter <- filterBadData(toFilter, endDate)
+  accepted <- filterIncomplete(toFilter, endDate)
+  
+  return(accepted)
+}
+
+filterBadData <- function(SymbolNames, dateLimit=NULL)
 {
   symbols <- NULL
+  
+  if(is.null(SymbolNames))
+  {
+    return(NULL)
+  }
+  
+  if(is.null(dateLimit))
+  {
+    dateLimit <- lastTradingSession()
+  }
+  
+  cacheFileName <- "data/good.rds"
+  filterMap <- new.env(hash=T, parent=emptyenv())
+  if(file.exists(cacheFileName))
+  {
+    filterMap <- readRDS(cacheFileName)
+  }
   
   for(symbol in SymbolNames)
   {
     pass <- TRUE
-    #print(symbol)
-    obj <- get(symbol)
-    mn  <- mean(Cl(obj))
-    
-    for(i in 2:(length(index(obj))))
+
+    goodDate <- NULL
+    if(!is.null(filterMap))
     {
-      prev <- obj[i-1]
-      cur  <- obj[i]
+      goodDate <- filterMap[[symbol]]
+      if(!is.null(goodDate))
+        goodDate <- as.Date(goodDate)
+    }
+    
+    if(is.null(goodDate) || as.Date(goodDate) < as.Date(dateLimit))
+    {
+      if(is.null(goodDate))
+        goodDate <- ""
       
-      if((is.double(Op(cur)) && is.double(Hi(cur)) && is.double(Lo(cur)) && is.double(Cl(cur)) && is.numeric(Vo(cur))) == FALSE)
-      {
-        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
-        pass <- FALSE
-        next
-      }
+      obj <- get(symbol)[sprintf("%s/%s", goodDate, dateLimit)]
+      mn  <- mean(Cl(obj))
       
-      if((is.double(Op(prev)) && is.double(Hi(prev)) && is.double(Lo(prev)) && is.double(Cl(prev)) && is.numeric(Vo(prev))) == FALSE)
+      if(length(index(obj)) >= 2)
       {
-        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
-        pass <- FALSE
-        next
-      }
-             
-      prevVal <- c(as.double(Op(prev)), as.double(Hi(prev)), as.double(Lo(prev)), as.double(Cl(prev)))
-      curVal  <- c(as.double(Op(cur)), as.double(Hi(cur)), as.double(Lo(cur)), as.double(Cl(cur)))
-      
-      if(any(curVal == 0))
-      {
-        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
-        pass <- FALSE
-        next
-      }
-      
-      if(any(prevVal == 0))
-      {
-        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
-        pass <- FALSE
-        next
-      }
-      
-      if(max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
-         min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5)
-      {
-        #if(as.Date(index(obj[i])) < as.Date("2008-01-01") && (max(curVal) < 1.0|| max(prevVal) < 1.0))
-        #{
-        #  warning(print(sprintf("%s %s: Too old or insignificant, ignore..", symbol, as.Date.character(index(obj[i])))))
-        #}
-        #else
-        #{
-        #  pass <- FALSE
-        #}
+        for(i in 2:(length(index(obj))))
+        {
+          prevVal <- as.numeric(OHLC(obj[i-1]))
+          curVal  <- as.numeric(OHLC(obj[i]))
+          
+          if(anyNA(curVal) || any(curVal == 0))
+          {
+            warning(print(paste(symbol, as.character(as.Date(index(obj[i]))), paste(curVal, collapse = " "))))
+            pass <- FALSE
+            next
+          }
+          
+          if(anyNA(prevVal) || any(prevVal == 0))
+          {
+            warning(print(paste(symbol, as.character(as.Date(index(obj[i-1]))), paste(prevVal, collapse = " "))))
+            pass <- FALSE
+            next
+          }
+          
+          if(max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
+             min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5)
+          {
+            #if(as.Date(index(obj[i])) < as.Date("2008-01-01") && (max(curVal) < 1.0|| max(prevVal) < 1.0))
+            #{
+            #  warning(print(sprintf("%s %s: Too old or insignificant, ignore..", symbol, as.Date.character(index(obj[i])))))
+            #}
+            #else
+            #{
+            #  pass <- FALSE
+            #}
+            
+            warning(print(paste(symbol, as.character(as.Date(index(obj[i-1]))), paste(prevVal, collapse = " "))))
+            warning(print(paste(symbol, as.character(as.Date(index(obj[i]))), paste(curVal, collapse = " "))))
+            pass <- FALSE
+          }
+        }
         
-        warning(print(paste(symbol, as.character(as.Date(index(prev))), paste(prevVal, collapse = " "))))
-        warning(print(paste(symbol, as.character(as.Date(index(cur))), paste(curVal, collapse = " "))))
-        pass <- FALSE
+        filterMap[[symbol]] <-as.Date(last(index(obj)))
       }
     }
     
@@ -465,9 +509,14 @@ filterBadData <- function(SymbolNames)
       symbols <- c(symbols, symbol)
     }
   }
+
+  saveRDS(filterMap, file=cacheFileName)
   
-  print("Excuding:")
-  print(setdiff(SymbolNames, symbols))
+  exclude <- setdiff(SymbolNames, symbols)
+  if(length(exclude) > 0)
+  {
+    print(sprintf("Bad Data Excuding: %s", paste(exclude, collapse = " ")))
+  }
   
   return(symbols)
 }
@@ -499,7 +548,6 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
     
     if(length(vol) < 90)
     {
-      print(sprintf("excluding %s length(vol) < 90", symb))
       next
     }
 
@@ -510,6 +558,12 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
       next
     
     symbols <- c(symbols, symb)
+  }
+  
+  exclude <- setdiff(SymbolNames, symbols)
+  if(length(exclude) > 0)
+  {
+    print(sprintf("Volume Excuding: %s", paste(exclude, collapse = " ")))
   }
   
   return(symbols)
