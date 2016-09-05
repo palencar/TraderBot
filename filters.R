@@ -261,7 +261,7 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
 {
   if(is.null(SymbolNames))
   {
-    return
+    return(NULL)
   }
   
   cacheFileName <- "data/filter.rds"
@@ -369,7 +369,121 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Incomplete Excuding: %s", paste(exclude, collapse = " ")))
+    print(sprintf("Incomplete Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
+  }
+  
+  return (symbols)
+}
+
+filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
+{
+  if(is.null(SymbolNames))
+  {
+    return(NULL)
+  }
+  
+  cacheFileName <- "data/filter.rds"
+  filterMap <- new.env(hash=T, parent=emptyenv())
+  if(file.exists(cacheFileName))
+  {
+    filterMap <- readRDS(cacheFileName)
+  }
+  
+  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
+  allTradeDays <- getQuery(queryStr)[,1]
+  
+  if(dateLimit == "NOW")
+  {
+    dateLimit <- Sys.Date()
+  }
+  
+  symbols <- NULL
+  badData <- NULL
+  
+  for(symbol in SymbolNames)
+  {  
+    obj <- get(symbol)
+    if(length(obj) < 60)
+    {
+      next
+    }
+    
+    if(anyNA(as.numeric(OHLCV(obj))))
+    {
+      next
+    }
+    
+    err <- 0
+    exclude <- FALSE
+    tradeDays <- allTradeDays[which(allTradeDays <= as.Date(dateLimit))]
+    lastError <- tradeDays[1]
+    
+    goodDate <- NULL
+    if(!is.null(filterMap))
+    {
+      goodDate <- filterMap[[symbol]]
+    }
+    
+    if(!is.null(goodDate))
+    {
+      tradeDays <- tradeDays[which(tradeDays >= as.Date(goodDate))]
+    }
+    
+    obj <- obj[sprintf("%s/%s", tradeDays[length(tradeDays)], tradeDays[1])]
+    
+    if(!is.null(goodDate) && as.Date(dateLimit) <= as.Date(goodDate))
+    {
+      #print(sprintf("good data up to %s", as.Date(dateLimit)))
+    }
+    else if(is.null(goodDate) && length(index(obj)) <= 3)
+    {
+      badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
+      exclude <- TRUE
+    }
+    else if(!is.null(goodDate) && length(index(obj)) <= 2 &&
+            (as.integer(index(obj[length(index(obj))])) - as.integer(index(obj[1]))) > 10)
+    {
+      badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
+      exclude <- TRUE
+    }
+    else
+    {
+      for(i in (length(index(obj)):3))
+      {
+        if(length(obj[i-2]) == 0)
+        {
+          print(sprintf("deu ruim %s %d %d", symbol, i, i-2))
+          exclude <- TRUE
+          break
+        }
+        if(as.integer(index(obj[i]) - index(obj[i-2])) > 10)
+        {
+          badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
+          exclude <- TRUE
+          break
+        }
+      }
+    }
+    
+    if(exclude == TRUE)
+    {
+      warning(sprintf("excluding %s from symbols %s", symbol, lastError))
+      next
+    }
+    
+    symbols <- c(symbols, symbol)
+    filterMap[[symbol]] <- as.Date(last(index(obj)))
+  }
+  
+  if(!is.null(badData))
+    writeLines(badData, "baddata.txt")
+  
+  saveRDS(filterMap, file=cacheFileName)
+  
+  exclude <- setdiff(SymbolNames, symbols)
+  if(length(exclude) > 0)
+  {
+    print(sprintf("Gap Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
   }
   
   return (symbols)
@@ -414,10 +528,10 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 filterData <- function(SymbolNames, endDate)
 {
   toFilter <- filterVolume(SymbolNames, endDate)
+  toFilter <- filterGap(toFilter, endDate)
   toFilter <- filterBadData(toFilter, endDate)
-  accepted <- filterIncomplete(toFilter, endDate)
   
-  return(accepted)
+  return(toFilter)
 }
 
 filterBadData <- function(SymbolNames, dateLimit=NULL)
@@ -515,7 +629,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Bad Data Excuding: %s", paste(exclude, collapse = " ")))
+    print(sprintf("Bad Data Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
   }
   
   return(symbols)
@@ -563,7 +677,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Volume Excuding: %s", paste(exclude, collapse = " ")))
+    print(sprintf("Volume Excuding [%s]: %s", as.Date(dt), paste(exclude, collapse = " ")))
   }
   
   return(symbols)
@@ -633,7 +747,7 @@ filterObjectsSets <- function(symbol, ChartDate)
   return(alerts)
 }
 
-filterSMA <- function(rleSeq, period=(30*6))
+filterSMA <- function(rleSeq)
 {
   daysUp <- 0
   daysDown <- 0
@@ -650,9 +764,6 @@ filterSMA <- function(rleSeq, period=(30*6))
     
     if(values[i] == 1)
       daysUp <- daysDown + rleSeq$lengths[i]
-    
-    if((daysUp + daysDown) > period)
-      break
   }
   
   return (as.double((daysUp) / (daysDown + daysUp)))

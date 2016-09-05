@@ -47,7 +47,7 @@ computeStream <- function(Symbols)
       
       for(symbol in Symbols)
       {
-        tradeDecision <- trade(symbol, dt)
+        tradeDecision <- trade(symbol, dt, 1.0, -1.0)
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         
         if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
@@ -55,7 +55,7 @@ computeStream <- function(Symbols)
           alertSymbols <- c(alertSymbols, symbol)
           tradeAlerts <- c(tradeAlert, tradeAlerts)
           
-          price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(dt)]))/3)
+          price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
           logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
           logFile <- paste("training/",symbol,".log", sep = "")
           cat(logLine, file=logFile, sep = "\n", append=TRUE)

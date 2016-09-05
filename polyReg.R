@@ -136,8 +136,6 @@ getPolyRegs <- function(Symbol, endDate=NULL)
 {
   ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
   objFiles <- list.files("data", pattern=ptrnStr)
-  
-  print(Symbol)
 
   if(is.null(endDate))
     endDate <- Sys.Date()

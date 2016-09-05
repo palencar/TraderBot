@@ -2,8 +2,7 @@ source("trade.R")
 
 computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
 {
-  strQuery <- sprintf("select distinct date from stockprices where date >= (select date('%s','-4 year')) order by date desc", endDate)
-  tradeDays <- getQuery(strQuery)[,1]
+  tradeDays <- getTradeDays()
   
   AllSymbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
 
@@ -19,7 +18,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
     for(symbol in Symbols)
     {
       
-      tradeDecision <- trade(symbol, as.Date(tradeDate))
+      tradeDecision <- trade(symbol, as.Date(tradeDate), 1.0, -1.0)
       
       if(tradeDecision$decision != "hold")
       {

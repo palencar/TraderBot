@@ -4,7 +4,7 @@ library("RSQLite")
 library("DBI")
 
 
-getSymbolsMySQL <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
+getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
 {
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
   
@@ -77,7 +77,7 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
     }
   }
   
-  symbolNamesObj <- getSymbolsMySQL(symbolNames, FilterToday=update, FilterAge=minAge)
+  symbolNamesObj <- getSymbolsDB(symbolNames, FilterToday=update, FilterAge=minAge)
   
   return (symbolNamesObj)
 }
@@ -305,7 +305,7 @@ getWallet <- function(FilterClosed = TRUE)
 
 getTradeDays <- function()
 {
-  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
+  queryStr <- sprintf("select distinct date from stockprices order by date asc")
   return(getQuery(queryStr)[,1])
 }
 

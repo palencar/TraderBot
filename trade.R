@@ -1,5 +1,8 @@
-trade <- function(symbol, tradeDate)
+trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
 {
+  canBuy <- TRUE
+  canSell <- TRUE
+  
   period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
 
   alertR = tryCatch({
@@ -65,32 +68,33 @@ trade <- function(symbol, tradeDate)
   if((totBl/objLen) < 0.1)  #Valor nos 10% inferiores
     alertB <- totBl/objLen
   
-  lsma <- last(sma)
-  lst <- last(seq)
-  
   decision <- "hold"
   reason <- NULL
   
-  #TODO integrar uma funcao "long tail" para os intervalos crescentes e decrescentes (somar a integracao dos intervalos)
-  #r <- rle(sign(diff(as.vector(sma))))
-  #r$lengths r$values
-  #usar o resultado para estimar quantas vezes o sdp sera aceito o sinal
-  #integrand <- function(x) {1/((x+1)*sqrt(x))}
-  #integrate(integrand, lower = 0, upper = Inf)
+  r <- rle(sign(diff(as.vector(sma))))
+  ratio <- filterSMA(r) #%up/%down
+
+  if(ratio < 0.1)
+  {
+    print(sprintf("DO NOT BUY: %s | [%s] up/down: %s", symbol, period, ratio))
+    canBuy <- FALSE
+  }
   
-  #r <- rle(sign(diff(as.vector(sma))))
-  #ratio <- filterSMA(r) #%up/%down
-  #print(ratio)
+  if(ratio > 0.9)
+  {
+    print(sprintf("DO NOT SELL: %s | [%s] up/down: %s", symbol, period, ratio))
+    canSell <- FALSE
+  }
   
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
-    if(alertR == "r_up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(canBuy && alertR == "r_up" && (is.null(lowerBand)|| sdp < lowerBand)) #reversao "para cima" e abaixo da banda inferior
     {
       decision <- "buy"
       reason <- "alertR == r_up && sdp < -1.0 -> buy"
     }
     
-    if(alertR == "r_down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
+    if(canSell && alertR == "r_down" && (is.null(upperBand) || sdp > upperBand)) #reversao "para baixo" e acima da banda superior
     {
       decision <- "sell"
       reason <- "alertR == r_dow && sdp > 0.0 -> sell"
@@ -99,13 +103,13 @@ trade <- function(symbol, tradeDate)
   
   if(!is.null(alertL) && alertL != FALSE) #valor valido
   {
-    if(alertL == "up" && sdp < -1.0) #reversao "para cima" e abaixo de -1x o desvio padrao
+    if(canBuy && alertL == "up" && (is.null(lowerBand)|| sdp < lowerBand)) #reversao "para cima" e abaixo da banda inferior
     {
       decision <- "buy"
       reason <- "alertL == up && sdp < -1.0 -> buy"
     }
     
-    if(alertL == "down" && sdp > 0.0) #reversao "para baixo" e acima da media movel
+    if(canSell && alertL == "down" && (is.null(upperBand) || sdp > upperBand)) #reversao "para baixo" e acima da banda superior
     {
       decision <- "sell"
       reason <- "alertL == down && sdp > 0.0 -> sell"
