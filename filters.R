@@ -431,7 +431,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     
     obj <- obj[sprintf("%s/%s", tradeDays[length(tradeDays)], tradeDays[1])]
     
-    if(!is.null(goodDate) && as.Date(dateLimit) <= as.Date(goodDate))
+    if(!is.null(goodDate) && !is.null(dateLimit) && as.Date(dateLimit) <= as.Date(goodDate))
     {
       #print(sprintf("good data up to %s", as.Date(dateLimit)))
     }
@@ -448,15 +448,24 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     }
     else
     {
-      for(i in (length(index(obj)):3))
+      first <- 1
+      last <- length(index(obj)) 
+      
+      d <- 3
+      if(last - first < 3)
       {
-        if(length(obj[i-2]) == 0)
+        d <- last - first
+      }
+      
+      for(i in last:(d+1))
+      {
+        if(length(obj[i-d]) == 0)
         {
-          print(sprintf("deu ruim %s %d %d", symbol, i, i-2))
           exclude <- TRUE
           break
         }
-        if(as.integer(index(obj[i]) - index(obj[i-2])) > 10)
+        
+        if(as.integer(index(obj[i]) - index(obj[i-d])) > 10)
         {
           badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
           exclude <- TRUE
