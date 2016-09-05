@@ -191,6 +191,11 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
 
 filterLRI <- function(lri, threshold=0.6)
 {
+  if(is.null(lri))
+  {
+    return("none")
+  }
+  
   r <- rle(sign(diff(as.vector(lri))))
   
   len <- length(r$values)
@@ -440,7 +445,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
       badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
       exclude <- TRUE
     }
-    else if(!is.null(goodDate) && length(index(obj)) <= 2 &&
+    else if(!is.null(goodDate) && length(index(obj)) <= 3 &&
             (as.integer(index(obj[length(index(obj))])) - as.integer(index(obj[1]))) > 10)
     {
       badData <- c(badData, sprintf("%s %s", symbol, dateLimit))

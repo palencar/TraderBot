@@ -54,7 +54,8 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
   }
   
   if(firstDate < as.Date(xts::first(index(Symbol))))
-    firstDate <- as.Date(xts::first(index(Symbol)))
+    return(NULL)
+    #firstDate <- as.Date(xts::first(index(Symbol)))
   
   if(firstDate > lastDate)
     firstDate <- as.Date(lastDate-window)
