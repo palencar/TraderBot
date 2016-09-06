@@ -46,8 +46,12 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     else
       polyRegs <- NULL
     
+    datePeriod <- sprintf("%s::%s", st, ed)
+    
+    Symbol <- get(SymbolName)[datePeriod]
+    
     if("smaSD" %in% indicators)
-      smasd <- smaSD(SymbolName, 200)
+      smasd <- smaSD(Symbol, 200)
     else
       smasd <- NULL
         
@@ -56,12 +60,10 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     else
       vol <- NULL
     
-    datePeriod <- sprintf("%s::%s", st, ed)
-    
     if(timeFrame == "weekly")
-      Symbol <- to.weekly(get(SymbolName)[datePeriod])
-    else
-      Symbol <- get(SymbolName)[datePeriod]
+    {
+      Symbol <- to.weekly(Symbol)
+    }
     
     if("lri" %in% indicators)
       lri <- getLinRegIndicators(SymbolName, Symbol)
