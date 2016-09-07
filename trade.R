@@ -4,6 +4,27 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   canSell <- TRUE
   
   period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
+  obj <- get(symbol)[period]
+  
+  if(is.null(obj) || as.Date(tradeDate) %in% index(obj) == FALSE)
+  {
+    warning(sprintf("%s %s no data", symbol, tradeDate))
+    tradeDecision <- list()
+    tradeDecision$decision <- "hold"
+    tradeDecision$reason <- "bad data"
+    return(tradeDecision)
+  }
+  
+  seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
+  n <- 200
+  if(length(seq) <= n)
+  {
+    warning(sprintf("%s %s sma(%d, %d)", symbol, tradeDate, length(seq), n))
+    tradeDecision <- list()
+    tradeDecision$decision <- "hold"
+    tradeDecision$reason <- "bad data"
+    return(tradeDecision)
+  }
 
   alertR = tryCatch({
     filterObjectsSets(symbol, tradeDate)
@@ -29,17 +50,6 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   }, finally={
   })
   
-  obj <- get(symbol)[period]
-  seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
-  n <- 200
-  if(length(seq) <= n)
-  {
-    warning(sprintf("%s sma(%d, %d)", symbol, length(seq), n))
-    tradeDecision <- list()
-    tradeDecision$decision <- "hold"
-    tradeDecision$reason <- "bad data"
-    return(tradeDecision)
-  }
   sma <- SMA(seq, n)
   ssd <- sd(as.double(na.omit(seq-sma)))
   

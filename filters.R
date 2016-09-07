@@ -204,7 +204,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     return(cacheFile$alert)
   }
   
-  lri <- linearRegressionIndicator(symbol, get(symbol)[sprintf("/%s", tradeDate)])
+  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)])
   
   if(is.null(lri))
   {
@@ -277,7 +277,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     cacheFile$alert <- "down"
   }
   
-  saveRDS(cacheFile)
+  saveRDS(cacheFile, file = cacheName)
   return(cacheFile$alert)
 }
 
@@ -718,7 +718,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
   return(symbols)
 }
 
-filterObjectsSets <- function(symbol, ChartDate)
+filterObjectsSets <- function(symbol, tradeDay)
 {
   k1 <- 10
   k2 <- 730
@@ -728,7 +728,7 @@ filterObjectsSets <- function(symbol, ChartDate)
   regset <- NULL
   turnpoints_r <- list()
   
-  cacheName <- sprintf("data/%s-%s_%d_%d_turncache.rds", ChartDate, symbol, k1, k2)
+  cacheName <- sprintf("data/%s-%s_%d_%d_turncache.rds", tradeDay, symbol, k1, k2)
   if(file.exists(cacheName))
   {
     cacheFile <- readRDS(cacheName)
@@ -736,22 +736,36 @@ filterObjectsSets <- function(symbol, ChartDate)
   }
   else
   {
-    regset <- findCurves(symbol, k1, k2, ChartDate)
+    regset <- findCurves(symbol, k1, k2, tradeDay)
     
-    if(is.null(regset) || length(regset) == 0 || length(get(symbol)[ChartDate]) == 0)
+    if(is.null(regset))
     {
-      warning(sprintf("regset = NULL or length(regset) = 0 or no data for %s", ChartDate))
+      warning("regset = NULL")
+      return(NULL)
+    }
+    
+    if(length(regset) == 0)
+    {
+      warning("length(regset) = 0")
+      return(NULL)
+    }
+    
+    if(length(get(symbol)[tradeDay]) == 0)
+    {
+      warning(sprintf("no data for %s", tradeDay))
       return(NULL)
     }
 
+    print(sprintf("%s %s", symbol, tradeDay))
     alertas <- turnPoints(regset)
+    print(alertas)
 
     trend <- c("r_up")
     turnpoints_r$r_up <- filterRevert(alertas, trend, 3)
     
     if(length(turnpoints_r$r_up) > 0)
     {
-      objectName_ru <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
+      objectName_ru <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", tradeDay, symbol, k1, k2)
       
       if((trend %in% alerts) == FALSE)
       {
@@ -766,7 +780,7 @@ filterObjectsSets <- function(symbol, ChartDate)
     
     if(length(turnpoints_r$r_down) > 0)
     {
-      objectName_rd <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
+      objectName_rd <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", tradeDay, symbol, k1, k2)
       
       if((trend %in% alerts) == FALSE)
       {
