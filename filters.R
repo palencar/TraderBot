@@ -189,25 +189,39 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(lri, threshold=0.6)
+filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
 {
+  cacheFile <- NULL
+  cacheName <- sprintf("data/%s-%s_%1.2f_lricache.rds", SymbolName, tradeDate, threshold) 
+  
+  if(file.exists(cacheName))
+  {
+    cacheFile <- readRDS(cacheName)
+  }
+  
+  if(!is.null(cacheFile))
+  {
+    return(cacheFile$alert)
+  }
+  
+  lri <- linearRegressionIndicator(symbol, get(symbol)[sprintf("/%s", tradeDate)])
+  
   if(is.null(lri))
   {
     return("none")
   }
   
+  cacheFile <- list()
+  
   r <- rle(sign(diff(as.vector(lri))))
   
   len <- length(r$values)
   
-  if(r$lengths[len] > 1)
+  if(r$lengths[len] > 1 || len <= 3)
   {
-    return("none")
-  }
-  
-  if(len <= 3)
-  {
-    return("none")
+    cacheFile$alert <- "none"
+    saveRDS(cacheFile, file=cacheName)
+    return(cacheFile$alert)
   }
   
   rdif <- c()
@@ -217,6 +231,7 @@ filterLRI <- function(lri, threshold=0.6)
   {
     nextIndex <- lastIndex + r$lengths[i]
     rdif[i] <- 0
+    
     if(r$values[i] == 1)
     {
       high <- as.double(lri[nextIndex])
@@ -229,6 +244,7 @@ filterLRI <- function(lri, threshold=0.6)
       low  <- as.double(lri[nextIndex]) 
       rdif[i] <- (low-high)/high
     }
+    
     lastIndex <- nextIndex
   }
   
@@ -249,17 +265,20 @@ filterLRI <- function(lri, threshold=0.6)
     }
   }
   
+  cacheFile$alert <- "none"
+  
   if(r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
   {
-    return("up")
+    cacheFile$alert <- "up"
   }
   
   if(r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
   {
-    return("down")
+    cacheFile$alert <- "down"
   }
   
-  return("none")
+  saveRDS(cacheFile)
+  return(cacheFile$alert)
 }
 
 filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
@@ -427,6 +446,8 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     if(!is.null(filterMap))
     {
       goodDate <- filterMap[[symbol]]
+      if(length(goodDate) == 0)
+        goodDate <- NULL
     }
     
     if(!is.null(goodDate))
@@ -577,7 +598,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
     if(!is.null(filterMap))
     {
       goodDate <- filterMap[[symbol]]
-      if(!is.null(goodDate))
+      if(!is.null(goodDate) && as.Date(goodDate) >= as.Date(dateLimit))
         goodDate <- as.Date(goodDate)
     }
     
@@ -703,59 +724,61 @@ filterObjectsSets <- function(symbol, ChartDate)
   k2 <- 730
   
   alerts <- NULL
+  cacheFile <- NULL
+  regset <- NULL
+  turnpoints_r <- list()
   
-  if(length(get(symbol)[ChartDate]) == 0)
+  cacheName <- sprintf("data/%s-%s_%d_%d_turncache.rds", ChartDate, symbol, k1, k2)
+  if(file.exists(cacheName))
   {
-    next
+    cacheFile <- readRDS(cacheName)
+    alerts <- cacheFile$alerts
   }
-  
-  if(exists(sprintf("%s.regset", symbol)) == FALSE)
+  else
   {
-    next
-  }
-  
-  regset <- get(sprintf("%s.regset", symbol), envir=.GlobalEnv)
-  
-  if(exists(sprintf("%s.regset", symbol), envir=.GlobalEnv) == TRUE)
-  {
-    rm(list=sprintf("%s.regset", symbol), envir=.GlobalEnv)
-  }
-  
-  if(length(regset) == 0)
-  {
-    next
-  }
-  
-  alertas <- turnPoints(regset)
-  
-  trend <- c("r_up")
-  alertas_r_up <- filterRevert(alertas, trend, 3)
-  
-  if(length(alertas_r_up) > 0)
-  {
-    objectName <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
+    regset <- findCurves(symbol, k1, k2, ChartDate)
     
-    if((trend %in% alerts) == FALSE)
+    if(is.null(regset) || length(regset) == 0 || length(get(symbol)[ChartDate]) == 0)
     {
-      alerts <- c(alerts, trend)
+      warning(sprintf("regset = NULL or length(regset) = 0 or no data for %s", ChartDate))
+      return(NULL)
+    }
+
+    alertas <- turnPoints(regset)
+
+    trend <- c("r_up")
+    turnpoints_r$r_up <- filterRevert(alertas, trend, 3)
+    
+    if(length(turnpoints_r$r_up) > 0)
+    {
+      objectName_ru <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", ChartDate, symbol, k1, k2)
+      
+      if((trend %in% alerts) == FALSE)
+      {
+        alerts <- c(alerts, trend)
+      }
+      
+      saveRDS(turnpoints_r$r_up, file=objectName_ru)
     }
     
-    saveRDS(alertas_r_up, file=objectName)
-  }
-  
-  trend <- c("r_down")
-  alertas_r_dow <- filterRevert(alertas, trend, 3)
-  
-  if(length(alertas_r_dow) > 0)
-  {
-    objectName <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
+    trend <- c("r_down")
+    turnpoints_r$r_down <- filterRevert(alertas, trend, 3)
     
-    if((trend %in% alerts) == FALSE)
+    if(length(turnpoints_r$r_down) > 0)
     {
-      alerts <- c(alerts, trend)
+      objectName_rd <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", ChartDate, symbol, k1, k2)
+      
+      if((trend %in% alerts) == FALSE)
+      {
+        alerts <- c(alerts, trend)
+      }
+      
+      saveRDS(turnpoints_r$r_down, file=objectName_rd)
     }
     
-    saveRDS(alertas_r_dow, file=objectName)
+    turnpoints_r$alerts <- alerts
+    
+    saveRDS(turnpoints_r, cacheName)
   }
   
   return(alerts)

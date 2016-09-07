@@ -34,8 +34,6 @@ linearRegression <- function (Symbol)
 
 linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 {
-  require(quantmod)
-  
   fileName <- sprintf("data/%s_%d_lri.rds", SymbolName, n)
   
   fileExists <- file.exists(fileName)
@@ -50,12 +48,11 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
   }
   else
   {
-    firstDate <- as.Date(lastDate-window)
+    firstDate <- as.Date(xts::first(index(Symbol))+n)
   }
   
   if(firstDate < as.Date(xts::first(index(Symbol))))
     return(NULL)
-    #firstDate <- as.Date(xts::first(index(Symbol)))
   
   if(firstDate > lastDate)
     firstDate <- as.Date(lastDate-window)
@@ -162,31 +159,20 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unifica
   {
     indexes[i] <- lastIndex
     nextIndex <- lastIndex + r$lengths[i]
+    rdif[i] <- 0
     
-    tryCatch({
-      rdif[i] <- 0
-      if(r$values[i] == 1)
-      {
-        high <- as.double(lri[nextIndex])
-        low  <- as.double(lri[lastIndex])
-        
-        rdif[i] <- (high-low)/low
-      }
-      else if(r$values[i] == -1)
-      {
-        high <- as.double(lri[lastIndex])
-        low  <- as.double(lri[nextIndex])
-        
-        rdif[i] <- (low-high)/high
-      }
-    }, warning = function(war) {
-      print(war)
-      return(Inf)
-    }, error = function(err) {
-      print(err)
-      return(Inf)
-    }, finally={
-    })
+    if(r$values[i] == 1)
+    {
+      high <- as.double(lri[nextIndex])
+      low  <- as.double(lri[lastIndex])
+      rdif[i] <- (high-low)/low
+    }
+    else if(r$values[i] == -1)
+    {
+      high <- as.double(lri[lastIndex])
+      low  <- as.double(lri[nextIndex])
+      rdif[i] <- (low-high)/high
+    }
     
     lastIndex <- nextIndex
   }

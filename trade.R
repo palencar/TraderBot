@@ -6,18 +6,20 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
 
   alertR = tryCatch({
-    computeRegressions(symbol, as.Date(tradeDate), as.Date(tradeDate))
+    filterObjectsSets(symbol, tradeDate)
   }, warning = function(war) {
     print(war)
+    print(sprintf("%s %s", symbol, tradeDate))
     return(NULL)
   }, error = function(err) {
     print(err)
+    print(sprintf("%s %s", symbol, tradeDate))
     return(NULL)
   }, finally={
   })    
   
   alertL = tryCatch({
-    filterLRI(linearRegressionIndicator(symbol, get(symbol)[period])[period])
+    filterLRI(symbol, tradeDate)
   }, warning = function(war) {
     print(war)
     return(NULL)
@@ -116,6 +118,7 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
     }
   }
   
+  #TODO retornar uma lista de decisoes (que possui os parametros)
   tradeDecision <- list()
   tradeDecision$decision <- decision
   tradeDecision$reason <- reason

@@ -30,6 +30,8 @@ computeStream <- function(Symbols)
       if(lastSession < endDate)
         stream <- FALSE
       
+      dt <- lastSession
+      
       startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       startDay <- format(Sys.time(), "%Y-%m-%d")
       
@@ -43,11 +45,9 @@ computeStream <- function(Symbols)
       alertSymbols <- NULL
       alertLog <- NULL
       
-      dt <- endDate
-      
       for(symbol in Symbols)
       {
-        tradeDecision <- trade(symbol, dt, 1.0, -1.0)
+        tradeDecision <- trade(symbol, as.Date(dt), 1.0, -1.0)
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         
         if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
@@ -57,9 +57,11 @@ computeStream <- function(Symbols)
           
           price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
           logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
-          logFile <- paste("training/",symbol,".log", sep = "")
+          resultPath <- "result"
+          dir.create(resultPath, showWarnings=FALSE)
+          logFile <- paste(resultPath,"/",symbol,".log", sep = "")
           cat(logLine, file=logFile, sep = "\n", append=TRUE)
-          cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)
+          cmdLine <- sprintf("cat result/%s.log | grep -v \"0.00\" | sort -u > result/%s.bkp && mv result/%s.bkp result/%s.log", symbol, symbol, symbol, symbol)
           system(cmdLine)
           alertLog <- paste(alertLog, logLine, sep = "\n")
         }
@@ -117,7 +119,8 @@ computeStream <- function(Symbols)
     {
       for(symbol in Symbols)
       {
-        imagePath <- sprintf("chart-history/%s", symbol)
+        imagePath <- "chart-history"
+        imageName <- sprintf("%s/%s", imagePath, symbol)
         dir.create(imagePath, showWarnings=FALSE)
         chartSymbols(Symbols=symbol, dev="png", path=imagePath, suffix=startDay)
       }

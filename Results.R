@@ -1,6 +1,6 @@
 source("dbInterface.R")
 
-filePath <- "training"
+filePath <- "result"
 
 objFiles <- list.files(filePath, pattern="*log")
 

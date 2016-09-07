@@ -17,7 +17,6 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
     
     for(symbol in Symbols)
     {
-      
       tradeDecision <- trade(symbol, as.Date(tradeDate), 1.0, -1.0)
       
       if(tradeDecision$decision != "hold")
@@ -31,9 +30,11 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
         
         price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
         logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
-        logFile <- paste("training/",symbol,".log", sep = "")
+        resultPath <- "result"
+        dir.create(resultPath, showWarnings=FALSE)
+        logFile <- paste(resultPath,"/",symbol,".log", sep = "")
         cat(logLine, file=logFile, sep = "\n", append=TRUE)
-        cmdLine <- sprintf("cat training/%s.log | grep -v \"0.00\" | sort -u > training/%s.bkp && mv training/%s.bkp training/%s.log", symbol, symbol, symbol, symbol)
+        cmdLine <- sprintf("cat result/%s.log | grep -v \"0.00\" | sort -u > result/%s.bkp && mv result/%s.bkp result/%s.log", symbol, symbol, symbol, symbol)
         system(cmdLine)
         
         if(printCharts)

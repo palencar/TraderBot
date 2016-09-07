@@ -33,18 +33,9 @@ polyRegression <- function (SymbolName, DateInterval, Period)
 
 findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
 {
-  if(dateLimit == "")
-  {    
-    dt = as.Date(format(Sys.time(), "%Y-%m-%d"))
-  }
-  else
-  { 
-    dt = as.Date(dateLimit)
-  }
-  
   lista <- foreach (i = minDays:maxDays, .combine = rbind, .errorhandling="remove") %do%
   { 
-    list(polyRegression(SymbolName, sprintf("%s::%s", seq(dt, length=2, by=sprintf("-%d days", i))[2], dt), i))
+    list(polyRegression(SymbolName, sprintf("%s::%s", seq(dateLimit, length=2, by=sprintf("-%d days", i))[2], dateLimit), i))
   }
   
   return(lista)
@@ -82,42 +73,6 @@ findBestCurve <- function(SymbolName, minDays, maxDays, dateLimit="")
   lista$name <- SymbolName
   lista$period <- minSigmaPeriod
   lista$interval <- minSigmaInterval
-  
-  return(lista)
-}
-
-computeRegressions <- function(Symbol, StartDate, EndDate)
-{
-  k1 <- 10
-  k2 <- 200
-  
-  lista <- NULL
-  
-  for(dt in seq(as.Date(EndDate), as.Date(StartDate), by = "-1 day"))
-  {
-    chartDate <- sprintf("%s", as.Date(dt))
-    
-    if(length(get(Symbol)[chartDate]) > 0)
-    {
-      alertas <- findCurves(Symbol, k1, k2, dateLimit=chartDate)
-      
-      if(length(alertas) > 0)
-      {
-        assign(sprintf("%s.regset", Symbol), alertas, .GlobalEnv)
-        item <- filterObjectsSets(Symbol, chartDate)
-        
-        if(is.null(item) == FALSE)
-        {
-          lista <- c(lista, item)
-        }
-      }
-    }
-  }
-  
-  if(is.null(lista))
-  {
-    lista <- FALSE
-  }
   
   return(lista)
 }
