@@ -26,83 +26,11 @@ turnPoints <- function(object, maxTpoints=8)
   if(length(sigmas) < maxTpoints)
     return(sigmas)
   
-  tp <- extract(turnpoints(sigmas), 100000, peak=0, pit=1)
-  tPoints <- c()
+  tp <- extract(turnpoints(sigmas), peak=0, pit=1)
   
-  Tp <- object[[length(tp)]]$period
-  for(i in length(tp):1)
-  {
-    if(tp[i] == 1)
-    {
-      tPoints[[i]] <- object[[i]]$sigma
-      Tp <- object[[i]]$sigma
-    }
-    else
-    {
-      tPoints[[i]] <- Tp
-    }
-  }
-
-  tp <- extract(turnpoints(tPoints), 100000, peak=0, pit=1)
+  index <- which(tp==1)     #turnpints indexes
   
-  k <- 1
-  lista <- c()
-  
-  for(i in 1:length(tp))
-  {
-    if(tp[i] == 1)
-    {
-      lista[[k]] <- object[[i]]
-      k <- k+1
-    }
-  }
-  
-  return(lista)
-}
-
-filterPolyReg <- function(SymbolNames, minDays, maxDays, minSigma=0, maxSigma=0, dateLimit="")
-{
-  j <- 1
-  lista <- list()
-  names <- c()
-  
-  for(i in 1:length(SymbolNames))
-  {
-    reg <- findBestCurve(SymbolName=SymbolNames[i], minDays=minDays, maxDays=maxDays, dateLimit=dateLimit)
-    
-    lastDayDate <- time(xts::last(reg$regression))
-    
-    if(minSigma != 0)
-    {
-      if(Lo(get(SymbolNames[i])[lastDayDate]) < xts::last(reg$regression[lastDayDate])+(minSigma*reg$sigma))
-      {
-        lista[[j]] <- reg
-        names[[j]] <- reg$name
-        j <- j + 1
-      }
-    }
-    
-    if(maxSigma != 0)
-    {
-      if(Lo(get(SymbolNames[i])[lastDayDate]) > xts::last(reg$regression[lastDayDate])+(maxSigma*reg$sigma))
-      {
-        lista[[j]] <- reg
-        names[[j]] <- reg$name
-        j <- j + 1
-      }
-    }
-    
-    if(minSigma == 0 && maxSigma == 0)
-    {
-      lista[[j]] <- reg
-      names[[j]] <- reg$name
-      j <- j + 1
-    }
-  }
-  
-  lista$names <- names
-  
-  return(lista)
+  return(object[which.min(sigmas[index])])  #which has minimal sigma
 }
 
 revertTrend <- function(TimeSeries, n=3)
@@ -254,7 +182,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
   
   for(i in 2:len)
   {
-    if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold)))#tooo talvez funcione tudo dentro do loop
+    if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold)))
     {
       lastSignal <- "up"
     }
@@ -370,7 +298,6 @@ filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
       }
       else if(!is.null(goodDate) && as.Date(tradeDay) <= as.Date(goodDate))
       {
-        #print(sprintf("good data up to %s", as.Date(tradeDay)))
         break
       }
     }
@@ -631,18 +558,10 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
             next
           }
           
-          if(max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
-             min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5)
+          if(as.numeric(as.Date(index(obj[i])) - as.Date(index(obj[i-1])))  <  10 &&
+             (max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
+             min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5))
           {
-            #if(as.Date(index(obj[i])) < as.Date("2008-01-01") && (max(curVal) < 1.0|| max(prevVal) < 1.0))
-            #{
-            #  warning(print(sprintf("%s %s: Too old or insignificant, ignore..", symbol, as.Date.character(index(obj[i])))))
-            #}
-            #else
-            #{
-            #  pass <- FALSE
-            #}
-            
             warning(print(paste(symbol, as.character(as.Date(index(obj[i-1]))), paste(prevVal, collapse = " "))))
             warning(print(paste(symbol, as.character(as.Date(index(obj[i]))), paste(curVal, collapse = " "))))
             pass <- FALSE
@@ -721,7 +640,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
 filterObjectsSets <- function(symbol, tradeDay)
 {
   k1 <- 10
-  k2 <- 730
+  k2 <- 300
   
   alerts <- NULL
   cacheFile <- NULL
@@ -755,10 +674,19 @@ filterObjectsSets <- function(symbol, tradeDay)
       warning(sprintf("no data for %s", tradeDay))
       return(NULL)
     }
-
-    print(sprintf("%s %s", symbol, tradeDay))
-    alertas <- turnPoints(regset)
-    print(alertas)
+    
+    alertas = tryCatch({
+      turnPoints(regset)
+    }, warning = function(war) {
+      print(war)
+      print(sprintf("%s %s", symbol, tradeDay))
+      return(NULL)
+    }, error = function(err) {
+      print(err)
+      print(sprintf("%s %s", symbol, tradeDay))
+      return(NULL)
+    }, finally={
+    })    
 
     trend <- c("r_up")
     turnpoints_r$r_up <- filterRevert(alertas, trend, 3)

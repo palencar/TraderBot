@@ -1,3 +1,4 @@
+source("result.R")
 
 computeStream <- function(Symbols)
 {
@@ -45,9 +46,11 @@ computeStream <- function(Symbols)
       alertSymbols <- NULL
       alertLog <- NULL
       
+      for(i in seq(0, 2, 0.1))
+      for(j in seq(0, -2, -0.1))
       for(symbol in Symbols)
       {
-        tradeDecision <- trade(symbol, as.Date(dt), 1.0, -1.0)
+        tradeDecision <- trade(symbol, as.Date(dt), i, i)
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         
         if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
@@ -57,12 +60,9 @@ computeStream <- function(Symbols)
           
           price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
           logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
-          resultPath <- "result"
-          dir.create(resultPath, showWarnings=FALSE)
-          logFile <- paste(resultPath,"/",symbol,".log", sep = "")
-          cat(logLine, file=logFile, sep = "\n", append=TRUE)
-          cmdLine <- sprintf("cat result/%s.log | grep -v \"0.00\" | sort -u > result/%s.bkp && mv result/%s.bkp result/%s.log", symbol, symbol, symbol, symbol)
-          system(cmdLine)
+          
+          writeResult(symbol, logLine, c(sprintf("%1.1f", i), sprintf("%1.1f", j)))
+          
           alertLog <- paste(alertLog, logLine, sep = "\n")
         }
       }

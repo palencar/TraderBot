@@ -103,13 +103,13 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
     if(canBuy && alertR == "r_up" && (is.null(lowerBand)|| sdp < lowerBand)) #reversao "para cima" e abaixo da banda inferior
     {
       decision <- "buy"
-      reason <- "alertR == r_up && sdp < -1.0 -> buy"
+      reason <- "alertR == r_up && sdp < lowerBand -> buy"
     }
     
     if(canSell && alertR == "r_down" && (is.null(upperBand) || sdp > upperBand)) #reversao "para baixo" e acima da banda superior
     {
       decision <- "sell"
-      reason <- "alertR == r_dow && sdp > 0.0 -> sell"
+      reason <- "alertR == r_dow && sdp > upperBand -> sell"
     }
   }
   
@@ -118,17 +118,16 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
     if(canBuy && alertL == "up" && (is.null(lowerBand)|| sdp < lowerBand)) #reversao "para cima" e abaixo da banda inferior
     {
       decision <- "buy"
-      reason <- "alertL == up && sdp < -1.0 -> buy"
+      reason <- "alertL == up && sdp < lowerBand -> buy"
     }
     
     if(canSell && alertL == "down" && (is.null(upperBand) || sdp > upperBand)) #reversao "para baixo" e acima da banda superior
     {
       decision <- "sell"
-      reason <- "alertL == down && sdp > 0.0 -> sell"
+      reason <- "alertL == down && sdp > upperBand -> sell"
     }
   }
-  
-  #TODO retornar uma lista de decisoes (que possui os parametros)
+
   tradeDecision <- list()
   tradeDecision$decision <- decision
   tradeDecision$reason <- reason
