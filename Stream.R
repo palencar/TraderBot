@@ -46,11 +46,9 @@ computeStream <- function(Symbols)
       alertSymbols <- NULL
       alertLog <- NULL
       
-      for(i in seq(0, 2, 0.1))
-      for(j in seq(0, -2, -0.1))
       for(symbol in Symbols)
       {
-        tradeDecision <- trade(symbol, as.Date(dt), i, i)
+        tradeDecision <- trade(symbol, as.Date(dt), 1.0, -1.0)
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
         
         if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
@@ -61,7 +59,7 @@ computeStream <- function(Symbols)
           price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
           logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
           
-          writeResult(symbol, logLine, c(sprintf("%1.1f", i), sprintf("%1.1f", j)))
+          writeResult(symbol, logLine)
           
           alertLog <- paste(alertLog, logLine, sep = "\n")
         }

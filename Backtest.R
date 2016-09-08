@@ -16,9 +16,11 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
     
     Symbols <- filterData(AllSymbols, tradeDate)
     
+    for(i in seq(0, 2, 0.1))
+    for(j in seq(0, -2, -0.1))
     for(symbol in Symbols)
     {
-      tradeDecision <- trade(symbol, as.Date(tradeDate), 1.0, -1.0)
+      tradeDecision <- trade(symbol, as.Date(tradeDate), i, j)
       
       if(tradeDecision$decision != "hold")
       {
@@ -32,7 +34,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
         price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
         logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
 
-        writeResult(symbol, logLine)
+        writeResult(symbol, logLine, c(sprintf("%1.1f", i), sprintf("%1.1f", j)))
         
         if(printCharts)
         {
