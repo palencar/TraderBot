@@ -17,7 +17,7 @@ writeResult <- function(symbol, result, parameters = NULL)
   
   logFile <- paste(resultPath,"/",symbol,".log", sep = "")
   cat(result, file=logFile, sep = "\n", append=TRUE)
-  cmdLine <- sprintf("cat %s/%s.log | grep -v \"0.00\" | sort -u > %s/%s.bkp && mv result/%s.bkp %s/%s.log",
-                     resultPath, symbol, resultPath, symbol, resultPath, symbol, resultPath, symbol)
+  cmdLine <- sprintf("cat %s | grep -v \"0.00\" | sort -u > %s.bkp && mv %s.bkp %s",
+                     logFile, logFile, logFile, logFile)
   system(cmdLine)
 }
