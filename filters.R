@@ -119,17 +119,25 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
 
 filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
 {
-  cacheFile <- NULL
-  cacheName <- sprintf("data/%s-%s_%1.2f_lricache.rds", SymbolName, tradeDate, threshold) 
+  alert <- NULL
+  cacheName <- sprintf("data/lricache_%1.2f.rds", threshold) 
+  
+  key <- paste(SymbolName, tradeDate)
+  
+  filterMap <- new.env(hash=T, parent=emptyenv())
   
   if(file.exists(cacheName))
   {
-    cacheFile <- readRDS(cacheName)
+    filterMap <- readRDS(cacheName)
+    if(!is.null(filterMap))
+    {
+      alerts <- filterMap[[key]]
+    }
   }
   
-  if(!is.null(cacheFile))
+  if(!is.null(alerts))
   {
-    return(cacheFile$alert)
+    return(alerts)
   }
   
   lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)])
@@ -139,17 +147,17 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     return("none")
   }
   
-  cacheFile <- list()
-  
   r <- rle(sign(diff(as.vector(lri))))
   
   len <- length(r$values)
   
   if(r$lengths[len] > 1 || len <= 3)
   {
-    cacheFile$alert <- "none"
-    saveRDS(cacheFile, file=cacheName)
-    return(cacheFile$alert)
+    alert <- "none"
+    filterMap[[key]] <- alert
+    saveRDS(filterMap, file=cacheName)
+    
+    return(alert)
   }
   
   rdif <- c()
@@ -176,7 +184,6 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     lastIndex <- nextIndex
   }
   
-  alert <- c()
   sdev <- sd(rdif)
   lastSignal <- "none"
   
@@ -193,137 +200,22 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     }
   }
   
-  cacheFile$alert <- "none"
+  alert <- "none"
   
   if(r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
   {
-    cacheFile$alert <- "up"
+    alert <- "up"
   }
   
   if(r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
   {
-    cacheFile$alert <- "down"
+    alert <- "down"
   }
   
-  saveRDS(cacheFile, file = cacheName)
-  return(cacheFile$alert)
-}
+  filterMap[[key]] <- alert
+  saveRDS(filterMap, file=cacheName)
 
-filterIncomplete <- function(SymbolNames=NULL, dateLimit="NOW")
-{
-  if(is.null(SymbolNames))
-  {
-    return(NULL)
-  }
-  
-  cacheFileName <- "data/filter.rds"
-  filterMap <- new.env(hash=T, parent=emptyenv())
-  if(file.exists(cacheFileName))
-  {
-    filterMap <- readRDS(cacheFileName)
-  }
-  
-  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
-  allTradeDays <- getQuery(queryStr)[,1]
-  
-  if(dateLimit == "NOW")
-  {
-    dateLimit <- Sys.Date()
-  }
-  
-  symbols <- NULL
-  k <- 0
-
-  badData <- NULL
-  
-  for(symbol in SymbolNames)
-  {  
-    obj <- get(symbol)
-    if(length(obj) < 60)
-    {
-      next
-    }
-    
-    if(anyNA(as.numeric(OHLCV(obj))))
-    {
-      next
-    }
-
-    err <- 0
-    exclude <- FALSE
-    tradeDays <- allTradeDays[which(allTradeDays <= as.Date(dateLimit))]
-    lastError <- tradeDays[1]
-    
-    goodDate <- NULL
-    if(!is.null(filterMap))
-    {
-      goodDate <- filterMap[[symbol]]
-    }
-    
-    if(!is.null(goodDate))
-    {
-      tradeDays <- tradeDays[which(tradeDays >= as.Date(goodDate))]
-    }
-    
-    k <- 0
-    for(tradeDay in tradeDays)
-    {
-      if(length(obj[tradeDay]) == 0)
-      {
-        badData <- c(badData, sprintf("%s %s", symbol, tradeDay))
-        
-        if(as.integer(as.Date(lastError) - as.Date(tradeDay)) < 2)
-          k <- k + 1
-        else
-          k <- 0
-        
-        lastError <- tradeDay
-        
-        if((as.integer(Sys.Date() - as.Date(tradeDay)) < 10) && k >= 1)
-        {
-          exclude <- TRUE 
-        }
-        else if((as.integer(Sys.Date() - as.Date(tradeDay)) < 60) && k >= 2)
-        {
-          exclude <- TRUE
-        }
-        else if((as.integer(Sys.Date() - as.Date(tradeDay)) < 120) && k >= 3)
-        {
-          exclude <- TRUE
-        }
-        else if(k >= 4)
-        {
-          exclude <- TRUE
-        }
-      }
-      else if(!is.null(goodDate) && as.Date(tradeDay) <= as.Date(goodDate))
-      {
-        break
-      }
-    }
-    
-    if(exclude == TRUE)
-    {
-      warning(sprintf("excluding %s from symbols %s", symbol, lastError))
-      next
-    }
-    
-    symbols <- c(symbols, symbol)
-    filterMap[[symbol]] <- as.Date(last(index(obj)))
-  }
-  
-  if(!is.null(badData))
-    writeLines(badData, "baddata.txt")
-  
-  saveRDS(filterMap, file=cacheFileName)
-  
-  exclude <- setdiff(SymbolNames, symbols)
-  if(length(exclude) > 0)
-  {
-    print(sprintf("Incomplete Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
-  }
-  
-  return (symbols)
+  return(alert)
 }
 
 filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
@@ -354,11 +246,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   for(symbol in SymbolNames)
   {  
     obj <- get(symbol)
-    if(length(obj) < 60)
-    {
-      next
-    }
-    
+
     if(anyNA(as.numeric(OHLCV(obj))))
     {
       next
@@ -375,6 +263,11 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
       goodDate <- filterMap[[symbol]]
       if(length(goodDate) == 0)
         goodDate <- NULL
+    }
+    
+    if(!is.null(goodDate) && as.Date(goodDate) > as.Date(dateLimit))
+    {
+      goodDate <- NULL
     }
     
     if(!is.null(goodDate))
@@ -445,7 +338,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Gap Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
+    print(sprintf("Gap Excluding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
   }
   
   return (symbols)
@@ -583,7 +476,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Bad Data Excuding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
+    print(sprintf("Bad Data Excluding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
   }
   
   return(symbols)
@@ -614,7 +507,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
     
     vol <- as.double(Vo(obj))
     
-    if(length(vol) < 90)
+    if(length(vol) < 90 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 930)
     {
       next
     }
@@ -631,7 +524,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Volume Excuding [%s]: %s", as.Date(dt), paste(exclude, collapse = " ")))
+    print(sprintf("Volume Excluding [%s]: %s", as.Date(dt), paste(exclude, collapse = " ")))
   }
   
   return(symbols)
@@ -639,21 +532,29 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
 
 filterObjectsSets <- function(symbol, tradeDay)
 {
-  k1 <- 10
-  k2 <- 300
+  k1 <- 20
+  k2 <- 100
   
   alerts <- NULL
   cacheFile <- NULL
   regset <- NULL
   turnpoints_r <- list()
+
+  filterMap <- new.env(hash=T, parent=emptyenv())
+
+  key <- paste(symbol, tradeDay)
   
-  cacheName <- sprintf("data/%s-%s_%d_%d_turncache.rds", tradeDay, symbol, k1, k2)
+  cacheName <- sprintf("data/turncache_%d_%d.rds", k1, k2)
   if(file.exists(cacheName))
   {
-    cacheFile <- readRDS(cacheName)
-    alerts <- cacheFile$alerts
+    filterMap <- readRDS(cacheName)
+    if(!is.null(filterMap))
+    {
+      alerts <- filterMap[[key]]
+    }
   }
-  else
+  
+  if(is.null(alerts))
   {
     regset <- findCurves(symbol, k1, k2, tradeDay)
     
@@ -718,9 +619,8 @@ filterObjectsSets <- function(symbol, tradeDay)
       saveRDS(turnpoints_r$r_down, file=objectName_rd)
     }
     
-    turnpoints_r$alerts <- alerts
-    
-    saveRDS(turnpoints_r, cacheName)
+    filterMap[[key]] <- alerts
+    saveRDS(filterMap, cacheName)
   }
   
   return(alerts)

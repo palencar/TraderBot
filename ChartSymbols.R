@@ -27,12 +27,9 @@ if(length(args_cmd) >= 1)
     symbolNames <- args_cmd
 }
 
-
 Symbols <- startProbe(symbolNames, FALSE)
 
-Symbols <- filterVolume(Symbols)
-filterSymbols <- filterIncomplete(Symbols)
-#filterSymbols <- Symbols 
+filterSymbols <- filterData(Symbols, lastTradingSession())
 
 for(symbol in filterSymbols)
 {

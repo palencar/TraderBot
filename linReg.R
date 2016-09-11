@@ -54,7 +54,7 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
   if(firstDate < as.Date(xts::first(index(Symbol))))
     return(NULL)
   
-  if(firstDate > lastDate)
+  if(firstDate >= lastDate)
     firstDate <- as.Date(lastDate-window)
   
   dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)] 
@@ -71,8 +71,7 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 
     if(nrow(subsetSymbol) < 3)
     {
-      warning(sprintf("%s %s/%s", SymbolName, startDate, endDate))
-      return(NULL)
+      next
     }
     
     x <- as.integer(index(subsetSymbol))
@@ -107,10 +106,10 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 
   xi<-xi[!duplicated(index(xi)),]
   
-  saveRDS(xi, file=fileName)
-  
-  xi <- DEMA(xi, n = 10)
+  #xi <- DEMA(xi, n = 10)
   xi <- xi[!is.na(xi),]
+  
+  saveRDS(xi, file=fileName)
   
   return(xi)
 }

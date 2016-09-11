@@ -1,6 +1,11 @@
 source("dbInterface.R")
 
+args <- commandArgs(trailingOnly=TRUE)
+
 filePath <- "result"
+
+if(length(args) >= 1)
+  filePath <- args[1]  
 
 objFiles <- list.files(filePath, pattern="*log")
 

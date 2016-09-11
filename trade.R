@@ -29,12 +29,12 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   alertR = tryCatch({
     filterObjectsSets(symbol, tradeDate)
   }, warning = function(war) {
+    print(sprintf("filterObjectsSets: %s %s", symbol, tradeDate))
     print(war)
-    print(sprintf("%s %s", symbol, tradeDate))
     return(NULL)
   }, error = function(err) {
+    print(sprintf("filterObjectsSets: %s %s", symbol, tradeDate))
     print(err)
-    print(sprintf("%s %s", symbol, tradeDate))
     return(NULL)
   }, finally={
   })    
@@ -42,9 +42,11 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   alertL = tryCatch({
     filterLRI(symbol, tradeDate)
   }, warning = function(war) {
+    print(sprintf("filterLRI: %s %s", symbol, tradeDate))
     print(war)
     return(NULL)
   }, error = function(err) {
+    print(sprintf("filterLRI: %s %s", symbol, tradeDate))
     print(err)
     return(NULL)
   }, finally={

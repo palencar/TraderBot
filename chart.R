@@ -46,9 +46,7 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     else
       polyRegs <- NULL
     
-    datePeriod <- sprintf("%s::%s", st, ed)
-    
-    Symbol <- get(SymbolName)[datePeriod]
+    Symbol <- get(SymbolName)[sprintf("::%s", ed)]
     
     if("smaSD" %in% indicators)
       smasd <- smaSD(Symbol, 200)
@@ -99,6 +97,8 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     {
       mePrice <- NULL
     }
+    
+    datePeriod <- sprintf("%s::%s", st, ed)
     
     chartSeries(Symbol, name=SymbolName, subset=datePeriod,
                 TA=paste(c(polyRegs, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; "))
