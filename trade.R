@@ -88,6 +88,18 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
   r <- rle(sign(diff(as.vector(sma))))
   ratio <- filterSMA(r) #%up/%down
 
+  low <- Lo(obj)
+  minDate <- index(low[which.min(low)])
+  
+  #high <- Hi(obj)
+  #maxDate <- index(high[which.max(high)])
+  
+  if((tradeDate - minDate) < 7)
+  {
+    print(sprintf("DO NOT BUY: %s | [%s] Min [%s]", symbol, period, minDate))
+    canBuy <- FALSE    
+  }
+    
   if(ratio < 0.1)
   {
     print(sprintf("DO NOT BUY: %s | [%s] up/down: %s", symbol, period, ratio))
