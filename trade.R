@@ -2,6 +2,8 @@ trade <- function(symbol, tradeDate, upperBand = NULL, lowerBand = NULL)
 {
   canBuy <- TRUE
   canSell <- TRUE
+  alertR <- NULL
+  alertL <- NULL
   
   period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
   obj <- get(symbol)[period]

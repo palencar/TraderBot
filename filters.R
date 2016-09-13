@@ -122,7 +122,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
   alert <- NULL
   cacheName <- sprintf("data/lricache_%s_%1.2f.rds", SymbolName, threshold) 
   
-  key <- tradeDate
+  key <- as.character(tradeDate)
   
   filterMap <- new.env(hash=T, parent=emptyenv())
   
@@ -140,7 +140,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     return(alert)
   }
   
-  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)])
+  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)])[sprintf("/%s", tradeDate)]
   
   if(is.null(lri))
   {
@@ -384,7 +384,7 @@ filterData <- function(SymbolNames, endDate)
 {
   toFilter <- filterVolume(SymbolNames, endDate)
   toFilter <- filterGap(toFilter, endDate)
-  toFilter <- filterBadData(toFilter, endDate)
+  #toFilter <- filterBadData(toFilter, endDate)
   
   return(toFilter)
 }
@@ -542,7 +542,7 @@ filterObjectsSets <- function(symbol, tradeDay)
 
   filterMap <- new.env(hash=T, parent=emptyenv())
 
-  key <- tradeDay
+  key <- as.character(tradeDay)
   
   cacheName <- sprintf("data/turncache_%s_%d_%d.rds", symbol, k1, k2)
   if(file.exists(cacheName))
@@ -617,6 +617,11 @@ filterObjectsSets <- function(symbol, tradeDay)
       }
       
       saveRDS(turnpoints_r$r_down, file=objectName_rd)
+    }
+    
+    if(is.null(alerts))
+    {
+      alerts <- FALSE
     }
     
     filterMap[[key]] <- alerts

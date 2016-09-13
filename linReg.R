@@ -34,6 +34,8 @@ linearRegression <- function (Symbol)
 
 linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 {
+  update <- FALSE
+  
   fileName <- sprintf("data/%s_%d_lri.rds", SymbolName, n)
   
   fileExists <- file.exists(fileName)
@@ -54,45 +56,53 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
   if(firstDate < as.Date(xts::first(index(Symbol))))
     return(NULL)
   
-  if(firstDate >= lastDate)
-    firstDate <- as.Date(lastDate-window)
+  #if(firstDate >= lastDate)
+  #  firstDate <- as.Date(lastDate-window)
   
   dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)] 
   
   lri <- c()
   
-  for(i in 1:nrow(dateInterval))
+  if(nrow(dateInterval) > 0)
   {
-    xDate <- as.Date(index(dateInterval[i]))
-    
-    startDate <- as.Date(xDate-n)
-    endDate   <- as.Date(xDate)
-    subsetSymbol <- Symbol[sprintf("%s::%s", startDate, endDate)]
-
-    if(nrow(subsetSymbol) < 3)
+    update <- TRUE
+  }
+  
+  if(update)
+  {
+    for(i in 1:nrow(dateInterval))
     {
-      next
+      xDate <- as.Date(index(dateInterval[i]))
+      
+      startDate <- as.Date(xDate-n)
+      endDate   <- as.Date(xDate)
+      subsetSymbol <- Symbol[sprintf("%s::%s", startDate, endDate)]
+  
+      if(nrow(subsetSymbol) < 3)
+      {
+        next
+      }
+      
+      x <- as.integer(index(subsetSymbol))
+      if(is.HLC(subsetSymbol))
+      {
+        y <- as.double((Hi(subsetSymbol)+Lo(subsetSymbol)+Cl(subsetSymbol))/3)
+      }
+      else
+      {
+        y <- as.double(subsetSymbol[,1])
+      }
+      
+      o = order(x)
+      
+      x <- as.Date(index(subsetSymbol))
+      
+      r <- lm(y~x)
+      
+      lastDay <- as.Date(last(index(subsetSymbol)))
+      dataextra <-data.frame(x=seq(lastDay, as.Date(lastDay + 1), 1))
+      lri[i] <- predict(lm(y~poly(x,2)), dataextra)[2]
     }
-    
-    x <- as.integer(index(subsetSymbol))
-    if(is.HLC(subsetSymbol))
-    {
-      y <- as.double((Hi(subsetSymbol)+Lo(subsetSymbol)+Cl(subsetSymbol))/3)
-    }
-    else
-    {
-      y <- as.double(subsetSymbol[,1])
-    }
-    
-    o = order(x)
-    
-    x <- as.Date(index(subsetSymbol))
-    
-    r <- lm(y~x)
-    
-    lastDay <- as.Date(last(index(subsetSymbol)))
-    dataextra <-data.frame(x=seq(lastDay, as.Date(lastDay + 1), 1))
-    lri[i] <- predict(lm(y~poly(x,2)), dataextra)[2]
   }
   
   if(fileExists)
@@ -104,12 +114,13 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
     xi <- xts(lri, index(dateInterval))
   }
 
-  xi<-xi[!duplicated(index(xi)),]
-  
-  #xi <- DEMA(xi, n = 10)
-  xi <- xi[!is.na(xi),]
-  
-  saveRDS(xi, file=fileName)
+  if(update)
+  {
+    xi<-xi[!duplicated(index(xi)),]
+    #xi <- DEMA(xi, n = 10)
+    xi <- xi[!is.na(xi),]
+    saveRDS(xi, file=fileName)
+  }
   
   return(xi)
 }
