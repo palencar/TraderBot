@@ -117,7 +117,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
+filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
 {
   alert <- NULL
   cacheName <- sprintf("data/lricache_%s_%1.2f.rds", SymbolName, threshold) 
@@ -140,7 +140,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6)
     return(alert)
   }
   
-  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)])[sprintf("/%s", tradeDate)]
+  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)], n)[sprintf("/%s", tradeDate)]
   
   if(is.null(lri))
   {
@@ -384,7 +384,7 @@ filterData <- function(SymbolNames, endDate)
 {
   toFilter <- filterVolume(SymbolNames, endDate)
   toFilter <- filterGap(toFilter, endDate)
-  #toFilter <- filterBadData(toFilter, endDate)
+  toFilter <- filterBadData(toFilter, endDate)
   
   return(toFilter)
 }
@@ -482,7 +482,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   return(symbols)
 }
 
-filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
+filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 500000)
 {
   if(dateLimit == "")
   {
@@ -517,6 +517,12 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months")
     
     if(is.null(meanVol) || !is.numeric(meanVol) || is.null(maxVol) || !is.numeric(maxVol))
       next
+    
+    if(meanVol < volume)
+    {
+      warning(sprintf("AVG Volume %s: %f < %f", symb, meanVol, volume))
+      next
+    }
     
     symbols <- c(symbols, symb)
   }

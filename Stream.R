@@ -48,20 +48,27 @@ computeStream <- function(Symbols)
       
       for(symbol in Symbols)
       {
-        tradeDecision <- trade(symbol, as.Date(dt), 1.0, -1.0)
-        tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
+        smaPeriod <- 200
+        upperBand <- 1.0
+        lowerBand <- -1.0
+        tradeDecisions <- trade(symbol, as.Date(dt), smaPeriod, upperBand, lowerBand)
         
-        if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
+        for(tradeDecision in tradeDecisions)
         {
-          alertSymbols <- c(alertSymbols, symbol)
-          tradeAlerts <- c(tradeAlert, tradeAlerts)
+          tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
           
-          price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
-          logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
-          
-          writeResult(symbol, logLine)
-          
-          alertLog <- paste(alertLog, logLine, sep = "\n")
+          if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
+          {
+            alertSymbols <- c(alertSymbols, symbol)
+            tradeAlerts <- c(tradeAlert, tradeAlerts)
+            
+            price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
+            logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
+            
+            writeResult(symbol, logLine, sprintf("%03d_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3]))
+            
+            alertLog <- paste(alertLog, logLine, sep = "\n")
+          }
         }
       }
       

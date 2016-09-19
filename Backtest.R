@@ -18,25 +18,30 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
  
     for(symbol in Symbols)
     {
-      tradeDecision <- trade(symbol, as.Date(tradeDate), 1.0, -1.0)
-      
-      if(tradeDecision$decision != "hold")
+      chart <- FALSE
+      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = 200, upperBand = 1.0, lowerBand = -1.0)
+      for(tradeDecision in tradeDecisions)
       {
-        print(paste(symbol, as.Date(tradeDate), tradeDecision$decision, tradeDecision$reason))
-        
-        if(symbol %in% alertSymbols == FALSE)
+        if(tradeDecision$decision != "hold")
         {
-          alertSymbols <- c(alertSymbols, symbol)
+          print(paste(symbol, as.Date(tradeDate), tradeDecision$decision, tradeDecision$reason))
+          
+          if(symbol %in% alertSymbols == FALSE)
+          {
+            alertSymbols <- c(alertSymbols, symbol)
+          }
+          
+          price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
+          logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
+  
+          parStr <- sprintf("%03d_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3])
+          writeResult(symbol, logLine, parStr)
+          chart <- TRUE
         }
         
-        price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
-        logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
-
-        writeResult(symbol, logLine)
-        
-        if(printCharts)
+        if(printCharts && chart)
         {
-          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png")
+          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", path = sprintf("charts_%s", parStr))
         }
       }
     }
