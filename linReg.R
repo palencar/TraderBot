@@ -29,7 +29,7 @@ linearRegression <- function (Symbol)
   diffReg <- diff(yr)
   diffVal <- xts(y-yp, as.Date(x))
 
-  return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma))
+  return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma, coef=r$coefficients["x"]))
 }
 
 linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)

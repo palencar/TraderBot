@@ -10,9 +10,14 @@ smaSD <- function(Symbol, n=200)
     return(NULL)
   }
   
+  #compute sd
   sma <- SMA(seq, n)
-  
   ssd <- sd(as.double(na.omit(seq-sma)))
+  
+  #compute sma for all the data
+  obj<-Symbol
+  seq <- as.xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
+  sma <- SMA(seq, n)
   
   smaSd <- c()
   

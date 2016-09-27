@@ -49,12 +49,14 @@ computeStream <- function(Symbols)
       for(symbol in Symbols)
       {
         smaPeriod <- 200
-        upperBand <- 1.0
-        lowerBand <- -1.0
+        upperBand <- 0.5
+        lowerBand <- -0.5
         tradeDecisions <- trade(symbol, as.Date(dt), smaPeriod, upperBand, lowerBand)
         
         for(tradeDecision in tradeDecisions)
         {
+          print(paste(symbol, Sys.Date(), tradeDecision$decision, tradeDecision$reason))
+          
           tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
           
           if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
@@ -65,7 +67,7 @@ computeStream <- function(Symbols)
             price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
             logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
             
-            writeResult(symbol, logLine, sprintf("%03d_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3]))
+            writeResult(symbol, logLine, "stream")
             
             alertLog <- paste(alertLog, logLine, sep = "\n")
           }
