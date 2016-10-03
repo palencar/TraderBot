@@ -51,7 +51,12 @@ computeStream <- function(Symbols)
         smaPeriod <- 200
         upperBand <- 0.5
         lowerBand <- -0.5
-        tradeDecisions <- trade(symbol, as.Date(dt), smaPeriod, upperBand, lowerBand)
+        upChange <- 0.5
+        downChange <- -0.5
+        
+        price <- meanPrice(symbol)
+        
+        tradeDecisions <- trade(symbol, as.Date(dt), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
         
         for(tradeDecision in tradeDecisions)
         {

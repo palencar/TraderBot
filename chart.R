@@ -6,7 +6,7 @@ source("meanPrice.R")
 source("smaSD.R")
 
 chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily")
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 200)
 {
   for(i in 1:length(Symbols))
   { 
@@ -49,7 +49,7 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     Symbol <- get(SymbolName)[sprintf("::%s", ed)]
     
     if("smaSD" %in% indicators)
-      smasd <- smaSD(Symbol, 200)
+      smasd <- smaSD(Symbol, smaPeriod)
     else
       smasd <- NULL
         
@@ -107,8 +107,16 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     {
       dev.off()
       
-      imagePath <- sprintf("chart-history/%s", SymbolName)
-      dir.create("chart-history", showWarnings=FALSE)
+      dirName <- "chart-history"
+      
+      if(!is.null(suffix))
+      {
+        dir.create(dirName, showWarnings=FALSE)
+        dirName <- sprintf("%s/%s", path, suffix)
+      }
+      
+      imagePath <- sprintf("%s/%s", dirName, SymbolName)
+      dir.create(dirName, showWarnings=FALSE)
       dir.create(imagePath, showWarnings=FALSE)
       file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
     }

@@ -232,14 +232,15 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     filterMap <- readRDS(cacheFileName)
   }
   
-  queryStr <- sprintf("select distinct date from stockprices where date >= (select date('%s','-1 year')) order by date desc", dateLimit)
-  allTradeDays <- getQuery(queryStr)[,1]
-  
   if(dateLimit == "NOW")
   {
     dateLimit <- Sys.Date()
   }
-  
+
+  allTradeDays <- getTradeDays()
+  allTradeDays <- allTradeDays[which(allTradeDays >= (as.Date(dateLimit) - 365))]
+  allTradeDays <- sort(allTradeDays, decreasing = TRUE)
+    
   symbols <- NULL
   badData <- NULL
   
@@ -507,7 +508,7 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 500
     
     vol <- as.double(Vo(obj))
     
-    if(length(vol) < 90 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 930)
+    if(length(vol) < 90 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 730)
     {
       next
     }

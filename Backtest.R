@@ -8,18 +8,26 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   AllSymbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
 
   alertSymbols <- NULL
-  
-  for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
+
+  for(symbol in AllSymbols)
   {
-    if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0)
-       next
-    
-    Symbols <- filterData(AllSymbols, tradeDate)
- 
-    for(symbol in Symbols)
+    for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
     {
+      if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0 || is.null(filterData(symbol, tradeDate)))
+         next
+      
       chart <- FALSE
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = 200, upperBand = 0.5, lowerBand = -0.5)
+      
+      smaPeriod = seq(10, 200, 10)
+      upperBand = seq(0.0, 1.0, 0.1)
+      lowerBand = seq(-0.8, -1.4, -0.1)
+      upChange = seq(0.3, 1, 0.1)
+      downChange = seq(-0.3, -1, -0.1)
+      
+      price <- simPrice(symbol, tradeDate)
+      
+      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
+      
       for(tradeDecision in tradeDecisions)
       {
         if(tradeDecision$decision != "hold")
@@ -34,14 +42,15 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           price <- sprintf("%.2f", sum(HLC(get(symbol)[as.Date(tradeDate)]))/3)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
   
-          parStr <- "default" #sprintf("%03d_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3])
+          parStr <- sprintf("%03d_%1.1f_%1.1f_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
+                            tradeDecision$parameters[4], tradeDecision$parameters[5])
           writeResult(symbol, logLine, parStr)
           chart <- TRUE
         }
         
         if(printCharts && chart)
         {
-          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", path = sprintf("charts_%s", parStr))
+          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", suffix = sprintf("sma%03d", tradeDecision$parameters[1]))
         }
       }
     }

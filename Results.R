@@ -11,7 +11,12 @@ closeTotalSell <- 0
 filePath <- "result/default"
 
 if(length(args) >= 1)
-  filePath <- args[1]  
+  filePath <- args[1]
+
+showAll <- FALSE
+
+if(length(args) >= 2 && args[2] == "--all")
+  showAll <- TRUE
 
 objFiles <- list.files(filePath, pattern="*log")
 
@@ -84,7 +89,8 @@ if(!is.null(closedDF))
 {
   colnames(closedDF) <- colNames
   closedDF <- closedDF[order(closedDF$proffit_pp),]
-  print(closedDF)
+  if(showAll)
+    print(closedDF)
   print(sprintf("Total closed: %d %d %.2f", sum(closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)))
 }
 
@@ -92,6 +98,10 @@ if(!is.null(openDF))
 {
   colnames(openDF) <- colNames
   openDF <- openDF[order(openDF$proffit_pp),]
-  print(openDF)
+  if(showAll)
+    print(openDF)
   print(sprintf("Total open  : %d %d %.2f", sum(openDF$buy_price), sum(openDF$sell_price-openDF$buy_price), sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)))
 }
+
+totalDF <- rbind(openDF, closedDF)
+print(sprintf("Total       : %d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)))
