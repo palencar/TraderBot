@@ -219,10 +219,10 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       tradeDecision$decision <- decision
       tradeDecision$reason <- reason
       tradeDecision$parameters <- c(sPeriod, ub, lb, dc, uc)
+      
+      allDecisions[[i]] <- tradeDecision
+      i <- i + 1
     }
-  
-    allDecisions[[i]] <- tradeDecision
-    i <- i + 1
   }
   
   if(!is.null(cantSell))

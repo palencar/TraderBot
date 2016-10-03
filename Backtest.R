@@ -9,15 +9,15 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
 
   alertSymbols <- NULL
 
+  charts <- new.env(hash=T, parent=emptyenv())
+  
   for(symbol in AllSymbols)
   {
     for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
     {
       if((as.Date(tradeDate) %in% as.Date(tradeDays)) == FALSE || length(as.Date(tradeDate)) == 0 || is.null(filterData(symbol, tradeDate)))
          next
-      
-      chart <- FALSE
-      
+
       smaPeriod = seq(10, 200, 10)
       upperBand = seq(0.0, 1.0, 0.1)
       lowerBand = seq(-0.8, -1.4, -0.1)
@@ -45,12 +45,16 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           parStr <- sprintf("%03d_%1.1f_%1.1f_%1.1f_%1.1f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
                             tradeDecision$parameters[4], tradeDecision$parameters[5])
           writeResult(symbol, logLine, parStr)
-          chart <- TRUE
-        }
-        
-        if(printCharts && chart)
-        {
-          chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", suffix = sprintf("sma%03d", tradeDecision$parameters[1]))
+          
+          suffix <- sprintf("sma%03d", tradeDecision$parameters[1])
+          
+          key <- paste(symbol, tradeDate, suffix)
+          
+          if(printCharts && is.null(charts[[key]]))
+          {
+            chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", suffix = suffix, smaPeriod = tradeDecision$parameters[1])
+            charts[[key]] <- TRUE
+          }
         }
       }
     }
