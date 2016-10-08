@@ -174,7 +174,15 @@ lastPrice <- function(SymbolName)
 
 lastTradeDay <- function(SymbolName)
 {
-  return(getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName)))
+  objName <- paste("lastTradeDay", SymbolName, sep = "")
+  if(exists(objName))
+    return(get(objName))
+  
+  day <- getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName))
+  
+  assign(objName, day, .GlobalEnv)
+  
+  return(day)
 }
 
 loadLocalCSV <- function(symbol)

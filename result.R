@@ -16,10 +16,20 @@ writeResult <- function(symbol, result, parameters = NULL)
   dir.create(resultPath, showWarnings=FALSE)
   
   logFile <- paste(resultPath,"/",symbol,".log", sep = "")
-  cat(result, file=logFile, sep = "\n", append=TRUE)
-  cmdLine <- sprintf("cat %s | grep -v \"0.00\" | sort -u > %s.bkp && mv %s.bkp %s",
-                     logFile, logFile, logFile, logFile)
-  system(cmdLine)
+  
+  lines <- NULL
+  if(file.exists(logFile))
+  {
+    lines <- readLines(logFile)
+  }
+  
+  if((result %in% lines) == FALSE)
+  {
+    lines <- sort(unique(c(lines, result)))
+    fileConn <- file(logFile)
+    writeLines(lines, fileConn)
+    close(fileConn)
+  }
 }
 
 simPrice <- function(symbol, tradeDate, parameters = NULL)

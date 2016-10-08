@@ -28,11 +28,19 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       
       tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
       
+      alerts <- new.env(hash=T, parent=emptyenv())
+      
       for(tradeDecision in tradeDecisions)
       {
         if(tradeDecision$decision != "hold")
         {
-          print(paste(symbol, as.Date(tradeDate), tradeDecision$decision, tradeDecision$reason))
+          alert <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, tradeDecision$reason)
+
+          if(is.null(alerts[[alert]]))
+          {
+            print(alert)
+            alerts[[alert]] <- TRUE
+          }
           
           if(symbol %in% alertSymbols == FALSE)
           {

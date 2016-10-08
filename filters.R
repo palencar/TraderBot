@@ -227,10 +227,10 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   
   cacheFileName <- "data/filter.rds"
   filterMap <- new.env(hash=T, parent=emptyenv())
-  if(file.exists(cacheFileName))
-  {
-    filterMap <- readRDS(cacheFileName)
-  }
+  #if(file.exists(cacheFileName))
+  #{
+  #  filterMap <- readRDS(cacheFileName)
+  #}
   
   if(dateLimit == "NOW")
   {
@@ -334,7 +334,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   if(!is.null(badData))
     writeLines(badData, "baddata.txt")
   
-  saveRDS(filterMap, file=cacheFileName)
+  #saveRDS(filterMap, file=cacheFileName)
   
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
@@ -406,10 +406,10 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   
   cacheFileName <- "data/good.rds"
   filterMap <- new.env(hash=T, parent=emptyenv())
-  if(file.exists(cacheFileName))
-  {
-    filterMap <- readRDS(cacheFileName)
-  }
+  #if(file.exists(cacheFileName))
+  #{
+  #  filterMap <- readRDS(cacheFileName)
+  #}
   
   for(symbol in SymbolNames)
   {
@@ -472,7 +472,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
     }
   }
 
-  saveRDS(filterMap, file=cacheFileName)
+  #saveRDS(filterMap, file=cacheFileName)
   
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)

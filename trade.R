@@ -1,7 +1,9 @@
 trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, stopGain = NULL, stopLoss = NULL, price = NULL)
 {
-  allDecisions <- NULL
   i <- 1
+
+  allDecisions <- c(list())
+  length(allDecisions) <- length(smaPeriod)*length(upperBand)*length(lowerBand)*length(downChange)*length(upChange)
   
   canBuy <- TRUE
   canSell <- TRUE
@@ -49,14 +51,11 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
     sma <- SMA(seq, sPeriod)
     
-    alertS <- NULL
     seql = tail(seq, 2)
     smal = tail(sma, 2)
     
     sdp <- (seql[2]-smal[2])/ssd
 
-    decision <- "hold"
-    reason <- NULL
     cantBuy <- NULL
     cantSell <- NULL
 
@@ -128,6 +127,9 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     for (dc in downChange)
     for (uc in upChange)
     {
+      decision <- "hold"
+      reason <- NULL
+      
       if(!is.null(lowerBand))
       {
         lower <- lb + (as.numeric(maxChange))
@@ -214,13 +216,11 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
           }
         }
       }
-    
-      tradeDecision <- list()
-      tradeDecision$decision <- decision
-      tradeDecision$reason <- reason
-      tradeDecision$parameters <- c(sPeriod, ub, lb, dc, uc)
       
-      allDecisions[[i]] <- tradeDecision
+      allDecisions[[i]]$decision <- decision
+      allDecisions[[i]]$reason <- reason
+      allDecisions[[i]]$parameters <- c(sPeriod, ub, lb, dc, uc)
+      
       i <- i + 1
     }
   }

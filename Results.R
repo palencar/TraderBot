@@ -10,98 +10,144 @@ closeTotalSell <- 0
 
 filePath <- "result/default"
 
-if(length(args) >= 1)
-  filePath <- args[1]
-
 showAll <- FALSE
+report <- FALSE
 
-if(length(args) >= 2 && args[2] == "--all")
+if(length(args) >= 2 && "--all" %in% args)
   showAll <- TRUE
 
-objFiles <- list.files(filePath, pattern="*log")
+if(length(args) >= 2 && "--report" %in% args)
+  report <- TRUE
 
-closedDF <- NULL
-openDF <- NULL
+if(length(args) >= 1)
+  filePath <- args[length(args)]
 
-for(logFile in objFiles)
+singleResult <- function(path, dir)
 {
-  lines = readLines(sprintf("%s/%s", filePath, logFile))
+  filePath <- paste(path, dir, sep = "/")
   
-  positions <- NULL
-  openDate <- NULL
-  closePosition <- FALSE
+  objFiles <- list.files(filePath, pattern="*log")
+
+  closedDF <- NULL
+  openDF <- NULL
   
-  for(line in lines)
+  if(length(objFiles) == 0)
   {
-    elements <- unlist(strsplit(line, " "))
-    
-    if(elements[3] == "sell")
-    {
-      if(is.null(positions) == FALSE)
-      {
-        i <- 1
-        for(position in positions)
-        {
-          sell_price <- as.integer(as.double(elements[4])*100)
-          buy_price <- as.integer(position*100)
-          
-          newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2])
-          closedDF <- rbind(closedDF, newrow)
-          
-          i <- i + 1
-        }
-        positions <- NULL
-        openDate <- NULL
-        closePosition <- TRUE
-      }
-    }
-        
-    if(elements[3] == "buy")
-    {
-      positions <- c(positions, as.double(elements[4]))
-      openDate <- c(openDate, elements[2])
-    }
+    return(NULL)
   }
   
-  if(closePosition == FALSE)
+  for(logFile in objFiles)
   {
-    lastDay <- lastTradeDay(elements[1])
-    i <- 1
-    for(position in positions)
-    {
-      sell_price <- as.integer(lastPrice(elements[1])*100)
-      buy_price <- as.integer(position*100)
-      
-      newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], lastDay)
-      openDF <- rbind(openDF, newrow)
-      
-      i <- i + 1
-    }
+    lines = readLines(sprintf("%s/%s", filePath, logFile))
+
     positions <- NULL
     openDate <- NULL
+    closePosition <- FALSE
+    
+    for(line in lines)
+    {
+      elements <- unlist(strsplit(line, " "))
+      
+      if(elements[3] == "sell")
+      {
+        if(is.null(positions) == FALSE)
+        {
+          i <- 1
+          for(position in positions)
+          {
+            sell_price <- as.integer(as.double(elements[4])*100)
+            buy_price <- as.integer(position*100)
+            
+            newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2])
+            closedDF <- rbind(closedDF, newrow)
+            
+            i <- i + 1
+          }
+          positions <- NULL
+          openDate <- NULL
+          closePosition <- TRUE
+        }
+      }
+      
+      if(elements[3] == "buy")
+      {
+        positions <- c(positions, as.double(elements[4]))
+        openDate <- c(openDate, elements[2])
+      }
+    }
+    
+    if(closePosition == FALSE)
+    {
+      lastDay <- lastTradeDay(elements[1])
+      i <- 1
+      for(position in positions)
+      {
+        sell_price <- as.integer(lastPrice(elements[1])*100)
+        buy_price <- as.integer(position*100)
+        
+        newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], lastDay)
+        openDF <- rbind(openDF, newrow)
+        
+        i <- i + 1
+      }
+      positions <- NULL
+      openDate <- NULL
+    }
+    closePosition <- FALSE
   }
-  closePosition <- FALSE
+  
+  colNames <- c("state", "name", "buy_price", "sell_price", "profit", "proffit_pp", "open", "last")
+  
+  if(!is.null(closedDF))
+  {
+    colnames(closedDF) <- colNames
+    closedDF <- closedDF[order(closedDF$proffit_pp),]
+
+    if(report == FALSE)
+    {
+      if(showAll)
+        print(closedDF)
+      print(sprintf("Total closed: %d %d %.2f", sum(closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)))
+    }
+  }
+  
+  if(!is.null(openDF))
+  {
+    colnames(openDF) <- colNames
+    openDF <- openDF[order(openDF$proffit_pp),]
+    
+    if(report == FALSE)
+    {
+      if(showAll)
+        print(openDF)
+      print(sprintf("Total open  : %d %d %.2f", sum(openDF$buy_price), sum(openDF$sell_price-openDF$buy_price), sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)))
+    }
+  }
+  
+  totalDF <- rbind(openDF, closedDF)
+  
+  if(report)
+  {
+    if(!is.null(totalDF$buy_price))
+    {
+      strOut <- sprintf("%s %d %d %.2f", dir, sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+      cat(strOut, file=sprintf("%s.txt", path), sep = "\n", append=TRUE)
+    }
+  }
+  else
+  {
+    print(sprintf("Total       : %d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)))
+  }
 }
 
-colNames <- c("state", "name", "buy_price", "sell_price", "profit", "proffit_pp", "open", "last")
-
-if(!is.null(closedDF))
+if(report)
 {
-  colnames(closedDF) <- colNames
-  closedDF <- closedDF[order(closedDF$proffit_pp),]
-  if(showAll)
-    print(closedDF)
-  print(sprintf("Total closed: %d %d %.2f", sum(closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)))
+  dirs <- list.files(filePath)
+  for(dir in dirs)
+    singleResult(filePath, dir)
 }
 
-if(!is.null(openDF))
+if(report == F)
 {
-  colnames(openDF) <- colNames
-  openDF <- openDF[order(openDF$proffit_pp),]
-  if(showAll)
-    print(openDF)
-  print(sprintf("Total open  : %d %d %.2f", sum(openDF$buy_price), sum(openDF$sell_price-openDF$buy_price), sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)))
+  singleResult(filePath, "")
 }
-
-totalDF <- rbind(openDF, closedDF)
-print(sprintf("Total       : %d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)))
