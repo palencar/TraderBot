@@ -14,7 +14,7 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
   
   dir.create(resultPath, showWarnings=FALSE)
-  
+
   logFile <- paste(resultPath,"/",symbol,".log", sep = "")
   
   lines <- NULL
@@ -25,10 +25,17 @@ writeResult <- function(symbol, result, parameters = NULL)
   
   if((result %in% lines) == FALSE)
   {
-    lines <- sort(unique(c(lines, result)))
-    fileConn <- file(logFile)
-    writeLines(lines, fileConn)
-    close(fileConn)
+    if(is.null(lines) || lines[length(lines)] < result)
+    {
+      cat(result, file=logFile, sep = "\n", append=TRUE)
+    }
+    else if(!(result %in% lines))
+    {
+      lines <- sort(unique(c(lines, result)))
+      fileConn <- file(logFile)
+      writeLines(lines, fileConn)
+      close(fileConn)
+    }
   }
 }
 

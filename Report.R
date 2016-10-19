@@ -1,3 +1,5 @@
+library("data.table")
+
 args <- commandArgs(trailingOnly=TRUE)
 
 if(length(args) < 1)

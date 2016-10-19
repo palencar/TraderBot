@@ -72,7 +72,7 @@ computeStream <- function(Symbols)
             price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
             logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
             
-            writeResult(symbol, logLine, "stream")
+            writeResult(symbol, logLine, "../stream")
             
             alertLog <- paste(alertLog, logLine, sep = "\n")
           }

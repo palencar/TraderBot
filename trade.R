@@ -142,14 +142,14 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       
       if(as.numeric(maxChange) < dc)
       {
-        str <- sprintf("DO NOT BUY: %s | [%s] Min Change : [%f]", symbol, period, maxChange)
+        str <- sprintf("DO NOT BUY: %s | [%s] Max Change : [%f]", symbol, period, maxChange)
         cantBuy <- c(cantBuy[cantBuy != str], str)
         canBuy <- FALSE
       }
       
       if(as.numeric(minChange) > uc)
       {
-        str <- sprintf("DO NOT SELL: %s | [%s] Max Change : [%f]", symbol, period, minChange)
+        str <- sprintf("DO NOT SELL: %s | [%s] Min Change : [%f]", symbol, period, minChange)
         cantSell <- c(cantSell[cantSell != str], str)
         canSell <- FALSE
       }
@@ -217,13 +217,19 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
         }
       }
       
+      if(decision == "hold")
+        next
+      
       allDecisions[[i]]$decision <- decision
       allDecisions[[i]]$reason <- reason
       allDecisions[[i]]$parameters <- c(sPeriod, ub, lb, dc, uc)
+      allDecisions[[i]]$price <- last(seq)
       
       i <- i + 1
     }
   }
+  
+  allDecisions <- allDecisions[!sapply(allDecisions, is.null)]
   
   if(!is.null(cantSell))
   {

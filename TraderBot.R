@@ -1,3 +1,5 @@
+require(compiler)
+enableJIT(3)
 source("dbInterface.R")
 source("filters.R")
 source("polyReg.R")

@@ -1,3 +1,4 @@
+library(data.table)
 source("dbInterface.R")
 
 args <- commandArgs(trailingOnly=TRUE)
@@ -8,7 +9,7 @@ openTotalSell <- 0
 closeTotalBuy <- 0
 closeTotalSell <- 0
 
-filePath <- "result/default"
+filePath <- "result"
 
 showAll <- FALSE
 report <- FALSE
@@ -22,14 +23,13 @@ if(length(args) >= 2 && "--report" %in% args)
 if(length(args) >= 1)
   filePath <- args[length(args)]
 
-singleResult <- function(path, dir)
+singleResult <- function(key, objFiles)
 {
-  filePath <- paste(path, dir, sep = "/")
-  
-  objFiles <- list.files(filePath, pattern="*log")
-
   closedDF <- NULL
   openDF <- NULL
+  
+  #print(key)
+  #print(objFiles)
   
   if(length(objFiles) == 0)
   {
@@ -38,16 +38,22 @@ singleResult <- function(path, dir)
   
   for(logFile in objFiles)
   {
-    lines = readLines(sprintf("%s/%s", filePath, logFile))
-
+    obj <- get(logFile)
+    lines <- obj[[key]]
+    
+    #print(sprintf("%s %d", logFile, length(lines)))
+    
+    if(is.null(lines))
+      next
+    
     positions <- NULL
     openDate <- NULL
     closePosition <- FALSE
     
-    for(line in lines)
+    lines <- strsplit(lines, " ")
+    
+    for(elements in lines)
     {
-      elements <- unlist(strsplit(line, " "))
-      
       if(elements[3] == "sell")
       {
         if(is.null(positions) == FALSE)
@@ -130,24 +136,33 @@ singleResult <- function(path, dir)
   {
     if(!is.null(totalDF$buy_price))
     {
-      strOut <- sprintf("%s %d %d %.2f", dir, sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
-      cat(strOut, file=sprintf("%s.txt", path), sep = "\n", append=TRUE)
+      strOut <- sprintf("%s %d %d %.2f", key, sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+      cat(strOut, sep = "\n")
     }
   }
   else
   {
-    print(sprintf("Total       : %d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)))
+    if(sum(totalDF$buy_price) > 0)
+    {
+      print(sprintf("Total       : %d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)))
+    }
   }
 }
 
-if(report)
+sink(sprintf("%s.txt", filePath))
+files <- list.files(filePath, pattern="*.rds")
+
+for(name in files)
 {
-  dirs <- list.files(filePath)
-  for(dir in dirs)
-    singleResult(filePath, dir)
+  obj <- readRDS(sprintf("%s/%s", filePath, name))
+  assign(name, obj)
+  
+  pars <- unique(ls(obj))
+
+  for(key in pars)
+  {
+    singleResult(key, name)
+  }
 }
 
-if(report == F)
-{
-  singleResult(filePath, "")
-}
+sink()
