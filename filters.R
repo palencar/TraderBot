@@ -383,7 +383,7 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 
 filterData <- function(SymbolNames, endDate)
 {
-  toFilter <- filterVolume(SymbolNames, endDate)
+  toFilter <- filterVolume(SymbolNames, endDate, volume = NULL)
   toFilter <- filterGap(toFilter, endDate)
   toFilter <- filterBadData(toFilter, endDate)
   
@@ -483,22 +483,15 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   return(symbols)
 }
 
-filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 400000)
+filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 400000)
 {
-  if(dateLimit == "")
-  {
-    dt = as.Date(Sys.Date())
-  }
-  else
-  {
-    dt = as.Date(dateLimit)
-  }
+  dt = as.Date(dateLimit)
   
   dc = sprintf("-%s", age)
   
   ds = seq(dt, length=2, by=dc)
   
-  symbols <- c()
+  symbols <- NULL
   
   for(symb in SymbolNames)
   {
@@ -514,12 +507,11 @@ filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 400
     }
 
     meanVol <- as.double(mean(vol))
-    maxVol <- as.double(max(vol))
     
-    if(is.null(meanVol) || !is.numeric(meanVol) || is.null(maxVol) || !is.numeric(maxVol))
+    if(is.null(meanVol) || !is.numeric(meanVol))
       next
     
-    if(meanVol < volume)
+    if(!is.null(volume) && meanVol < volume)
     {
       warning(sprintf("AVG Volume %s: %f < %f", symb, meanVol, volume))
       next

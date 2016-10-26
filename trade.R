@@ -40,6 +40,8 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
   }, finally={
   })
   
+  meanVol <- filterVolume(symbol, tradeDate, volume = 500000)
+  
   for(sPeriod in smaPeriod)
   for(ll in lowLimit)
   {
@@ -61,6 +63,13 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
 
     cantBuy <- NULL
     cantSell <- NULL
+    
+    if(is.null(meanVol))
+    {
+      str <- sprintf("DO NOT BUY: %s | [%s] Mean volume below [%d]", symbol, period, 500000)
+      cantBuy <- c(cantBuy[cantBuy != str], str)
+      canBuy <- FALSE
+    }
 
     lastValue <- as.numeric(last(Cl(obj)))
     

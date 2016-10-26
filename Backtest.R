@@ -175,7 +175,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
           
           parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
-                            tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[4], tradeDecision$parameters[8])
+                            tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[8], tradeDecision$parameters[9])
 
           results[[parStr]] <- c(results[[parStr]], logLine)
           
