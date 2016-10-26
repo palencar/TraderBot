@@ -141,13 +141,16 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       
       smaPeriod = sample(50:300, 5)
       upperBand = as.numeric(formatC(runif(4, min=0, max=2), digits=2,format="f"))
-      lowerBand = as.numeric(formatC(runif(4, min=-2, max=0), digits=2,format="f"))
+      lowerBand = as.numeric(formatC(runif(4, min=-2, max=-1), digits=2,format="f"))
       upChange = as.numeric(formatC(runif(4, min=0, max=1), digits=2,format="f"))
       downChange = as.numeric(formatC(runif(4, min=-1, max=0), digits=2,format="f"))
+      lowLimit = as.numeric(formatC(runif(4, min=0, max=1), digits=2,format="f"))
+      stopLoss = as.numeric(formatC(runif(4, min=0.5, max=1), digits=2,format="f"))
+      stopGain = as.numeric(formatC(runif(4, min=1, max=2), digits=2,format="f"))
       
       price <- simPrice(symbol, tradeDate)
       
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
+      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, lowLimit = lowLimit, stopLoss = stopLoss, stopGain = stopGain, price = price)
       
       alerts <- new.env(hash=T, parent=emptyenv())
       
@@ -171,8 +174,8 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           price <- sprintf("%.2f", tradeDecision$price)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
           
-          parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
-                            tradeDecision$parameters[4], tradeDecision$parameters[5])
+          parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
+                            tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[4], tradeDecision$parameters[8])
 
           results[[parStr]] <- c(results[[parStr]], logLine)
           
@@ -191,7 +194,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
     
     for(key in ls(results))
     {
-      singleResult(symbol, parStr, results[[key]])
+      singleResult(symbol, key, results[[key]])
     }
   }
   

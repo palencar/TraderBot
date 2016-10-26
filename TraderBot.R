@@ -7,6 +7,7 @@ source("chart.R")
 source("Stream.R")
 source("Backtest.R")
 
+dir.create("data", showWarnings=FALSE)
 
 args <- commandArgs(trailingOnly=TRUE)
 print(args)
@@ -35,7 +36,7 @@ if(length(args) > 0 && args[1] == "compute")
     startDate <- endDate <- Sys.Date()
   }
 
-  computeBacktest(Symbols, startDate, endDate, TRUE)
+  computeBacktest(Symbols, startDate, endDate, FALSE)
 }
 
 if(length(args) == 0 || args[1] == "stream")

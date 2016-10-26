@@ -483,7 +483,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   return(symbols)
 }
 
-filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 100000)
+filterVolume <- function(SymbolNames, dateLimit="", age="6 months", volume = 400000)
 {
   if(dateLimit == "")
   {

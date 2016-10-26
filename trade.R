@@ -1,9 +1,11 @@
-trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, stopGain = NULL, stopLoss = NULL, price = NULL)
+trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NULL, stopLoss = NULL, price = NULL)
 {
   i <- 1
 
   allDecisions <- c(list())
-  length(allDecisions) <- length(smaPeriod)*length(upperBand)*length(lowerBand)*length(downChange)*length(upChange)
+  length(allDecisions) <- length(smaPeriod)*length(upperBand)*length(lowerBand)*
+                          length(downChange)*length(upChange)*length(lowLimit)*
+                          length(stopLoss)*length(stopGain)
   
   canBuy <- TRUE
   canSell <- TRUE
@@ -39,6 +41,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
   })
   
   for(sPeriod in smaPeriod)
+  for(ll in lowLimit)
   {
     #compute sd for the period
     objPeriod <- get(symbol)[period]
@@ -108,14 +111,14 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     lowAfter <- Lo(obj)[sprintf("%s/", maxDate)]
     minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
 
-    if((minAfter / maxValue) < 0.6)
+    if((minAfter / maxValue) < ll)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxValue, (minAfter / maxValue))
       cantBuy <- c(cantBuy[cantBuy != str], str)
       canBuy <- FALSE
     }
     
-    if((lastValue / maxValue) < 0.6) #below 60% low
+    if((lastValue / maxValue) < ll) #below 60% low
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastValue, maxDate, maxValue, (lastValue / maxValue))
       cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -126,6 +129,8 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     for (lb in lowerBand)
     for (dc in downChange)
     for (uc in upChange)
+    for (sl in stopLoss)
+    for (sg in stopGain)
     {
       decision <- "hold"
       reason <- NULL
@@ -198,21 +203,21 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       
       if(!is.null(price))
       {
-        if(!is.null(stopGain) && (price * stopGain) <= lastValue) #Stop gain
+        if(!is.null(sg) && (price * sg) <= lastValue) #Stop gain
         {
           if(canSell)
           {
             decision <- "sell"
-            reason <- sprintf("Stop Gain %.2f * 1.3 < %.2f -> sell", price, lastValue)
+            reason <- sprintf("Stop Gain %.2f * %2.f <= %.2f -> sell", sg, price, lastValue)
           }
         }
         
-        if(!is.null(stopLoss) && (price * stopLoss) >= lastValue) #Stop loss
+        if(!is.null(sl) && (price * sl) >= lastValue) #Stop loss
         {
           if(canSell)
           {
             decision <- "sell"
-            reason <- sprintf("Stop Loss %.2f * 1.3 < %.2f -> sell", price, lastValue)
+            reason <- sprintf("Stop Loss %.2f * %.2f >= %.2f -> sell", sl, price, lastValue)
           }
         }
       }
@@ -222,7 +227,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       
       allDecisions[[i]]$decision <- decision
       allDecisions[[i]]$reason <- reason
-      allDecisions[[i]]$parameters <- c(sPeriod, ub, lb, dc, uc)
+      allDecisions[[i]]$parameters <- c(sPeriod, ub, lb, dc, uc, ll, sg, sl)
       allDecisions[[i]]$price <- last(seq)
       
       i <- i + 1
