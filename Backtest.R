@@ -1,5 +1,6 @@
 source("trade.R")
 source("result.R")
+library("hashmap")
 
 showAll <- FALSE
 report <- TRUE
@@ -125,14 +126,8 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   
   for(symbol in AllSymbols)
   {
-    #if(file.exists(sprintf("result/%s.rds", symbol)))
-    #{
-    #  results <- readRDS(sprintf("result/%s.rds", symbol))
-    #}
-    #else
-    {
-      results <- new.env(hash=T, parent=emptyenv())
-    }
+    map <- hashmap("1", "1")
+    map$clear()
     
     for(tradeDate in seq.Date(as.Date(startDate), as.Date(endDate), by="+1 days"))
     {
@@ -177,7 +172,12 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
                             tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[8], tradeDecision$parameters[9])
 
-          results[[parStr]] <- c(results[[parStr]], logLine)
+          obj <- map[[parStr]]
+          
+          if(is.na(obj))
+            map[[parStr]] <- logLine
+          else
+            map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
           
           suffix <- sprintf("sma%03d", tradeDecision$parameters[1])
           
@@ -192,9 +192,9 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       }
     }
     
-    for(key in ls(results))
+    for(parStr in map$keys())
     {
-      singleResult(symbol, key, results[[key]])
+      singleResult(symbol, parStr, unlist(strsplit(map[[parStr]], ";")))
     }
   }
   
