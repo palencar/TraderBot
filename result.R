@@ -1,3 +1,4 @@
+library("memoise")
 
 writeResult <- function(symbol, result, parameters = NULL)
 {
@@ -39,35 +40,106 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
 }
 
-simPrice <- function(symbol, tradeDate, parameters = NULL)
+singleResult <- function(key, lines)
 {
-  resultPath <- "result"
+  closedDF <- NULL
+  openDF <- NULL
   
-  if(!is.null(parameters))
+  positions <- NULL
+  openDate <- NULL
+  closePosition <- FALSE
+  
+  lines <- strsplit(lines, " ")
+  
+  for(elements in lines)
   {
-    resultPath <- sprintf("%s/%s", resultPath, paste(parameters, collapse = ""))
+    if(elements[3] == "sell")
+    {
+      if(is.null(positions) == FALSE)
+      {
+        i <- 1
+        for(position in positions)
+        {
+          sell_price <- as.integer(as.double(elements[4])*100)
+          buy_price <- as.integer(position*100)
+          
+          newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2])
+          closedDF <- rbind(closedDF, newrow)
+          
+          i <- i + 1
+        }
+        positions <- NULL
+        openDate <- NULL
+        closePosition <- TRUE
+      }
+    }
+    
+    if(elements[3] == "buy")
+    {
+      positions <- c(positions, as.double(elements[4]))
+      openDate <- c(openDate, elements[2])
+    }
   }
-  else
+  
+  if(closePosition == FALSE)
   {
-    resultPath <- sprintf("%s/default", resultPath)
+    lastDay <- lastTradeDay(elements[1])
+    i <- 1
+    for(position in positions)
+    {
+      sell_price <- as.integer(lastPrice(elements[1])*100)
+      buy_price <- as.integer(position*100)
+      
+      newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], lastDay)
+      openDF <- rbind(openDF, newrow)
+      
+      i <- i + 1
+    }
+    positions <- NULL
+    openDate <- NULL
   }
+  closePosition <- FALSE
   
-  logFile <- paste(resultPath,"/",symbol,".log", sep = "")
+  colNames <- c("state", "name", "buy_price", "sell_price", "profit", "proffit_pp", "open", "last")
   
-  if(!file.exists(logFile))
+  result <- list()
+  
+  if(!is.null(closedDF))
   {
-    return(NULL)
+    colnames(closedDF) <- colNames
+    closedDF <- closedDF[order(closedDF$proffit_pp),]
+  
+    result$closedDF <- closedDF
+    result$totalClosed <- sprintf("%d %d %.2f", sum(closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price))
   }
   
-  sim <- read.table(logFile)
+  if(!is.null(openDF))
+  {
+    colnames(openDF) <- colNames
+    openDF <- openDF[order(openDF$proffit_pp),]
+    
+    result$openDF <- openDF
+    result$totalOpen <- sprintf("%d %d %.2f", sum(openDF$buy_price), sum(openDF$sell_price-openDF$buy_price), sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price))
+    result$openMeanPrice <- sum(openDF$buy_price)/(nrow(openDF)*100)
+  }
   
-  buy <- sim$V4[intersect(which(as.Date(sim$V2) <= as.Date(tradeDate)), which(sim$V3 == "buy"))]
+  totalDF <- rbind(openDF, closedDF)
   
-  num <- length(buy)
+  result$output <- NULL
   
-  if(num == 0)
-    return(NULL)
+  if(!is.null(totalDF$buy_price))
+  {
+    result$output <- sprintf("%s %d %d %.2f", key, sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+  }
+
+  result$total <- NULL
   
-  return(sum(buy)/num)
+  if(sum(totalDF$buy_price) > 0)
+  {
+    result$total <- sprintf("%d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+  }
+  
+  return(result)
 }
 
+singleResultM <- memoise(singleResult)

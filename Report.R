@@ -8,33 +8,41 @@ if(length(args) < 1)
 dataTable <- data.frame(read.table(args[1], sep = " "))
   
 png("reportX1.png")
-plot(dataTable$V1, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+smaPeriod <- dataTable#[!duplicated(dataTable[,c('V1', 'V11')]),]
+scatter.smooth(smaPeriod$V1, smaPeriod$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX2.png")
-plot(dataTable$V2, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+upperBand <- dataTable#[!duplicated(dataTable[,c('V2', 'V11')]),]
+scatter.smooth(upperBand$V2, upperBand$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX3.png")
-plot(dataTable$V3, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+lowerBand <- dataTable#[!duplicated(dataTable[,c('V3', 'V11')]),]
+scatter.smooth(lowerBand$V3, lowerBand$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX4.png")
-plot(dataTable$V4, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+downChange <- dataTable#[!duplicated(dataTable[,c('V4', 'V11')]),]
+scatter.smooth(downChange$V4, downChange$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX5.png")
-plot(dataTable$V5, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+upChange <- dataTable#[!duplicated(dataTable[,c('V5', 'V11')]),]
+scatter.smooth(upChange$V5, upChange$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX6.png")
-plot(dataTable$V6, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+lowerLimit <- dataTable#[!duplicated(dataTable[,c('V6', 'V11')]),]
+scatter.smooth(lowerLimit$V6, lowerLimit$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX7.png")
-plot(dataTable$V7, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+stopGain <- dataTable#[!duplicated(dataTable[,c('V7', 'V11')]),]
+scatter.smooth(stopGain$V7, stopGain$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()
 
 png("reportX8.png")
-plot(dataTable$V8, dataTable$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+stopLoss <- dataTable#[!duplicated(dataTable[,c('V8', 'V11')]),]
+scatter.smooth(stopLoss$V8, stopLoss$V11, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 dev.off()

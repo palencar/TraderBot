@@ -1,4 +1,6 @@
-trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NULL, stopLoss = NULL, price = NULL)
+library("memoise")
+
+trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 800000)
 {
   i <- 1
 
@@ -40,7 +42,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
   }, finally={
   })
   
-  meanVol <- filterVolume(symbol, tradeDate, volume = 500000)
+  meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
   
   for(sPeriod in smaPeriod)
   for(ll in lowLimit)
@@ -66,7 +68,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     
     if(is.null(meanVol))
     {
-      str <- sprintf("DO NOT BUY: %s | [%s] Mean volume below [%d]", symbol, period, 500000)
+      str <- sprintf("DO NOT BUY: %s | [%s] Mean volume below [%d]", symbol, period, minVol)
       cantBuy <- c(cantBuy[cantBuy != str], str)
       canBuy <- FALSE
     }
@@ -210,9 +212,20 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
         }
       }
       
+      parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", sPeriod, ub, lb, dc, uc, ll, sg, sl)
+      operations <- map[[parStr]]
+      
+      if(!is.null(price) && !is.null(operations) && !is.na(operations))
+      {
+        result <- singleResultM(parStr, unlist(strsplit(operations, ";")))
+        price <- result$openMeanPrice
+      }
+      
       if(!is.null(price))
       {
-        if(!is.null(sg) && (price * sg) <= lastValue) #Stop gain
+        #print(sprintf("Open Mean Price: %.2f", price))
+        
+        if(!is.na(sg) && (price * sg) <= lastValue) #Stop gain
         {
           if(canSell)
           {
@@ -221,7 +234,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
           }
         }
         
-        if(!is.null(sl) && (price * sl) >= lastValue) #Stop loss
+        if(!is.na(sl) && (price * sl) >= lastValue) #Stop loss
         {
           if(canSell)
           {

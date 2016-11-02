@@ -1,6 +1,9 @@
 source("polyReg.R")
-library(pastecs)
+library("pastecs")
+library("memoise")
+source("cache_filesystem.R")
 
+dbc <- cache_filesystem(".rcache")
 
 turnPoints <- function(object, maxTpoints=8)
 {
@@ -345,6 +348,8 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   return (symbols)
 }
 
+filterGapM <- memoise(filterGap, cache = dbc)
+
 filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 {
   if(dateLimit == "")
@@ -383,9 +388,9 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 
 filterData <- function(SymbolNames, endDate)
 {
-  toFilter <- filterVolume(SymbolNames, endDate, volume = NULL)
-  toFilter <- filterGap(toFilter, endDate)
-  toFilter <- filterBadData(toFilter, endDate)
+  toFilter <- filterVolumeM(SymbolNames, endDate, volume = NULL)
+  toFilter <- filterGapM(toFilter, endDate)
+  toFilter <- filterBadDataM(toFilter, endDate)
   
   return(toFilter)
 }
@@ -404,12 +409,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
     dateLimit <- lastTradingSession()
   }
   
-  cacheFileName <- "data/good.rds"
   filterMap <- new.env(hash=T, parent=emptyenv())
-  #if(file.exists(cacheFileName))
-  #{
-  #  filterMap <- readRDS(cacheFileName)
-  #}
   
   for(symbol in SymbolNames)
   {
@@ -471,8 +471,6 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
       symbols <- c(symbols, symbol)
     }
   }
-
-  #saveRDS(filterMap, file=cacheFileName)
   
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
@@ -482,6 +480,8 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   
   return(symbols)
 }
+
+filterBadDataM <- memoise(filterBadData, cache = dbc)
 
 filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 400000)
 {
@@ -528,6 +528,8 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 4
   
   return(symbols)
 }
+
+filterVolumeM <- memoise(filterVolume, cache = dbc)
 
 filterObjectsSets <- function(symbol, tradeDay)
 {
