@@ -31,7 +31,7 @@ if(length(args_cmd) < 1)
 
 symbols <- sub("^([^.]*).*", "\\1", symbols)
 
-con <- dbConnect(RSQLite::SQLite(), "beancounter.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "db.sqlite")
 print(symbols)
 
 for(i in symbols)

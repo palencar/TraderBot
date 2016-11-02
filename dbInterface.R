@@ -30,7 +30,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
     query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  Symbols[[i]], "' ORDER BY date", sep = "")
     
     fr <- getQuery(query)
-    fr <- xts(as.matrix(fr[, -1]), order.by = as.Date(fr[,1], origin = "1970-01-01"), src = "beancounter", updated = Sys.time())
+    fr <- xts(as.matrix(fr[, -1]), order.by = as.Date(fr[,1], origin = "1970-01-01"), updated = Sys.time())
     colnames(fr) <- paste(Symbols[[i]], c("Open", "High", "Low", "Close", "Volume"), sep = ".")
     
     assign(Symbols[[i]], fr, env)
@@ -187,7 +187,7 @@ lastTradeDay <- function(SymbolName)
 
 loadLocalCSV <- function(symbol)
 {
-  queryStr <- sprintf("LOAD DATA LOCAL INFILE \'%s.csv\' INTO TABLE beancounter.stockprices_intraday FIELDS TERMINATED BY \',\' ENCLOSED BY \'\"\' LINES TERMINATED BY \'\n\' (symbol, datetime, min_open, min_low, min_high, min_close, volume)", symbol)
+  queryStr <- sprintf("LOAD DATA LOCAL INFILE \'%s.csv\' INTO TABLE stockprices_intraday FIELDS TERMINATED BY \',\' ENCLOSED BY \'\"\' LINES TERMINATED BY \'\n\' (symbol, datetime, min_open, min_low, min_high, min_close, volume)", symbol)
   return(getQuery(queryStr)[,1])
 }
 
@@ -326,7 +326,7 @@ getTradeDays <- function()
 
 getQuery <- function(queryStr = "") 
 {
-  dbConn <- dbConnect(RSQLite::SQLite(), "beancounter.sqlite")
+  dbConn <- dbConnect(RSQLite::SQLite(), "db.sqlite")
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
   
