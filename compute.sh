@@ -2,7 +2,7 @@
 
 DATE=`date +%Y-%m-%d`
 
-SYMBOLS=`sqlite3 beancounter.sqlite 'select distinct(symbol) from stockprices group by symbol'`
+SYMBOLS=`sqlite3 db.sqlite 'select distinct(symbol) from stockprices group by symbol'`
 
 for i in $SYMBOLS ;
 do

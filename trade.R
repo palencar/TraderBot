@@ -72,6 +72,14 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       cantBuy <- c(cantBuy[cantBuy != str], str)
       canBuy <- FALSE
     }
+    
+    volatility <- mean(na.omit(volatility(obj)))
+    if(volatility >= 0.32)
+    {
+      str <- sprintf("DO NOT BUY: %s | [%s] Mean volatility too high [%.2f]", symbol, period, volatility)
+      cantBuy <- c(cantBuy[cantBuy != str], str)
+      canBuy <- FALSE
+    }
 
     lastValue <- as.numeric(last(Cl(obj)))
     
@@ -99,18 +107,9 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     
     lowYear <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 365)]
     minYear <- index(lowYear[which.min(lowYear)]) 
-    if((tradeDate - minYear) < 30)
+    if((tradeDate - minYear) <= 7)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Min Year [%s]", symbol, period, minYear)
-      cantBuy <- c(cantBuy[cantBuy != str], str)
-      canBuy <- FALSE    
-    }
-    
-    lowMonth <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 30)]
-    minDate <- index(lowMonth[which.min(lowMonth)]) 
-    if((tradeDate - minDate) == 0)
-    {
-      str <- sprintf("DO NOT BUY: %s | [%s] Min Month [%s]", symbol, period, minDate)
       cantBuy <- c(cantBuy[cantBuy != str], str)
       canBuy <- FALSE    
     }
@@ -156,14 +155,14 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
         upper <- ub + (as.numeric(minChange))
       }
       
-      if(as.numeric(maxChange) < dc)
+      if(!is.na(dc) && as.numeric(maxChange) < dc)
       {
         str <- sprintf("DO NOT BUY: %s | [%s] Max Change : [%f]", symbol, period, maxChange)
         cantBuy <- c(cantBuy[cantBuy != str], str)
         canBuy <- FALSE
       }
       
-      if(as.numeric(minChange) > uc)
+      if(!is.na(uc) && as.numeric(minChange) > uc)
       {
         str <- sprintf("DO NOT SELL: %s | [%s] Min Change : [%f]", symbol, period, minChange)
         cantSell <- c(cantSell[cantSell != str], str)
@@ -223,8 +222,6 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       
       if(!is.null(price))
       {
-        #print(sprintf("Open Mean Price: %.2f", price))
-        
         if(!is.na(sg) && (price * sg) <= lastValue) #Stop gain
         {
           if(canSell)

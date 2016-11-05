@@ -4,8 +4,8 @@ source("dbInterface.R")
 source("filters.R")
 source("polyReg.R")
 source("chart.R")
-source("Stream.R")
-source("Backtest.R")
+source("stream.R")
+source("backtest.R")
 
 dir.create("data", showWarnings=FALSE)
 
