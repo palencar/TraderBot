@@ -37,7 +37,7 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
       else
         imageName <- sprintf("%s/%s.png", path, SymbolName)
       
-      dir.create(path, showWarnings=FALSE)
+      dir.create(path, showWarnings=FALSE, recursive = TRUE)
       png(filename = imageName, width=xres, height=yres)
     }
     

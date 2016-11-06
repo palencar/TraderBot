@@ -36,7 +36,7 @@ if(length(args) > 0 && args[1] == "compute")
     startDate <- endDate <- Sys.Date()
   }
 
-  computeBacktest(Symbols, startDate, endDate, FALSE)
+  computeBacktest(Symbols, startDate, endDate, TRUE)
 }
 
 if(length(args) == 0 || args[1] == "stream")

@@ -1,6 +1,6 @@
 library("memoise")
 
-trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 800000)
+trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 100000)
 {
   i <- 1
 
@@ -74,7 +74,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     }
     
     volatility <- mean(na.omit(volatility(obj)))
-    if(volatility >= 0.32)
+    if(volatility >= 0.50)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Mean volatility too high [%.2f]", symbol, period, volatility)
       cantBuy <- c(cantBuy[cantBuy != str], str)

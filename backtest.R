@@ -15,16 +15,14 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   
   alertSymbols <- NULL
   
-  charts <- new.env(hash=T, parent=emptyenv())
-  
-  smaPeriod = sample(200:300, 3)
-  upperBand = as.numeric(formatC(runif(2, min=0.5, max=3), digits=2,format="f"))
-  lowerBand = as.numeric(formatC(runif(2, min=-3, max=0.5), digits=2,format="f"))
-  upChange = as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
-  downChange = as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
-  lowLimit = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopLoss = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopGain = as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+  smaPeriod = sample(200:300, 4)
+  upperBand = as.numeric(formatC(runif(4, min=0.5, max=3), digits=2,format="f"))
+  lowerBand = as.numeric(formatC(runif(4, min=-3, max=-0.5), digits=2,format="f"))
+  upChange = NA#as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
+  downChange = NA#as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
+  lowLimit = as.numeric(formatC(runif(4, min=0, max=1), digits=2,format="f"))
+  stopLoss = NA#as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
+  stopGain = NA#as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
   
   for(symbol in AllSymbols)
   {
@@ -69,26 +67,32 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
             map[[parStr]] <- logLine
           else
             map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
-          
-          suffix <- sprintf("sma%03d", tradeDecision$parameters[1])
-          
-          key <- paste(symbol, tradeDate, suffix)
-          
-          if(printCharts && is.null(charts[[key]]))
-          {
-            chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev="png", suffix = suffix, smaPeriod = tradeDecision$parameters[1])
-            charts[[key]] <- TRUE
-          }
         }
       }
     }
+    
+    output <- sprintf("result/%s.txt", symbol)
     
     for(parStr in map$keys())
     {
       result <- singleResultM(parStr, unlist(strsplit(map[[parStr]], ";")))
       
       if(!is.null(result$output))
-        cat(file = sprintf("result/%s.txt", symbol), result$output, sep = "\n", append = TRUE)
+        cat(file = output, result$output, sep = "\n", append = TRUE)
+      
+      if(printCharts && !is.null(result$output))
+      {
+        operations <- unlist(strsplit(map[[parStr]], ";"))
+        path <- sprintf("charts/%s %s", symbol, parStr)
+
+        for(op in operations)
+        {
+          op <- unlist(strsplit(op, " "))
+          date <- as.Date(op[2])
+          smaPeriod = as.numeric(unlist(strsplit(parStr, " "))[1])
+          chartSymbols(symbol, dateLimit=date, dev="png", path = path, suffix = date, smaPeriod = smaPeriod)          
+        }
+      }
     }
     
     forget(singleResultM)

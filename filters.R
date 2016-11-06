@@ -228,12 +228,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     return(NULL)
   }
   
-  cacheFileName <- "data/filter.rds"
   filterMap <- new.env(hash=T, parent=emptyenv())
-  #if(file.exists(cacheFileName))
-  #{
-  #  filterMap <- readRDS(cacheFileName)
-  #}
   
   if(dateLimit == "NOW")
   {
@@ -336,8 +331,6 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   
   if(!is.null(badData))
     writeLines(badData, "baddata.txt")
-  
-  #saveRDS(filterMap, file=cacheFileName)
   
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
