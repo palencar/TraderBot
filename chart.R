@@ -107,18 +107,12 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     {
       dev.off()
       
-      dirName <- "chart-history"
-      
-      if(!is.null(suffix))
+      if(is.null(suffix))
       {
-        dir.create(dirName, showWarnings=FALSE)
-        dirName <- sprintf("%s/%s", path, suffix)
+        imagePath <- sprintf("chart-history/%s", SymbolName)
+        dir.create(imagePath, showWarnings=FALSE, recursive = TRUE)
+        file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
       }
-      
-      imagePath <- sprintf("%s/%s", dirName, SymbolName)
-      dir.create(dirName, showWarnings=FALSE)
-      dir.create(imagePath, showWarnings=FALSE)
-      file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
     }
    
     list <- ls(pattern=sprintf("*%s*", SymbolName))
