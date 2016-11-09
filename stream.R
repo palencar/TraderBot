@@ -37,7 +37,7 @@ computeStream <- function(Symbols)
       startDay <- format(Sys.time(), "%Y-%m-%d")
       
       toFilter <- setdiff(AllSymbols, Symbols)
-      accepted <- filterData(toFilter, endDate)
+      accepted <- filterDataM(toFilter, endDate)
       Symbols <- union(accepted, Symbols)
       
       print("COMPUTING:")

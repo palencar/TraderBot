@@ -14,7 +14,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
   alertR <- NULL
   alertL <- NULL
 
-  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-2 years")),collapse = "::")
+  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
 
   alertR = tryCatch({
     filterObjectsSets(symbol, tradeDate)

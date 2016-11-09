@@ -92,7 +92,7 @@ if(nrow(stopGain) > 0)
   dev.off()
 }
 
-stopLoss <- data.frame(dataTable$V2, dataTable$V11)
+stopLoss <- data.frame(dataTable$V8, dataTable$V11)
 stopLoss <- stopLoss[complete.cases(stopLoss),]
 if(nrow(stopLoss) > 0)
 {

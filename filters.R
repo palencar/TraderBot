@@ -276,49 +276,14 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
     
     obj <- obj[sprintf("%s/%s", tradeDays[length(tradeDays)], tradeDays[1])]
     
-    if(!is.null(goodDate) && !is.null(dateLimit) && as.Date(dateLimit) <= as.Date(goodDate))
-    {
-      #print(sprintf("good data up to %s", as.Date(dateLimit)))
-    }
-    else if(is.null(goodDate) && length(index(obj)) <= 3)
-    {
-      badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
-      exclude <- TRUE
-    }
-    else if(!is.null(goodDate) && length(index(obj)) <= 3 &&
-            (as.integer(index(obj[length(index(obj))])) - as.integer(index(obj[1]))) > 10)
-    {
-      badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
-      exclude <- TRUE
-    }
-    else
-    {
-      first <- 1
-      last <- length(index(obj)) 
-      
-      d <- 3
-      if(last - first < 3)
-      {
-        d <- last - first
-      }
-      
-      for(i in last:(d+1))
-      {
-        if(length(obj[i-d]) == 0)
-        {
-          exclude <- TRUE
-          break
-        }
-        
-        if(as.integer(index(obj[i]) - index(obj[i-d])) > 10)
-        {
-          badData <- c(badData, sprintf("%s %s", symbol, dateLimit))
-          exclude <- TRUE
-          break
-        }
-      }
-    }
+    diffDays <- as.integer(diff(index(obj)))
     
+    if(any(diffDays) > 5)
+    {
+      warning(sprintf("excluding %s from symbols %s", symbol, index(obj[which(diffDays > 5)])))
+      next 
+    }
+
     if(exclude == TRUE)
     {
       warning(sprintf("excluding %s from symbols %s", symbol, lastError))
@@ -341,7 +306,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   return (symbols)
 }
 
-filterGapM <- memoise(filterGap, cache = dbc)
+filterGapM <- memoise(filterGap)
 
 filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 {
@@ -388,6 +353,8 @@ filterData <- function(SymbolNames, endDate)
   return(toFilter)
 }
 
+filterDataM <- memoise(filterData, cache = dbc)
+
 filterBadData <- function(SymbolNames, dateLimit=NULL)
 {
   symbols <- NULL
@@ -402,67 +369,29 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
     dateLimit <- lastTradingSession()
   }
   
-  filterMap <- new.env(hash=T, parent=emptyenv())
-  
   for(symbol in SymbolNames)
   {
-    pass <- TRUE
-
-    goodDate <- NULL
-    if(!is.null(filterMap))
+    obj <- get(symbol)[sprintf("%s/%s", (as.Date(dateLimit) - 365), dateLimit)]
+    
+    if(nrow(obj) < 10)
     {
-      goodDate <- filterMap[[symbol]]
-      if(!is.null(goodDate) && as.Date(goodDate) >= as.Date(dateLimit))
-        goodDate <- as.Date(goodDate)
+      warning(print(sprintf("NROW: %d", nrow(obj))))
+      next
     }
     
-    if(is.null(goodDate) || as.Date(goodDate) < as.Date(dateLimit))
+    if(anyNA(obj))
     {
-      if(is.null(goodDate))
-        goodDate <- ""
-      
-      obj <- get(symbol)[sprintf("%s/%s", goodDate, dateLimit)]
-      mn  <- mean(Cl(obj))
-      
-      if(length(index(obj)) >= 2)
-      {
-        for(i in 2:(length(index(obj))))
-        {
-          prevVal <- as.numeric(OHLC(obj[i-1]))
-          curVal  <- as.numeric(OHLC(obj[i]))
-          
-          if(anyNA(curVal) || any(curVal == 0))
-          {
-            warning(print(paste(symbol, as.character(as.Date(index(obj[i]))), paste(curVal, collapse = " "))))
-            pass <- FALSE
-            next
-          }
-          
-          if(anyNA(prevVal) || any(prevVal == 0))
-          {
-            warning(print(paste(symbol, as.character(as.Date(index(obj[i-1]))), paste(prevVal, collapse = " "))))
-            pass <- FALSE
-            next
-          }
-          
-          if(as.numeric(as.Date(index(obj[i])) - as.Date(index(obj[i-1])))  <  10 &&
-             (max(prevVal) / max(curVal) > 1.5 || max(prevVal) / max(curVal) < 0.5 ||
-             min(prevVal) / min(curVal) > 1.5 || min(prevVal) / min(curVal) < 0.5))
-          {
-            warning(print(paste(symbol, as.character(as.Date(index(obj[i-1]))), paste(prevVal, collapse = " "))))
-            warning(print(paste(symbol, as.character(as.Date(index(obj[i]))), paste(curVal, collapse = " "))))
-            pass <- FALSE
-          }
-        }
-        
-        filterMap[[symbol]] <-as.Date(last(index(obj)))
-      }
+      warning(print(sprintf("NA: %s", which(is.na(obj)))))
+      next
     }
     
-    if(pass == TRUE)
+    if(max(abs(na.omit(diff(volatility(obj))))) > 5)
     {
-      symbols <- c(symbols, symbol)
+      warning(print(sprintf("Probable adjust in: %s", obj[which(na.omit(diff(volatility(obj))) > 5)])))
+      next
     }
+    
+    symbols <- c(symbols, symbol)
   }
   
   exclude <- setdiff(SymbolNames, symbols)
@@ -474,7 +403,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   return(symbols)
 }
 
-filterBadDataM <- memoise(filterBadData, cache = dbc)
+filterBadDataM <- memoise(filterBadData)
 
 filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 400000)
 {
@@ -522,7 +451,7 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 4
   return(symbols)
 }
 
-filterVolumeM <- memoise(filterVolume, cache = dbc)
+filterVolumeM <- memoise(filterVolume)
 
 filterObjectsSets <- function(symbol, tradeDay)
 {

@@ -1,10 +1,8 @@
+library("RcppEigen")
+library("quantmod")
+
 linearRegression <- function (Symbol)
 {
-  require(quantmod)
-
-  this.env <- environment()
-  
-  x <- as.integer(index(Symbol))
   if(is.HLC(Symbol))
   {
     y <- as.double((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
@@ -14,11 +12,9 @@ linearRegression <- function (Symbol)
     y <- as.double(Symbol[,1])
   }
 
-  o = order(x)
-
   x <- as.Date(index(Symbol))
 
-  r <- lm(y~x)
+  r <- fastLm(y~x)
 
   yp <- predict(r)
 

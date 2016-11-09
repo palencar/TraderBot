@@ -15,14 +15,14 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   
   alertSymbols <- NULL
   
-  smaPeriod = sample(200:300, 4)
+  smaPeriod = sample(50:300, 6)
   upperBand = as.numeric(formatC(runif(4, min=0.5, max=3), digits=2,format="f"))
   lowerBand = as.numeric(formatC(runif(4, min=-3, max=-0.5), digits=2,format="f"))
-  upChange = NA#as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
-  downChange = NA#as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
+  upChange = as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
+  downChange = as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
   lowLimit = as.numeric(formatC(runif(4, min=0, max=1), digits=2,format="f"))
-  stopLoss = NA#as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopGain = NA#as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+  stopLoss = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
+  stopGain = as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
   
   for(symbol in AllSymbols)
   {
@@ -31,7 +31,7 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
     
     for(tradeDate in tradeDays)
     {
-      if(is.null(filterData(symbol, tradeDate)))
+      if(is.null(filterDataM(symbol, tradeDate)))
         next
       
       tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, lowLimit = lowLimit, stopLoss = stopLoss, stopGain = stopGain, map = map)

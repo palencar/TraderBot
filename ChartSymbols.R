@@ -29,7 +29,7 @@ if(length(args_cmd) >= 1)
 
 Symbols <- startProbe(symbolNames, FALSE)
 
-filterSymbols <- filterData(Symbols, lastTradingSession())
+filterSymbols <- filterDataM(Symbols, lastTradingSession())
 
 for(symbol in filterSymbols)
 {

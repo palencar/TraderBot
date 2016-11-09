@@ -6,10 +6,7 @@ polyRegression <- function (SymbolName, DateInterval, Period)
 {
   Symbol <- get(SymbolName)[DateInterval]
   
-  x <- as.integer(index(Symbol))
   y <- as.numeric((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
-
-  o = order(x)
   
   x <- as.Date(index(Symbol))
 
