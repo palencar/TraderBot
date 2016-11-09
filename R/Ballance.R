@@ -1,4 +1,4 @@
-source("dbInterface.R")
+source("R/dbInterface.R")
 
 cTotal <- 0
 oTotal <- 0
@@ -7,9 +7,9 @@ wallet <- getWallet()
 
 for(symbol in wallet)
 {
-  
+
   pos <- getPositions(symbol)
-  
+
   for(p in pos)
   {
     if(is.na(p$closeVal))
@@ -30,7 +30,7 @@ for(symbol in wallet)
       state <- "closed"
       cTotal <- cTotal + proffit
     }
-    
+
     print(paste(symbol, state, size, price, value, proffit))
   }
 }

@@ -1,13 +1,13 @@
 library('quantmod')
 library('RMySQL')
-source('dbInterface.R')
+source('R/dbInterface.R')
 
 invisible(Sys.setlocale("LC_MESSAGES", "C"))
 invisible(Sys.setlocale("LC_TIME", "C"))
 
-args_cmd <- commandArgs(trailingOnly=TRUE)                                                                                                                                                                                                   
+args_cmd <- commandArgs(trailingOnly=TRUE)
 
-#symbols <- getSymbolNames() 
+#symbols <- getSymbolNames()
 
 mode = 'google'
 
@@ -21,7 +21,7 @@ symbols <- args_cmd #tail(args_cmd, n=(length(args_cmd)-1))
 
 if(length(args_cmd) < 1)
 {
-  symbols <- getSymbolNames() 
+  symbols <- getSymbolNames()
 }
 #else
 #{
@@ -40,9 +40,9 @@ for(i in symbols)
     name <- sprintf("BVMF:%s", i)
   if(mode == 'yahoo')
     name <- sprintf("%s.SA", i)
-  
+
   print(name)
-  
+
   state <- tryCatch({
     getSymbols(name, src=mode)
     T
@@ -54,10 +54,10 @@ for(i in symbols)
     F
   }, finally={
   })
-  
+
   if(state == F)
     next
-  
+
   table <- as.data.frame(get(name))
   dates <- index(get(name))
   if(mode == 'google')
@@ -68,7 +68,7 @@ for(i in symbols)
   {
     name <- sprintf("%s.SA", i)
   }
-  
+
   for(j in index(table))
   {
     row <- table[j,]
@@ -80,13 +80,13 @@ for(i in symbols)
     row["date"] <- dates[j]
     row["symbol"] <- name
     row[6] <- NULL
-    
+
     if(is.na(row[1]) || is.na(row[2]) || is.na(row[3]) || is.na(row[4]) || is.na(row[5]))
     {
       warning(print(paste(row)))
       next
     }
-    
+
 #    dbWriteTable(con, name = "stockprices", row, append = T, overwrite = F, row.names = F)
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         i, dates[j], as.double(row[1]), as.double(row[2]), as.double(row[3]), as.double(row[4]),

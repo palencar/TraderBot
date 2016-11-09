@@ -1,11 +1,9 @@
-require(compiler)
-enableJIT(3)
-source("dbInterface.R")
-source("filters.R")
-source("polyReg.R")
-source("chart.R")
-source("stream.R")
-source("backtest.R")
+source("R/dbInterface.R")
+source("R/filters.R")
+source("R/polyReg.R")
+source("R/chart.R")
+source("R/stream.R")
+source("R/backtest.R")
 
 dir.create("data", showWarnings=FALSE)
 
@@ -42,12 +40,12 @@ if(length(args) > 0 && args[1] == "compute")
 if(length(args) == 0 || args[1] == "stream")
 {
   stream = TRUE
-  
+
   if(length(args) > 1)
   {
     Symbols <- tail(args, n=(length(args)-1))
   }
-  
+
   computeStream(Symbols)
 }
 

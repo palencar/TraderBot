@@ -4,45 +4,50 @@ library("RSQLite")
 library("DBI")
 
 
-getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv) 
+getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
 {
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
-  
+
   if(FilterToday)
   {
     query <- sprintf("select distinct(symbol) from stockprices where symbol in ('%s')", paste(Symbols, collapse = "','"))
-    
+
     fr <- getQuery(query)
-    
+
     Symbols <- fr$symbol
   }
-  
+
   if(!is.null(FilterAge))
   {
     query <- sprintf("select * from (select symbol, (julianday(max(date))-julianday(min(date))) as days from stockprices group by symbol) as age where days > %d", FilterAge)
-    
+
     fr <- getQuery(query)
     Symbols <- intersect(Symbols, fr$symbol)
   }
-  
-  for (i in 1:length(Symbols))
+
+  loaded <- NULL
+
+  for (symbol in Symbols)
   {
-    query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  Symbols[[i]], "' ORDER BY date", sep = "")
-    
+    query <- paste("SELECT ", paste(db.fields, collapse = ","), " FROM stockprices where symbol = '",  symbol, "' ORDER BY date", sep = "")
+
     fr <- getQuery(query)
     fr <- xts(as.matrix(fr[, -1]), order.by = as.Date(fr[,1], origin = "1970-01-01"), updated = Sys.time())
-    colnames(fr) <- paste(Symbols[[i]], c("Open", "High", "Low", "Close", "Volume"), sep = ".")
-    
-    assign(Symbols[[i]], fr, env)
+    if(nrow(fr) > 0)
+    {
+      colnames(fr) <- paste(symbol, c("Open", "High", "Low", "Close", "Volume"), sep = ".")
+      assign(symbol, fr, env)
+      loaded <- c(loaded, symbol)
+    }
   }
-  
-  return(Symbols)
+
+  return(loaded)
 }
 
-getSymbolNames <- function() 
+getSymbolNames <- function()
 {
   fr <- getQuery("SELECT distinct(symbol) from stockprices")
-  
+
   return(fr$symbol)
 }
 
@@ -50,35 +55,38 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
   if(is.null(symbolNames))
     symbolNames <- getSymbolNames()
-  
+
+  if(is.null(symbolNames) || length(symbolNames) == 0)
+    return(NULL)
+
   if(update)
   {
     quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
-    
+
     for(i in 1:length(symbolNames))
     {
       if(is.na(quotes[i, 1]))
         next
-      
+
       table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
-      
+
       if(table[1] == "N/A" || table[2] == "N/A" || table[3] == "N/A" || table[4] == "N/A" || table[5] == "N/A" ||
          table[1] == 0.0   || table[2] == 0.0   || table[3] == 0.0   || table[4] == 0.0)
       {
         warning(sprintf("NA value in %s [%s %s %s %s %s]", symbolNames[i], table[1], table[2], table[3], table[4], table[5]))
         next
       }
-      
+
       queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                           symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
                           as.double(table[1,5]))
-      
+
       getQuery(queryStr)
     }
   }
-  
+
   symbolNamesObj <- getSymbolsDB(symbolNames, FilterToday=update, FilterAge=minAge)
-  
+
   return (symbolNamesObj)
 }
 
@@ -88,10 +96,10 @@ updateProbe <- function(Symbols, date)
   for(i in Symbols)
   {
     quote <- quotes[i,]
-    
+
     if(is.na(quote$Open) || is.na(quote$High) || is.na(quote$Low) || is.na(quote$Last))
       next
-    
+
     symbol <- get(i)
     symbol[date,1] <- quote$Open
     symbol[date,2] <- quote$High
@@ -104,24 +112,24 @@ updateProbe <- function(Symbols, date)
 getQuoteDay <- function(SymbolName, Day)
 {
   print(sprintf("getQuoteDay [%s][%s]", SymbolName, Day))
-  
+
   modes <- c('google', 'yahoo')
-  
+
   for(mode in modes)
   {
     if(mode == 'google')
       Symbol <- sprintf("BVMF:%s", unlist(strsplit(SymbolName, "[.]"))[1])
-    
+
     try(getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day)), silent=TRUE)
     if(exists(Symbol) == FALSE)
       return(NULL)
-    
+
     if(is.na(Op(get(Symbol))) || is.na(Hi(get(Symbol))) ||
        is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))) ||
        as.double(Op(get(Symbol))) == 0.0 || as.double(Hi(get(Symbol))) == 0.0 ||
        as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
       return(NULL)
-    
+
     table <- as.data.frame(get(Symbol))
     names(table)[1]<-paste("day_open")
     names(table)[2]<-paste("day_high")
@@ -131,12 +139,12 @@ getQuoteDay <- function(SymbolName, Day)
     table["date"] <- as.Date(Day)
     table["symbol"] <- SymbolName
     table[6] <- NULL
-    
+
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         SymbolName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
-    
+
     print(get(Symbol))
-    
+
     getQuery(queryStr)
   }
 }
@@ -146,7 +154,7 @@ meanPrice <- function(SymbolName)
   positions <- getPositions(SymbolName)
   opValue <- 0
   opSize <- 0
-  
+
   for(pos in positions)
   {
     if(is.na(pos$end))
@@ -155,10 +163,10 @@ meanPrice <- function(SymbolName)
       opSize <- opSize + pos$size
     }
   }
-  
+
   if(opSize > 0)
     return(opValue/opSize)
-  
+
   return(NULL)
 }
 
@@ -177,11 +185,11 @@ lastTradeDay <- function(SymbolName)
   objName <- paste("lastTradeDay", SymbolName, sep = "")
   if(exists(objName))
     return(get(objName))
-  
+
   day <- getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName))
-  
+
   assign(objName, day, .GlobalEnv)
-  
+
   return(day)
 }
 
@@ -191,31 +199,31 @@ loadLocalCSV <- function(symbol)
   return(getQuery(queryStr)[,1])
 }
 
-getPositions <- function(symbol = NULL) 
+getPositions <- function(symbol = NULL)
 {
   queryStr <- sprintf("SELECT * from operations where symbol = '%s' order by date", symbol)
-  
+
   fr <- getQuery(queryStr)
   if(nrow(fr) == 0)
   {
     return(NULL)
   }
-  
+
   acValue <- 0
   acSize <- 0
   n <- 0
   positions <- c()
-  
+
   date <- ''
   price <- ''
-  
+
   i <- 1
   while(i <= nrow(fr))
   {
     if(fr[i,]$type == 'C')
     {
       acSize <- acSize + fr[i,]$size
-      
+
       if(date != fr[i,]$date || price != fr[i,]$price)
       {
         n <- n + 1
@@ -226,7 +234,7 @@ getPositions <- function(symbol = NULL)
         position$end <- NA
         position$closeVal <- NA
         positions[[n]] <- position
-        
+
         date <- fr[i,]$date
         price <- fr[i,]$price
       }
@@ -247,9 +255,9 @@ getPositions <- function(symbol = NULL)
             positions[[j]] <- position
             date <- fr[i,]$date
             price <- fr[i,]$price
-            
+
             #TODO validar acSize >= 0
-            
+
             if(fr[j,]$size >= vSize)
             {
               acSize <- acSize - fr[i,]$size
@@ -273,41 +281,41 @@ getPositions <- function(symbol = NULL)
   }
 
   #print(positions)
-  
+
   return(positions)
 }
 
-getWallet <- function(FilterClosed = TRUE) 
+getWallet <- function(FilterClosed = TRUE)
 {
   fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
-  
+
   symbols <- c()
-  
+
   if(FilterClosed == FALSE)
   {
     for(i in fr[[1]])
     {
       symbols <- c(symbols, i)
     }
-    
+
     return(symbols)
   }
-  
-  
+
+
   for(i in fr[[1]])
   {
     positions <- getPositions(i)
     opSize <- 0
-    
+
     for(pos in positions)
     {
       if(is.na(pos$end))
       {
-        symbols <- c(symbols, i)   
+        symbols <- c(symbols, i)
       }
     }
   }
-  
+
   return(unique(symbols))
 }
 
@@ -315,21 +323,21 @@ getTradeDays <- function()
 {
   if(exists("AllTradeDays"))
     return(get("AllTradeDays"))
-  
+
   queryStr <- sprintf("select distinct date from stockprices order by date asc")
   allTradeDays <- getQuery(queryStr)[,1]
-  
+
   assign("AllTradeDays", allTradeDays, .GlobalEnv)
-  
+
   return(allTradeDays)
 }
 
-getQuery <- function(queryStr = "") 
+getQuery <- function(queryStr = "")
 {
   dbConn <- dbConnect(RSQLite::SQLite(), "db.sqlite")
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
-  
+
   return(fr)
 }
 
