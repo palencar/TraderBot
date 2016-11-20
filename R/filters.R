@@ -1,9 +1,9 @@
 library("pastecs")
 library("memoise")
+library("xts")
+library("quantmod")
 source("R/polyReg.R")
-source("R/cache_filesystem.R")
-
-dbc <- cache_filesystem(".rcache")
+source("R/dbInterface.R")
 
 turnPoints <- function(object, maxTpoints=8)
 {
@@ -221,81 +221,84 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
   return(alert)
 }
 
-filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
+gapFree <- function(symbol, dateLimit, start=NULL)
+{
+  obj <- get(symbol)
+
+  while(TRUE)
+  {
+    before   <- nrow(obj[sprintf("/%s", (dateLimit - 6))])
+    interval <- nrow(obj[sprintf("%s/%s", (dateLimit - 5), dateLimit)])
+
+    if(interval == 0)
+    {
+      if(before > 0)
+      {
+        warning(sprintf("excluding %s from symbols %s", symbol, sprintf("%s/%s", (dateLimit - 5), dateLimit)))
+        return(FALSE)
+      }
+      else
+      {
+        return(TRUE)
+      }
+    }
+
+    if(before == 0)
+    {
+      return(TRUE)
+    }
+
+    dateLimit <- first(index(obj[sprintf("%s/%s", (dateLimit - 6), (dateLimit - 1))]))
+
+    if(is.na(dateLimit))
+    {
+      return(FALSE)
+    }
+
+    if(!is.null(start) && dateLimit <= start)
+    {
+      return(TRUE)
+    }
+
+    if(!is.null(start) && as.integer(dateLimit - start) < 1000)
+    {
+      return(gapFreeM(symbol, dateLimit, start))
+    }
+  }
+}
+
+gapFreeM <- memoise(gapFree)
+
+#' @export
+filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 {
   if(is.null(SymbolNames))
   {
     return(NULL)
   }
 
-  filterMap <- new.env(hash=T, parent=emptyenv())
-
-  if(dateLimit == "NOW")
+  if(is.null(dateLimit))
   {
     dateLimit <- Sys.Date()
   }
 
-  allTradeDays <- getTradeDays()
-  allTradeDays <- allTradeDays[which(allTradeDays >= (as.Date(dateLimit) - 365))]
-  allTradeDays <- sort(allTradeDays, decreasing = TRUE)
-
   symbols <- NULL
-  badData <- NULL
 
   for(symbol in SymbolNames)
   {
     obj <- get(symbol)
 
-    if(anyNA(as.numeric(OHLCV(obj))))
+    if(anyNA(OHLCV(obj)))
     {
+      warning(sprintf("NA values for %s", symbol))
       next
     }
 
-    err <- 0
-    exclude <- FALSE
-    tradeDays <- allTradeDays[which(allTradeDays <= as.Date(dateLimit))]
-    lastError <- tradeDays[1]
-
-    goodDate <- NULL
-    if(!is.null(filterMap))
+    if(gapFreeM(symbol, as.Date(dateLimit)))
     {
-      goodDate <- filterMap[[symbol]]
-      if(length(goodDate) == 0)
-        goodDate <- NULL
+      symbols <- c(symbols, symbol)
     }
-
-    if(!is.null(goodDate) && as.Date(goodDate) > as.Date(dateLimit))
-    {
-      goodDate <- NULL
-    }
-
-    if(!is.null(goodDate))
-    {
-      tradeDays <- tradeDays[which(tradeDays >= as.Date(goodDate))]
-    }
-
-    obj <- obj[sprintf("%s/%s", tradeDays[length(tradeDays)], tradeDays[1])]
-
-    diffDays <- as.integer(diff(index(obj)))
-
-    if(any(diffDays) > 5)
-    {
-      warning(sprintf("excluding %s from symbols %s", symbol, index(obj[which(diffDays > 5)])))
-      next
-    }
-
-    if(exclude == TRUE)
-    {
-      warning(sprintf("excluding %s from symbols %s", symbol, lastError))
-      next
-    }
-
-    symbols <- c(symbols, symbol)
-    filterMap[[symbol]] <- as.Date(last(index(obj)))
   }
-
-  if(!is.null(badData))
-    writeLines(badData, "baddata.txt")
 
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
@@ -306,8 +309,10 @@ filterGap <- function(SymbolNames=NULL, dateLimit="NOW")
   return (symbols)
 }
 
+#' @export
 filterGapM <- memoise(filterGap)
 
+#' @export
 filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 {
   if(dateLimit == "")
@@ -344,6 +349,7 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
   return(symbols)
 }
 
+#' @export
 filterData <- function(SymbolNames, endDate)
 {
   toFilter <- filterVolumeM(SymbolNames, endDate, volume = NULL)
@@ -353,8 +359,10 @@ filterData <- function(SymbolNames, endDate)
   return(toFilter)
 }
 
-filterDataM <- memoise(filterData, cache = dbc)
+#' @export
+filterDataM <- memoise(filterData)
 
+#' @export
 filterBadData <- function(SymbolNames, dateLimit=NULL)
 {
   symbols <- NULL
@@ -371,7 +379,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
   for(symbol in SymbolNames)
   {
-    obj <- get(symbol)[sprintf("%s/%s", (as.Date(dateLimit) - 365), dateLimit)]
+    obj <- tail(get(symbol)[sprintf("/%s", dateLimit)], 200)
 
     if(nrow(obj) < 10)
     {
@@ -403,9 +411,11 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   return(symbols)
 }
 
+#' @export
 filterBadDataM <- memoise(filterBadData)
 
-filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 400000)
+#' @export
+filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = 400000)
 {
   if(is.null(dateLimit) || is.na(dateLimit))
   {
@@ -428,7 +438,7 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="6 months", volume = 4
 
     vol <- as.double(Vo(obj))
 
-    if(length(vol) < 90 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 730)
+    if(length(vol) < 200 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 730)
     {
       next
     }

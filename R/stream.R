@@ -1,5 +1,6 @@
 source("R/result.R")
 
+#' @export
 computeStream <- function(Symbols)
 {
   stopdtime <- "18:20:00"

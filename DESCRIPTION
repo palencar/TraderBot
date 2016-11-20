@@ -2,8 +2,20 @@ Package: TraderBot
 Title: Quantitative analysis bot.
 Version: 0.0.0.9000
 Authors@R: person("Paulo", "Alencar", email = "pbalencar@gmail.com", role = c("aut", "cre"))
-Description: Scripts created to aid in quantitative analysis, backtest and trade.
-Depends: R (>= 3.2.3), quantmod, RSQLite, memoise, data.table, RcppEigen, xts, hashmap, foreach
+Description: Scripts created to aid in quantitative analysis, backtest and
+    trade.
+Depends:
+    R (>= 3.2.3),
+    quantmod,
+    RSQLite,
+    memoise,
+    data.table,
+    RcppEigen,
+    pastecs,
+    xts,
+    hashmap,
+    foreach
 License: MIT
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 5.0.1
