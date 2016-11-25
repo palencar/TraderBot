@@ -5,29 +5,10 @@ source('R/dbInterface.R')
 invisible(Sys.setlocale("LC_MESSAGES", "C"))
 invisible(Sys.setlocale("LC_TIME", "C"))
 
-args_cmd <- commandArgs(trailingOnly=TRUE)
-
+symbols <- commandArgs(trailingOnly=TRUE)
 #symbols <- getSymbolNames()
 
 mode = 'google'
-
-#if(length(args_cmd) < 2)
-#{
-#  print("Use [google|yahoo] symbol")
-#  quit()
-#}
-
-symbols <- args_cmd #tail(args_cmd, n=(length(args_cmd)-1))
-
-if(length(args_cmd) < 1)
-{
-  symbols <- getSymbolNames()
-}
-#else
-#{
-#  mode <- args_cmd[1]
-#  symbols <- tail(args_cmd, n=(length(args_cmd)-1))
-#}
 
 symbols <- sub("^([^.]*).*", "\\1", symbols)
 
@@ -87,7 +68,6 @@ for(i in symbols)
       next
     }
 
-#    dbWriteTable(con, name = "stockprices", row, append = T, overwrite = F, row.names = F)
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         i, dates[j], as.double(row[1]), as.double(row[2]), as.double(row[3]), as.double(row[4]),
                         as.double(row[5]))

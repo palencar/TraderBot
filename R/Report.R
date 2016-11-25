@@ -21,7 +21,7 @@ for(file in files)
 }
 
 dataTable <- rbindlist(data)
-  
+
 smaPeriod <- data.frame(dataTable$V1, dataTable$V11)
 smaPeriod <- smaPeriod[complete.cases(smaPeriod),]
 if(nrow(smaPeriod) > 0)
@@ -118,6 +118,9 @@ for(symbol in symbols)
 meanProffit <- rbindlist(profList)
 proffitOrder <- meanProffit[with(meanProffit, order(proffit)), ]
 print(proffitOrder)
+
+fileName <- sprintf("result-%s.rds", Sys.Date())
+saveRDS(proffitOrder, file=fileName)
 
 #dff <- NULL
 #data <- list()

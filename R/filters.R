@@ -248,8 +248,13 @@ gapFree <- function(symbol, dateLimit, start=NULL)
       return(TRUE)
     }
 
-    dateLimit <- first(index(obj[sprintf("%s/%s", (dateLimit - 6), (dateLimit - 1))]))
+    prevDates <- obj[sprintf("%s/%s", (dateLimit - 6), (dateLimit - 1))]
+    if(length(prevDates) == 0)
+    {
+      return(FALSE)
+    }
 
+    dateLimit <- first(index(prevDates))
     if(is.na(dateLimit))
     {
       return(FALSE)
@@ -294,7 +299,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
       next
     }
 
-    if(gapFreeM(symbol, as.Date(dateLimit)))
+    if(gapFreeM(symbol, as.Date(dateLimit), as.Date(dateLimit) - 365))
     {
       symbols <- c(symbols, symbol)
     }

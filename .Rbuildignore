@@ -4,3 +4,8 @@
 ^chart*$
 ^\.rcache$
 ^data$
+^R/ChartSymbols\.R$
+^R/InsertOperations\.R$
+^R/Report\.R$
+^R/SaveSymbols\.R$
+^\.Rproj\.user/$

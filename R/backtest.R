@@ -76,14 +76,15 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
 
     for(parStr in map$keys())
     {
-      result <- singleResultM(parStr, unlist(strsplit(map[[parStr]], ";")))
+      operations <- unlist(strsplit(map[[parStr]], ";"))
+      lines <- strsplit(operations, " ")
+      result <- singleResultM(parStr, lines)
 
       if(!is.null(result$output))
         cat(file = output, result$output, sep = "\n", append = TRUE)
 
       if(printCharts && !is.null(result$output))
       {
-        operations <- unlist(strsplit(map[[parStr]], ";"))
         path <- sprintf("charts/%s %s", symbol, parStr)
 
         for(op in operations)
