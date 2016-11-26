@@ -44,7 +44,7 @@ changeRatio <- function(regIndicator)
 getPolyRegs <- function(Symbol, endDate=NULL)
 {
   ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
-  objFiles <- list.files("data", pattern=ptrnStr)
+  objFiles <- list.files("datacache", pattern=ptrnStr)
 
   if(is.null(endDate))
     endDate <- Sys.Date()
@@ -54,7 +54,7 @@ getPolyRegs <- function(Symbol, endDate=NULL)
   
   for(name in objFiles)
   {
-    fileName <- sprintf("data/%s", name)
+    fileName <- sprintf("datacache/%s", name)
     alertas <- readRDS(file=fileName)
     
     if(length(alertas) > 0)

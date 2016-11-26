@@ -80,7 +80,7 @@ computeStream <- function(Symbols)
         }
       }
 
-      alertsFile <- "data/alerts.rds"
+      alertsFile <- "datacache/alerts.rds"
       if(file.exists(alertsFile))
         alerts <- readRDS(alertsFile)
 

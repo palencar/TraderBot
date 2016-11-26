@@ -4,7 +4,9 @@ source("R/dbInterface.R")
 source("R/orders.R")
 source("R/meanPrice.R")
 source("R/smaSD.R")
+source("R/filters.R")
 
+#' @export
 chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 200)
 {
@@ -99,9 +101,9 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
     }
 
     datePeriod <- sprintf("%s::%s", st, ed)
+    taIndicators <- paste(c(polyRegs, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
 
-    chartSeries(Symbol, name=SymbolName, subset=datePeriod,
-                TA=paste(c(polyRegs, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; "))
+    chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)
 
     if(dev == "png")
     {
@@ -115,7 +117,54 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
       }
     }
 
-    list <- ls(pattern=sprintf("*%s*", SymbolName))
+    list <- ls(pattern=sprintf(".*%s.*", SymbolName))
     rm(list = list[list != SymbolName], envir =  .GlobalEnv)
   }
+}
+
+#' @export
+chartDaily <- function(symbols)
+{
+  chartSymbols(symbols, dev="png")
+}
+
+#' @export
+chartWeekly <- function(symbols)
+{
+  chartSymbols(Symbols=symbols, period="10 years", timeFrame = "weekly", dev = "png", path = "chart-weekly/")
+}
+
+#' @export
+chartAlerts <- function()
+{
+  alertsFile <- "datacache/alerts.rds"
+  if(!is.null(alertsFile))
+  {
+    symbols <- startProbe(alertsFile, FALSE)
+    symbols <- filterData(symbols, lastTradingSession())
+    chartDaily(symbols)
+    chartWeekly(symbols)
+  }
+}
+
+#' @export
+chartWallet <- function()
+{
+  symbols <- getWallet()
+  if(length(symbols) > 0)
+  {
+    symbols <- startProbe(symbols, FALSE)
+    symbols <- filterData(symbols, lastTradingSession())
+    chartDaily(symbols)
+    chartWeekly(symbols)
+  }
+}
+
+#' @export
+chartList <- function(symbols = NULL)
+{
+  symbols <- startProbe(symbols, FALSE)
+  symbols <- filterData(symbols, lastTradingSession())
+  chartDaily(symbols)
+  chartWeekly(symbols)
 }

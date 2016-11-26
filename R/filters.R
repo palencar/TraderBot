@@ -123,7 +123,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
 filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
 {
   alert <- NULL
-  cacheName <- sprintf("data/lricache_%s_%1.2f.rds", SymbolName, threshold)
+  cacheName <- sprintf("datacache/lricache_%s_%1.2f.rds", SymbolName, threshold)
 
   key <- as.character(tradeDate)
 
@@ -487,7 +487,7 @@ filterObjectsSets <- function(symbol, tradeDay)
 
   key <- as.character(tradeDay)
 
-  cacheName <- sprintf("data/turncache_%s_%d_%d.rds", symbol, k1, k2)
+  cacheName <- sprintf("datacache/turncache_%s_%d_%d.rds", symbol, k1, k2)
   if(file.exists(cacheName))
   {
     filterMap <- readRDS(cacheName)
@@ -537,7 +537,7 @@ filterObjectsSets <- function(symbol, tradeDay)
 
     if(length(turnpoints_r$r_up) > 0)
     {
-      objectName_ru <- sprintf("data/%s-%s_%d_%d_turnpoints_r_up.rds", tradeDay, symbol, k1, k2)
+      objectName_ru <- sprintf("datacache/%s-%s_%d_%d_turnpoints_r_up.rds", tradeDay, symbol, k1, k2)
 
       if((trend %in% alerts) == FALSE)
       {
@@ -552,7 +552,7 @@ filterObjectsSets <- function(symbol, tradeDay)
 
     if(length(turnpoints_r$r_down) > 0)
     {
-      objectName_rd <- sprintf("data/%s-%s_%d_%d_turnpoints_r_down.rds", tradeDay, symbol, k1, k2)
+      objectName_rd <- sprintf("datacache/%s-%s_%d_%d_turnpoints_r_down.rds", tradeDay, symbol, k1, k2)
 
       if((trend %in% alerts) == FALSE)
       {

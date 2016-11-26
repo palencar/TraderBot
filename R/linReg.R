@@ -32,7 +32,7 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 {
   update <- FALSE
 
-  fileName <- sprintf("data/%s_%d_lri.rds", SymbolName, n)
+  fileName <- sprintf("datacache/%s_%d_lri.rds", SymbolName, n)
 
   fileExists <- file.exists(fileName)
 

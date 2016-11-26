@@ -9,3 +9,9 @@
 ^R/Report\.R$
 ^R/SaveSymbols\.R$
 ^\.Rproj\.user/$
+^test/*$
+^data/*$
+^result/*$
+^charts/*$
+^chart-history/*$
+^chart-weekly/*$
