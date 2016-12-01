@@ -221,59 +221,6 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
   return(alert)
 }
 
-gapFree <- function(symbol, dateLimit, start=NULL)
-{
-  obj <- get(symbol)
-
-  while(TRUE)
-  {
-    before   <- nrow(obj[sprintf("/%s", (dateLimit - 6))])
-    interval <- nrow(obj[sprintf("%s/%s", (dateLimit - 5), dateLimit)])
-
-    if(interval == 0)
-    {
-      if(before > 0)
-      {
-        warning(sprintf("excluding %s from symbols %s", symbol, sprintf("%s/%s", (dateLimit - 5), dateLimit)))
-        return(FALSE)
-      }
-      else
-      {
-        return(TRUE)
-      }
-    }
-
-    if(before == 0)
-    {
-      return(TRUE)
-    }
-
-    prevDates <- obj[sprintf("%s/%s", (dateLimit - 6), (dateLimit - 1))]
-    if(length(prevDates) == 0)
-    {
-      return(FALSE)
-    }
-
-    dateLimit <- first(index(prevDates))
-    if(is.na(dateLimit))
-    {
-      return(FALSE)
-    }
-
-    if(!is.null(start) && dateLimit <= start)
-    {
-      return(TRUE)
-    }
-
-    if(!is.null(start) && as.integer(dateLimit - start) < 1000)
-    {
-      return(gapFreeM(symbol, dateLimit, start))
-    }
-  }
-}
-
-gapFreeM <- memoise(gapFree)
-
 #' @export
 filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 {
@@ -291,7 +238,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 
   for(symbol in SymbolNames)
   {
-    obj <- get(symbol)
+    obj <- get(symbol)[sprintf("%s/", as.Date(dateLimit) - 365)]
 
     if(anyNA(OHLCV(obj)))
     {
@@ -299,7 +246,12 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
       next
     }
 
-    if(gapFreeM(symbol, as.Date(dateLimit), as.Date(dateLimit) - 365))
+    if(any(diff(index(obj)) > 5))
+    {
+      dates <- index(obj[which(diff(index(obj)) > 5)])
+      warning(sprintf("excluding %s from symbols %s", symbol, paste(dates, collapse = " ")))
+    }
+    else
     {
       symbols <- c(symbols, symbol)
     }
@@ -400,7 +352,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
     if(max(abs(na.omit(diff(volatility(obj))))) > 5)
     {
-      warning(print(sprintf("Probable adjust in: %s", paste(obj[which(na.omit(diff(volatility(obj))) > 5)], collapse = " "))))
+      warning(print(sprintf("Probable adjust in: %s", paste(index(obj[which(na.omit(diff(volatility(obj))) > 5)]), collapse = " "))))
       next
     }
 
