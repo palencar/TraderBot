@@ -1,7 +1,7 @@
 source("R/result.R")
 
 #' @export
-computeStream <- function(Symbols)
+computeStream <- function(Symbols, openMarket = TRUE)
 {
   stopdtime <- "18:20:00"
   fsmState <- "startProbe"
@@ -30,7 +30,7 @@ computeStream <- function(Symbols)
 
       #today isn't a session day
       if(lastSession < endDate)
-        stream <- FALSE
+        openMarket <- FALSE
 
       dt <- lastSession
 
@@ -105,7 +105,7 @@ computeStream <- function(Symbols)
       dtime <- format(Sys.time(), "%H:%M:%S")
 
       if(dtime > stopdtime)
-        stream <- FALSE
+        openMarket <- FALSE
     }
     else if(fsmState == "sendMail")
     {
@@ -123,7 +123,7 @@ computeStream <- function(Symbols)
         cmdOut <- system(muttCmd, intern=TRUE, ignore.stderr=TRUE)
       }
 
-      if(stream == FALSE)
+      if(openMarket == FALSE)
         fsmState <- "end"
       else
         fsmState <- "startProbe"

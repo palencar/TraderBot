@@ -352,7 +352,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
     if(max(abs(na.omit(diff(volatility(obj))))) > 5)
     {
-      warning(print(sprintf("Probable adjust in: %s", paste(index(obj[which(na.omit(diff(volatility(obj))) > 5)]), collapse = " "))))
+      warning(print(sprintf("Probable adjust in %s: %s", symbol, paste(index(obj[which(na.omit(diff(volatility(obj))) > 5)]), collapse = " "))))
       next
     }
 

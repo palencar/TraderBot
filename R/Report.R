@@ -3,10 +3,15 @@ source("R/dbInterface.R")
 
 args <- commandArgs(trailingOnly=TRUE)
 
-if(length(args) < 1)
-  quit()
+path <- NULL
 
-files <- list.files(args[1], pattern = "*.txt")
+if(length(args) >= 1)
+  path <- args[1]
+
+files <- list()
+
+if(!is.null(path))
+  files <- list.files(path, pattern = "*.txt")
 
 data <- list()
 i <- 1
@@ -14,7 +19,7 @@ i <- 1
 for(file in files)
 {
   print(file)
-  name <- paste(args[1], file, sep = "/")
+  name <- paste(path, file, sep = "/")
   obj <- data.frame(read.table(name, sep = " "))
   obj$symbol <- unlist(strsplit(file, "[.]"))[1]
   data[[i]] <- obj
@@ -27,7 +32,7 @@ smaPeriod <- data.frame(dataTable$V1, dataTable$V11)
 smaPeriod <- smaPeriod[complete.cases(smaPeriod),]
 if(nrow(smaPeriod) > 0)
 {
-  png(sprintf("smaPeriod-%s.png", args[1]))
+  png(sprintf("smaPeriod-%s.png", path))
   colnames(smaPeriod) <- c("smaPeriod", "proffit")
   scatter.smooth(smaPeriod, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -37,7 +42,7 @@ upperBand <- data.frame(dataTable$V2, dataTable$V11)
 upperBand <- upperBand[complete.cases(upperBand),]
 if(nrow(upperBand) > 0)
 {
-  png(sprintf("upperBand-%s.png", args[1]))
+  png(sprintf("upperBand-%s.png", path))
   colnames(upperBand) <- c("upperBand", "proffit")
   scatter.smooth(upperBand, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -47,7 +52,7 @@ lowerBand <- data.frame(dataTable$V3, dataTable$V11)
 lowerBand <- lowerBand[complete.cases(lowerBand),]
 if(nrow(lowerBand) > 0)
 {
-  png(sprintf("lowerBand-%s.png", args[1]))
+  png(sprintf("lowerBand-%s.png", path))
   colnames(lowerBand) <- c("lowerBand", "proffit")
   scatter.smooth(lowerBand, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -57,7 +62,7 @@ downChange <- data.frame(dataTable$V4, dataTable$V11)
 downChange <- downChange[complete.cases(downChange),]
 if(nrow(downChange) > 0)
 {
-  png(sprintf("downChange-%s.png", args[1]))
+  png(sprintf("downChange-%s.png", path))
   colnames(downChange) <- c("downChange", "proffit")
   scatter.smooth(downChange, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -67,7 +72,7 @@ upChange <- data.frame(dataTable$V5, dataTable$V11)
 upChange <- upChange[complete.cases(upChange),]
 if(nrow(upChange) > 0)
 {
-  png(sprintf("upChange-%s.png", args[1]))
+  png(sprintf("upChange-%s.png", path))
   colnames(upChange) <- c("upChange", "proffit")
   scatter.smooth(upChange, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -77,7 +82,7 @@ lowerLimit <- data.frame(dataTable$V6, dataTable$V11)
 lowerLimit <- lowerLimit[complete.cases(lowerLimit),]
 if(nrow(lowerLimit) > 0)
 {
-  png(sprintf("lowerLimit-%s.png", args[1]))
+  png(sprintf("lowerLimit-%s.png", path))
   colnames(lowerLimit) <- c("lowerLimit", "proffit")
   scatter.smooth(lowerLimit, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -87,7 +92,7 @@ stopGain <- data.frame(dataTable$V7, dataTable$V11)
 stopGain <- stopGain[complete.cases(stopGain),]
 if(nrow(stopGain) > 0)
 {
-  png(sprintf("stopGain-%s.png", args[1]))
+  png(sprintf("stopGain-%s.png", path))
   colnames(stopGain) <- c("stopGain", "proffit")
   scatter.smooth(stopGain, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -97,7 +102,7 @@ stopLoss <- data.frame(dataTable$V8, dataTable$V11)
 stopLoss <- stopLoss[complete.cases(stopLoss),]
 if(nrow(stopLoss) > 0)
 {
-  png(sprintf("stopLoss-%s.png", args[1]))
+  png(sprintf("stopLoss-%s.png", path))
   colnames(stopLoss) <- c("stopLoss", "proffit")
   scatter.smooth(stopLoss, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
   dev.off()
@@ -109,12 +114,15 @@ symbols <- symbols[!duplicated(symbols)]
 dff <- NULL
 i <- 1
 
-AllSymbols <- startProbe(symbolNames = unlist(strsplit(files, "[.]")), minAge=200, update=FALSE)
+if(length(files) > 0)
+{
+  AllSymbols <- startProbe(symbolNames = unlist(strsplit(files, "[.]")), minAge=200, update=FALSE)
+}
 
 for(file in files)
 {
   symbol <- unlist(strsplit(file, "[.]"))[1]
-  name <- paste(args[1], file, sep = "/")
+  name <- paste(path, file, sep = "/")
   obj <- data.frame(read.table(name, sep = " "))
   proffit    <- mean(obj$V11)
   volatility <- mean(na.omit(volatility(get(symbol))))
@@ -127,7 +135,7 @@ if(!is.null(dff))
 {
   dff <- dff[with(dff, order(dff$proffit)), ]
 
-  fileName <- sprintf("result-%s.rds", args[1])
+  fileName <- sprintf("result-%s.rds", path)
   saveRDS(dff, file=fileName)
 }
 

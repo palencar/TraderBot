@@ -1,5 +1,6 @@
 library("hashmap")
 library("memoise")
+library("data.table")
 source("R/trade.R")
 source("R/result.R")
 
@@ -75,7 +76,12 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       }
     }
 
-    output <- sprintf("result/%s.txt", symbol)
+    outputTx <- sprintf("result/%s.txt", symbol)
+    outputOp <- sprintf("result/%s.rds", symbol)
+
+    opList <- list()
+    outList <- list()
+    i <- 1
 
     for(parStr in map$keys())
     {
@@ -84,7 +90,12 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
       result <- singleResultM(parStr, lines)
 
       if(!is.null(result$output))
-        cat(file = output, result$output, sep = "\n", append = TRUE)
+      {
+        cat(file = outputTx, result$output, sep = "\n", append = TRUE)
+        outList[[i]] <- result$output
+        opList[[i]]  <- operations
+        i <- i + 1
+      }
 
       if(printCharts && !is.null(result$output))
       {
@@ -98,6 +109,23 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
           chartSymbols(symbol, dateLimit=date, dev="png", path = path, suffix = date, smaPeriod = smaPeriod)
         }
       }
+    }
+
+    if(length(opList) > 0)
+    {
+      opFile <- NULL
+      if(file.exists(outputOp))
+      {
+        opFile <- readRDS(outputOp)
+      }
+
+      output     <- c(opFile$output, outList)
+      operations <- c(opFile$operations, opList)
+
+      opFile$output     <- output
+      opFile$operations <- operations
+
+      saveRDS(opFile, outputOp)
     }
 
     forget(singleResultM)

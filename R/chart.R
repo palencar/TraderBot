@@ -141,7 +141,7 @@ chartAlerts <- function()
   if(!is.null(alertsFile))
   {
     symbols <- startProbe(alertsFile, FALSE)
-    symbols <- filterData(symbols, lastTradingSession())
+    symbols <- filterGap(symbols, lastTradingSession())
     chartDaily(symbols)
     chartWeekly(symbols)
   }
@@ -154,7 +154,7 @@ chartWallet <- function()
   if(length(symbols) > 0)
   {
     symbols <- startProbe(symbols, FALSE)
-    symbols <- filterData(symbols, lastTradingSession())
+    symbols <- filterGap(symbols, lastTradingSession())
     chartDaily(symbols)
     chartWeekly(symbols)
   }
@@ -164,7 +164,7 @@ chartWallet <- function()
 chartList <- function(symbols = NULL)
 {
   symbols <- startProbe(symbols, FALSE)
-  symbols <- filterData(symbols, lastTradingSession())
+  symbols <- filterGap(symbols, lastTradingSession())
   chartDaily(symbols)
   chartWeekly(symbols)
 }
