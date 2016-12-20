@@ -1,11 +1,11 @@
 source("R/result.R")
+source("R/alerts.R")
 
 #' @export
-computeStream <- function(Symbols, openMarket = TRUE)
+computeStream <- function(Symbols = NULL, openMarket = TRUE)
 {
   stopdtime <- "18:20:00"
   fsmState <- "startProbe"
-  toFilter <- NULL
   tradeAlerts <- NULL
 
   while(fsmState != "end")
@@ -14,28 +14,27 @@ computeStream <- function(Symbols, openMarket = TRUE)
 
     if(fsmState == "startProbe")
     {
-      AllSymbols <- startProbe(minAge=720)
+      AllSymbols <- startProbe(symbolNames=Symbols, minAge=720)
 
       fsmState <- "computeRegressions"
     }
     else if(fsmState == "computeRegressions")
     {
-      lastSession <- lastTradingSession()
+      lastSession <- as.Date(lastTradingSession())
       startDate <- as.Date(lastSession) + 1
 
-      if(startDate > format(Sys.time(), "%Y-%m-%d"))
-        startDate <- format(Sys.time(), "%Y-%m-%d")
+      if(startDate > Sys.Date())
+        startDate <- Sys.Date()
 
-      endDate <- format(Sys.time(), "%Y-%m-%d")
+      endDate <- Sys.Date()
 
-      #today isn't a session day
       if(lastSession < endDate)
         openMarket <- FALSE
 
-      dt <- lastSession
+      tradeDate <- lastSession
 
       startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-      startDay <- format(Sys.time(), "%Y-%m-%d")
+      startDay <- Sys.Date()
 
       toFilter <- setdiff(AllSymbols, Symbols)
       accepted <- filterDataM(toFilter, endDate)
@@ -57,11 +56,11 @@ computeStream <- function(Symbols, openMarket = TRUE)
 
         price <- meanPrice(symbol)
 
-        tradeDecisions <- trade(symbol, as.Date(dt), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
+        tradeDecisions <- trade(symbol, tradeDate, smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
 
         for(tradeDecision in tradeDecisions)
         {
-          print(paste(symbol, Sys.Date(), tradeDecision$decision, tradeDecision$reason))
+          print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason))
 
           tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
 
@@ -71,7 +70,7 @@ computeStream <- function(Symbols, openMarket = TRUE)
             tradeAlerts <- c(tradeAlert, tradeAlerts)
 
             price <- sprintf("%.2f", as.numeric(lastPrice(symbol)))
-            logLine <- paste(symbol, as.Date(dt), tradeDecision$decision, price, collapse = " ")
+            logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
 
             writeResult(symbol, logLine, "../stream")
 
@@ -80,16 +79,7 @@ computeStream <- function(Symbols, openMarket = TRUE)
         }
       }
 
-      alertsFile <- "datacache/alerts.rds"
-      if(file.exists(alertsFile))
-        alerts <- readRDS(alertsFile)
-
-      for(symbol in alertSymbols)
-      {
-        alerts <- c(alerts[alerts != symbol], symbol)
-      }
-
-      saveRDS(alerts, file=alertsFile)
+      addAlerts(alertSymbols, tradeDate)
 
       fsmState <- "chartAlerts"
     }

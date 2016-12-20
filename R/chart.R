@@ -7,30 +7,26 @@ source("R/smaSD.R")
 source("R/filters.R")
 
 #' @export
-chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 200)
 {
   for(i in 1:length(Symbols))
   {
     SymbolName <- Symbols[i]
 
-    if(is.null(dateLimit))
-    {
+    if(!is.null(endDate))
+      ed <- as.Date(endDate)
+    else if(is.null(dateLimit))
       ed <- format(Sys.time(), "%Y-%m-%d")
-    }
     else
-    {
       ed <- dateLimit
-    }
 
-    if(is.null(period))
-    {
+    if(!is.null(startDate))
+      st <- as.date(startDate)
+    else if(is.null(period))
       st <- seq(as.Date(ed), length=2, by="-5 years")[2]
-    }
     else
-    {
       st <- seq(as.Date(ed), length=2, by=paste("-", period, sep = ""))[2]
-    }
 
     if(dev == "png")
     {
@@ -123,15 +119,15 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, xres=1900, yres=7
 }
 
 #' @export
-chartDaily <- function(symbols)
+chartDaily <- function(symbols, dev="")
 {
-  chartSymbols(symbols, dev="png")
+  chartSymbols(symbols, dev=dev)
 }
 
 #' @export
-chartWeekly <- function(symbols)
+chartWeekly <- function(symbols, dev="")
 {
-  chartSymbols(Symbols=symbols, period="10 years", timeFrame = "weekly", dev = "png", path = "chart-weekly/")
+  chartSymbols(Symbols=symbols, period="10 years", timeFrame = "weekly", dev = dev, path = "chart-weekly/")
 }
 
 #' @export
@@ -148,23 +144,28 @@ chartAlerts <- function()
 }
 
 #' @export
-chartWallet <- function()
+chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
   symbols <- getWallet()
   if(length(symbols) > 0)
   {
-    symbols <- startProbe(symbols, FALSE)
-    symbols <- filterGap(symbols, lastTradingSession())
-    chartDaily(symbols)
-    chartWeekly(symbols)
+    chartList(symbols, daily = daily, weekly = weekly, dev = dev)
   }
 }
 
 #' @export
-chartList <- function(symbols = NULL)
+chartList <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
   symbols <- startProbe(symbols, FALSE)
   symbols <- filterGap(symbols, lastTradingSession())
-  chartDaily(symbols)
-  chartWeekly(symbols)
+
+  if(daily)
+  {
+    chartDaily(symbols, dev = dev)
+  }
+
+  if(weekly)
+  {
+    chartWeekly(symbols, dev = dev)
+  }
 }

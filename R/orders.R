@@ -1,9 +1,13 @@
 source("R/dbInterface.R")
 
 
-getOrders <- function(name)
+getOrders <- function(name, pos = NULL)
 {
-  pos <- getPositions(name)
+  if(is.null(pos))
+  {
+    pos <- getPositions(name)
+  }
+
   symbol <- get(name)
 
   if(length(pos) == 0)

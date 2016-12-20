@@ -5,7 +5,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
+computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
 {
   tradeDays <- getTradeDays()
   tradeDays <- tradeDays[which(tradeDays >= startDate)]
@@ -17,17 +17,14 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
 
   alertSymbols <- NULL
 
-  dir.create("result", showWarnings=FALSE)
-  dir.create("datacache", showWarnings=FALSE)
-
-  smaPeriod = sample(50:500, 3)
-  upperBand = as.numeric(formatC(runif(2, min=1.0, max=4), digits=2,format="f"))
-  lowerBand = as.numeric(formatC(runif(2, min=-4, max=-1.0), digits=2,format="f"))
-  upChange = as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
-  downChange = as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
-  lowLimit = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopLoss = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopGain = as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+  smaPeriod = 200
+  upperBand = 1.5
+  lowerBand = -1.5
+  upChange = NA
+  downChange = NA
+  lowLimit = NA
+  stopLoss = NA
+  stopGain = NA
 
   for(symbol in AllSymbols)
   {
@@ -72,60 +69,36 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
             map[[parStr]] <- logLine
           else
             map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
+
+          operations <- unlist(strsplit(map[[parStr]], ";"))
+          lines <- strsplit(operations, " ")
+          result <- singleResultM(parStr, lines, tradeDate)
+
+          if(!is.null(chartDev) && !is.null(result$output))
+          {
+            #lines transformar no formato correto
+            #pos <- algumacoisa(lines)
+            #Posit <- getOrders(symbol, pos)
+
+            if(chartDev == "png")
+            {
+              path <- sprintf("charts/%s %s", symbol, parStr)
+              suffix <- as.Date(tradeDate)
+            }
+            else
+            {
+              path = NULL
+              suffix = NULL
+            }
+
+            smaPeriod = as.numeric(unlist(strsplit(parStr, " "))[1])
+            chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev=chartDev, path = path, suffix = suffix, smaPeriod = smaPeriod)
+          }
+
+          print(parStr)
+          print(result)
         }
       }
-    }
-
-    outputTx <- sprintf("result/%s.txt", symbol)
-    outputOp <- sprintf("result/%s.rds", symbol)
-
-    opList <- list()
-    outList <- list()
-    i <- 1
-
-    for(parStr in map$keys())
-    {
-      operations <- unlist(strsplit(map[[parStr]], ";"))
-      lines <- strsplit(operations, " ")
-      result <- singleResultM(parStr, lines)
-
-      if(!is.null(result$output))
-      {
-        cat(file = outputTx, result$output, sep = "\n", append = TRUE)
-        outList[[i]] <- result$output
-        opList[[i]]  <- operations
-        i <- i + 1
-      }
-
-      if(printCharts && !is.null(result$output))
-      {
-        path <- sprintf("charts/%s %s", symbol, parStr)
-
-        for(op in operations)
-        {
-          op <- unlist(strsplit(op, " "))
-          date <- as.Date(op[2])
-          smaPeriod = as.numeric(unlist(strsplit(parStr, " "))[1])
-          chartSymbols(symbol, dateLimit=date, dev="png", path = path, suffix = date, smaPeriod = smaPeriod)
-        }
-      }
-    }
-
-    if(length(opList) > 0)
-    {
-      opFile <- NULL
-      if(file.exists(outputOp))
-      {
-        opFile <- readRDS(outputOp)
-      }
-
-      output     <- c(opFile$output, outList)
-      operations <- c(opFile$operations, opList)
-
-      opFile$output     <- output
-      opFile$operations <- operations
-
-      saveRDS(opFile, outputOp)
     }
 
     forget(singleResultM)

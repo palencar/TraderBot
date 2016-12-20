@@ -40,7 +40,7 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
 }
 
-singleResult <- function(key, lines)
+singleResult <- function(key, lines, lastDay = NULL)
 {
   closedDF <- NULL
   openDF <- NULL
@@ -81,7 +81,11 @@ singleResult <- function(key, lines)
 
   if(closePosition == FALSE)
   {
-    lastDay <- lastTradeDay(elements[1])
+    if(is.null(lastDay))
+    {
+      lastDay <- lastTradeDay(elements[1])
+    }
+
     i <- 1
     for(position in positions)
     {

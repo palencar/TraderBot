@@ -74,7 +74,7 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     }
 
     volatility <- mean(na.omit(volatility(obj)))
-    if(volatility >= 0.50)
+    if(volatility >= 0.70)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Mean volatility too high [%.2f]", symbol, period, volatility)
       cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -114,6 +114,24 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
       canBuy <- FALSE
     }
 
+    low2Year <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 730)]
+    min2Year <- index(low2Year[which.min(low2Year)])
+    if((tradeDate - min2Year) <= 14)
+    {
+      str <- sprintf("DO NOT BUY: %s | [%s] Min 2 Year [%s]", symbol, period, min2Year)
+      cantBuy <- c(cantBuy[cantBuy != str], str)
+      canBuy <- FALSE
+    }
+
+    highYear <- Hi(obj)[sprintf("%s/", as.Date(tradeDate) - 365)]
+    maxYear <- index(highYear[which.max(highYear)])
+    if((tradeDate - maxYear) <= 7)
+    {
+      str <- sprintf("DO NOT SELL: %s | [%s] Max Year [%s]", symbol, period, maxYear)
+      cantSell <- c(cantSell[cantSell != str], str)
+      canSell <- FALSE
+    }
+
     high <- Hi(obj)
     maxValue <- as.numeric(high[which.max(high)])
     maxDate <- index(high[which.max(high)])
@@ -121,14 +139,14 @@ trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand =
     lowAfter <- Lo(obj)[sprintf("%s/", maxDate)]
     minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
 
-    if((minAfter / maxValue) < ll)
+    if(!is.na(ll) && (minAfter / maxValue) < ll)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxValue, (minAfter / maxValue))
       cantBuy <- c(cantBuy[cantBuy != str], str)
       canBuy <- FALSE
     }
 
-    if((lastValue / maxValue) < ll) #below 60% low
+    if(!is.na(ll) && (lastValue / maxValue) < ll)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastValue, maxDate, maxValue, (lastValue / maxValue))
       cantBuy <- c(cantBuy[cantBuy != str], str)
