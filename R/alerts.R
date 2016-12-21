@@ -31,7 +31,9 @@ getAlerts <- function(n = 20, date = NULL)
     alerts <- alerts[which(alerts$date >= date)]
   }
 
-  df <- tail(alerts, n = n)
+  alerts <- alerts[order(alerts$date, decreasing = TRUE),]
+
+  df <- head(alerts, n = n)
 
   return(df)
 }

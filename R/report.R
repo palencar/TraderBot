@@ -157,13 +157,13 @@ showReport <- function(dataTable, path = "result")
     symbols <- startProbe(symbolNames = symbols, minAge=400, update=FALSE)
   }
 
-  for(symbol in symbols)
+  for(symbolName in symbols)
   {
-    obj        <- dataTable[which(dataTable$symbol == symbol)]
+    obj        <- dataTable[which(dataTable$symbol == symbolName)]
     proffit    <- mean(obj$V11)
-    volatility <- mean(na.omit(volatility(get(symbol))))
-    volume     <- mean(as.numeric(na.omit(Vo(get(symbol)))))
-    df         <- data.frame(symbol, proffit, volatility, volume)
+    volatility <- mean(na.omit(volatility(get(symbolName))))
+    volume     <- mean(as.numeric(na.omit(Vo(get(symbolName)))))
+    df         <- data.frame(symbolName, proffit, volatility, volume)
     dff        <- rbind(dff, df)
   }
 

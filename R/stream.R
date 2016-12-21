@@ -33,7 +33,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
 
       tradeDate <- lastSession
 
-      startTime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      startTime <- Sys.time()
       startDay <- Sys.Date()
 
       toFilter <- setdiff(AllSymbols, Symbols)
