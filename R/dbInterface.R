@@ -319,12 +319,17 @@ getWallet <- function(FilterClosed = TRUE)
   return(unique(symbols))
 }
 
-getTradeDays <- function()
+getTradeDays <- function(symbols = NULL)
 {
   if(exists("AllTradeDays"))
     return(get("AllTradeDays"))
 
-  queryStr <- sprintf("select distinct date from stockprices order by date asc")
+  if(is.null(symbols))
+    queryStr <- sprintf("select distinct date from stockprices order by date asc")
+  else
+    queryStr <- sprintf("select distinct date from stockprices where symbol in ('%s') order by date asc", paste(symbols, collapse = "','"))
+
+  paste("'", paste(symbols, collapse = "','"), sep="", ",")
   allTradeDays <- getQuery(queryStr)[,1]
 
   assign("AllTradeDays", allTradeDays, .GlobalEnv)

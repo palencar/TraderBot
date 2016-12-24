@@ -5,11 +5,9 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
+computeBacktest <- function(Symbols, printCharts = FALSE)
 {
   tradeDays <- getTradeDays()
-  tradeDays <- tradeDays[which(tradeDays >= startDate)]
-  tradeDays <- tradeDays[which(tradeDays <= endDate)]
 
   AllSymbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
 
@@ -33,6 +31,19 @@ computeBacktest <- function(Symbols, startDate, endDate, printCharts = FALSE)
   {
     map <- hashmap("1", "1")
     map$clear()
+
+    tradeDays <- getTradeDays(symbol)
+
+    minStart <- as.Date(first(tradeDays)) + 500  #At least 500 days of data
+    maxStart <- as.Date(last(tradeDays)) - 730   #2 years
+
+    startDate <- as.Date(minStart) + sample(1:as.integer(maxStart - minStart), 1)
+    endDate <- as.Date(startDate) + 730
+
+    tradeDays <- tradeDays[which(tradeDays >= startDate)]
+    tradeDays <- tradeDays[which(tradeDays <= endDate)]
+
+    print(sprintf("Backtest %s/%s", startDate, endDate))
 
     for(tradeDate in tradeDays)
     {
