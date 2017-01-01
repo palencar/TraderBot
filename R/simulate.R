@@ -11,15 +11,15 @@ computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
   tradeDays <- tradeDays[which(tradeDays >= startDate)]
   tradeDays <- tradeDays[which(tradeDays <= endDate)]
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
+  AllSymbols <- startProbe(symbolNames = Symbols, minAge=400, update=FALSE)
 
   forget(singleResultM)
 
   alertSymbols <- NULL
 
-  smaPeriod = 200
-  upperBand = 1.5
-  lowerBand = -1.5
+  smaPeriod = 400
+  upperBand = 2.5
+  lowerBand = -2.5
   upChange = NA
   downChange = NA
   lowLimit = NA

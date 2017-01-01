@@ -48,11 +48,9 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
 
       for(symbol in Symbols)
       {
-        smaPeriod <- 200
-        upperBand <- 0.5
-        lowerBand <- -0.5
-        upChange <- 0.5
-        downChange <- -0.5
+        smaPeriod <- 400
+        upperBand <- 2.5
+        lowerBand <- -2.5
 
         price <- meanPrice(symbol)
 

@@ -8,7 +8,7 @@ source("R/filters.R")
 
 #' @export
 chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 200)
+                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
 {
   for(i in 1:length(Symbols))
   {

@@ -44,6 +44,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
   return(loaded)
 }
 
+#' @export
 getSymbolNames <- function()
 {
   fr <- getQuery("SELECT distinct(symbol) from stockprices")
@@ -51,6 +52,7 @@ getSymbolNames <- function()
   return(fr$symbol)
 }
 
+#' @export
 startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 {
   if(is.null(symbolNames))

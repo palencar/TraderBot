@@ -1,3 +1,4 @@
+#' @export
 addAlerts <- function(symbol, date)
 {
   if(is.null(symbol))
@@ -17,6 +18,7 @@ addAlerts <- function(symbol, date)
   saveRDS(df, file=alertsFile)
 }
 
+#' @export
 getAlerts <- function(n = 20, date = NULL)
 {
   alerts <- NULL

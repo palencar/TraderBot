@@ -1,5 +1,6 @@
 library("data.table")
 library("memoise")
+library("moments")
 source("R/dbInterface.R")
 
 mergeBacktest_ <- function(path = "result")
@@ -11,11 +12,10 @@ mergeBacktest_ <- function(path = "result")
 
   for(file in files)
   {
-    #print(file)
     name <- paste(path, file, sep = "/")
     obj <- data.frame(read.table(name, sep = " "))
     obj$symbol <- unlist(strsplit(file, "[.]"))[1]
-    data[[i]] <- tail(obj, n=40)
+    data[[i]] <- obj
     i <- i + 1
   }
 
@@ -26,41 +26,8 @@ mergeBacktest_ <- function(path = "result")
 
 mergeBacktest <- memoise(mergeBacktest_)
 
-filterBacktest <- function(dataTable, limits = NULL)
+showSmaPeriod <- function(dataTable)
 {
-  if(is.null(limits))
-  {
-    return(dataTable)
-  }
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV1]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV1]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV2]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV2]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV3]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV3]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV4]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV4]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV5]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV5]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV6]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV6]
-
-  dataTable <- dataTable[which(dataTable$V1) >= limits$minV7]
-  dataTable <- dataTable[which(dataTable$V1) <= limits$maxV7]
-
-  return(dataTable)
-}
-
-showSmaPeriod <- function()
-{
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V1, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df) <- c("smaPeriod", "proffit")
@@ -68,10 +35,8 @@ showSmaPeriod <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showUpperBand <- function()
+showUpperBand <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V2, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("upperBand", "proffit")
@@ -79,10 +44,8 @@ showUpperBand <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showLowerBand <- function()
+showLowerBand <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V3, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("lowerBand", "proffit")
@@ -90,10 +53,8 @@ showLowerBand <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showDownChange <- function()
+showDownChange <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V4, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("downChange", "proffit")
@@ -101,10 +62,8 @@ showDownChange <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showUpChange <- function()
+showUpChange <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V5, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("upChange", "proffit")
@@ -112,10 +71,8 @@ showUpChange <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showLowerLimit <- function()
+showLowerLimit <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V6, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("lowerLimit", "proffit")
@@ -123,10 +80,8 @@ showLowerLimit <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showStopGain <- function()
+showStopGain <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V7, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("stopGain", "proffit")
@@ -134,10 +89,8 @@ showStopGain <- function()
   scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 }
 
-showStopLoss <- function()
+showStopLoss <- function(dataTable)
 {
-  dataTable <- mergeBacktest()
-
   df <- data.frame(dataTable$V8, dataTable$V11)
   df <- unique(df[complete.cases(df),])
   colnames(df)  <- c("stopLoss", "proffit")
@@ -161,9 +114,12 @@ showReport <- function(dataTable, path = "result")
   {
     obj        <- dataTable[which(dataTable$symbol == symbolName)]
     proffit    <- mean(obj$V11)
+    minProffit <- min(obj$V11)
+    maxProffit <- max(obj$V11)
+    skewness   <- skewness(obj$V11)
     volatility <- mean(na.omit(volatility(get(symbolName))))
     volume     <- mean(as.numeric(na.omit(Vo(get(symbolName)))))
-    df         <- data.frame(symbolName, proffit, volatility, volume)
+    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, skewness, volatility, volume)
     dff        <- rbind(dff, df)
   }
 
@@ -171,3 +127,6 @@ showReport <- function(dataTable, path = "result")
 
   return(dff)
 }
+
+
+#qplot(factor(symbol), V11, data = dataTable, geom = "boxplot")

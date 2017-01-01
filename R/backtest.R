@@ -7,10 +7,6 @@ source("R/result.R")
 #' @export
 computeBacktest <- function(Symbols, printCharts = FALSE)
 {
-  tradeDays <- getTradeDays()
-
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=200, update=FALSE)
-
   forget(singleResultM)
 
   alertSymbols <- NULL
@@ -18,14 +14,16 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  smaPeriod = sample(50:500, 3)
+  smaPeriod = sample(150:500, 2)
   upperBand = as.numeric(formatC(runif(2, min=1.0, max=4), digits=2,format="f"))
   lowerBand = as.numeric(formatC(runif(2, min=-4, max=-1.0), digits=2,format="f"))
-  upChange = as.numeric(formatC(runif(2, min=0, max=2), digits=2,format="f"))
-  downChange = as.numeric(formatC(runif(2, min=-2, max=0), digits=2,format="f"))
-  lowLimit = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopLoss = as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopGain = as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+  upChange = as.numeric(formatC(runif(2, min=0, max=4), digits=2,format="f"))
+  downChange = as.numeric(formatC(runif(2, min=-4, max=0), digits=2,format="f"))
+  lowLimit = NA#as.numeric(formatC(runif(2, min=0, max=0.3), digits=2,format="f"))
+  stopLoss = NA#as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
+  stopGain = NA#as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+
+  AllSymbols <- startProbe(symbolNames = Symbols, minAge=min(smaPeriod), update=FALSE)
 
   for(symbol in AllSymbols)
   {
@@ -34,8 +32,11 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
 
     tradeDays <- getTradeDays(symbol)
 
-    minStart <- as.Date(first(tradeDays)) + 500  #At least 500 days of data
-    maxStart <- as.Date(last(tradeDays)) - 730   #2 years
+    minStart <- as.Date(first(tradeDays)) + max(smaPeriod)  #Min days of data
+    maxStart <- as.Date(last(tradeDays)) - 730              #2 years
+
+    if(as.integer(maxStart - minStart) < 0)
+      return(NULL)
 
     startDate <- as.Date(minStart) + sample(1:as.integer(maxStart - minStart), 1)
     endDate <- as.Date(startDate) + 730

@@ -1,6 +1,6 @@
 library("memoise")
 
-trade <- function(symbol, tradeDate, smaPeriod = 200, upperBand = 1, lowerBand = -1, upChange = 0.5, downChange = -0.5, lowLimit = 0.6, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30)
+trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand = -2.5, upChange = NA, downChange = NA, lowLimit = NA, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30)
 {
   i <- 1
 
