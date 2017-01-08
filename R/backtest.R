@@ -36,8 +36,8 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2)
 
     tradeDays <- getTradeDays(symbol)
 
-    minStart <- as.Date(first(tradeDays)) + max(smaPeriod)  #Min days of data
-    maxStart <- as.Date(last(tradeDays)) - 730              #2 years
+    minStart <- as.Date(first(tradeDays)) + max(smaPeriod) + 730  #Min days of data
+    maxStart <- as.Date(last(tradeDays)) - 730                    #2 years
 
     if(as.integer(maxStart - minStart) < 0)
       return(NULL)
