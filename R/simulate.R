@@ -5,13 +5,13 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
+computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NULL)
 {
-  tradeDays <- getTradeDays()
+  tradeDays <- getTradeDays(Symbols)
   tradeDays <- tradeDays[which(tradeDays >= startDate)]
   tradeDays <- tradeDays[which(tradeDays <= endDate)]
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=400, update=FALSE)
+  AllSymbols <- startProbe(symbolNames = Symbols, minAge=as.integer(endDate-startDate), update=FALSE)
 
   forget(singleResultM)
 
@@ -26,6 +26,8 @@ computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
   stopLoss = NA
   stopGain = NA
 
+  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
+
   for(symbol in AllSymbols)
   {
     map <- hashmap("1", "1")
@@ -36,7 +38,7 @@ computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, lowLimit = lowLimit, stopLoss = stopLoss, stopGain = stopGain, map = map)
+      tradeDecisions <- trade(symbol, as.Date(tradeDate), parameters = parameters, map = map)
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
@@ -60,8 +62,7 @@ computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
           price <- sprintf("%.2f", tradeDecision$price)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
 
-          parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
-                            tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[8], tradeDecision$parameters[9])
+          parStr <- paste(tradeDecision$parameters, collapse = " ")
 
           obj <- map[[parStr]]
 
@@ -73,6 +74,8 @@ computeSimulation <- function(Symbols, startDate, endDate, chartDev = NULL)
           operations <- unlist(strsplit(map[[parStr]], ";"))
           lines <- strsplit(operations, " ")
           result <- singleResultM(parStr, lines, tradeDate)
+
+          addAlerts(symbol, as.Date(tradeDate))
 
           if(!is.null(chartDev) && !is.null(result$output))
           {

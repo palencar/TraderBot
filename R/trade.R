@@ -1,13 +1,14 @@
 library("memoise")
 
-trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand = -2.5, upChange = NA, downChange = NA, lowLimit = NA, stopGain = NA, stopLoss = NA, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30)
+trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30)
 {
   i <- 1
 
+  if(is.null(parameters))
+    return(NULL)
+
   allDecisions <- c(list())
-  length(allDecisions) <- length(smaPeriod)*length(upperBand)*length(lowerBand)*
-                          length(downChange)*length(upChange)*length(lowLimit)*
-                          length(stopLoss)*length(stopGain)
+  length(allDecisions) <- nrow(parameters) ^ ncol(parameters)
 
   canBuy <- TRUE
   canSell <- TRUE
@@ -44,8 +45,8 @@ trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand
 
   meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
 
-  for(sPeriod in smaPeriod)
-  for(ll in lowLimit)
+  for(sPeriod in parameters$smaPeriod)
+  for(ll in parameters$lowLimit)
   {
     #compute sd for the period
     objPeriod <- get(symbol)[period]
@@ -153,22 +154,22 @@ trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand
       canBuy <- FALSE
     }
 
-    for (ub in upperBand)
-    for (lb in lowerBand)
-    for (dc in downChange)
-    for (uc in upChange)
-    for (sl in stopLoss)
-    for (sg in stopGain)
+    for (ub in parameters$upperBand)
+    for (lb in parameters$lowerBand)
+    for (dc in parameters$downChange)
+    for (uc in parameters$upChange)
+    for (sl in parameters$stopLoss)
+    for (sg in parameters$stopGain)
     {
       decision <- "hold"
       reason <- NULL
 
-      if(!is.null(lowerBand))
+      if(!is.na(lb))
       {
         lower <- lb + (as.numeric(maxChange))
       }
 
-      if(!is.null(upperBand))
+      if(!is.na(ub))
       {
         upper <- ub + (as.numeric(minChange))
       }
@@ -229,32 +230,33 @@ trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand
         }
       }
 
-      parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", sPeriod, ub, lb, dc, uc, ll, sg, sl)
+      parStr <- paste(sPeriod, ub, lb, dc, uc, ll, sg, sl, collapse = " ")
       operations <- map[[parStr]]
 
-      if(!is.null(price) && !is.null(operations) && !is.na(operations))
+      pr <- price
+      if(is.null(pr) && !is.null(operations) && !is.na(operations))
       {
         result <- singleResultM(parStr, unlist(strsplit(operations, ";")))
-        price <- result$openMeanPrice
+        pr <- result$openMeanPrice
       }
 
-      if(!is.null(price))
+      if(!is.null(pr))
       {
-        if(!is.na(sg) && (price * sg) <= lastValue) #Stop gain
+        if(!is.na(sg) && (pr * sg) <= lastValue) #Stop gain
         {
           if(canSell)
           {
             decision <- "sell"
-            reason <- sprintf("Stop Gain %.2f * %2.f <= %.2f -> sell", sg, price, lastValue)
+            reason <- sprintf("Stop Gain %.2f * %2.f <= %.2f -> sell", sg, pr, lastValue)
           }
         }
 
-        if(!is.na(sl) && (price * sl) >= lastValue) #Stop loss
+        if(!is.na(sl) && (pr * sl) >= lastValue) #Stop loss
         {
           if(canSell)
           {
             decision <- "sell"
-            reason <- sprintf("Stop Loss %.2f * %.2f >= %.2f -> sell", sl, price, lastValue)
+            reason <- sprintf("Stop Loss %.2f * %.2f >= %.2f -> sell", sl, pr, lastValue)
           }
         }
       }
@@ -264,9 +266,10 @@ trade <- function(symbol, tradeDate, smaPeriod = 400, upperBand = 2.5, lowerBand
 
       allDecisions[[i]]$decision <- decision
       allDecisions[[i]]$reason <- reason
-      allDecisions[[i]]$parameters <- c(sPeriod, ub, lb, dc, uc, ll, sg, sl)
-      names(allDecisions[[i]]$parameters) <- c("smaPeriod", "uperBand", "lowerBand", "downChange", "upperChange", "lowerLimit", "stopGain", "stopLoss")
       allDecisions[[i]]$price <- last(seq)
+      pars        <- data.frame(sPeriod, ub, lb, uc, dc, ll, sg, sl)
+      names(pars) <- c("smaPeriod", "upperBand", "lowerBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss")
+      allDecisions[[i]]$parameters <- pars
 
       i <- i + 1
     }

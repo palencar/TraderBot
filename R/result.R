@@ -49,8 +49,10 @@ singleResult <- function(key, lines, lastDay = NULL)
   openDate <- NULL
   closePosition <- FALSE
 
-  for(elements in lines)
+  for(line in lines)
   {
+    elements <- unlist(strsplit(line, " "))
+
     if(elements[3] == "sell")
     {
       if(is.null(positions) == FALSE)
@@ -138,7 +140,10 @@ singleResult <- function(key, lines, lastDay = NULL)
 
   if(sum(totalDF$buy_price) > 0)
   {
-    result$total <- sprintf("%d %d %.2f", sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+    capital <- sum(totalDF$buy_price)
+    gain    <- sum(totalDF$sell_price-totalDF$buy_price)
+    proffit <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
+    result$total <- data.frame(capital, gain, proffit)
   }
 
   return(result)

@@ -14,6 +14,7 @@ addAlerts <- function(symbol, date)
   df <- data.frame(symbol, date)
   df <- rbind(df, alerts)
   df <- unique(df)
+  df <- df[order(df$date, decreasing = TRUE),]
 
   saveRDS(df, file=alertsFile)
 }

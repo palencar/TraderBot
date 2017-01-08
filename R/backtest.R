@@ -5,7 +5,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, printCharts = FALSE)
+computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2)
 {
   forget(singleResultM)
 
@@ -14,14 +14,16 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  smaPeriod = sample(150:500, 2)
-  upperBand = as.numeric(formatC(runif(2, min=1.0, max=4), digits=2,format="f"))
-  lowerBand = as.numeric(formatC(runif(2, min=-4, max=-1.0), digits=2,format="f"))
-  upChange = as.numeric(formatC(runif(2, min=0, max=4), digits=2,format="f"))
-  downChange = as.numeric(formatC(runif(2, min=-4, max=0), digits=2,format="f"))
-  lowLimit = NA#as.numeric(formatC(runif(2, min=0, max=0.3), digits=2,format="f"))
-  stopLoss = NA#as.numeric(formatC(runif(2, min=0, max=1), digits=2,format="f"))
-  stopGain = NA#as.numeric(formatC(runif(2, min=1, max=5), digits=2,format="f"))
+  smaPeriod = sample(150:500, size = samples, replace = TRUE)
+  upperBand = as.numeric(formatC(runif(samples, min=1.0, max=4), digits=2,format="f"))
+  lowerBand = as.numeric(formatC(runif(samples, min=-4, max=-1.0), digits=2,format="f"))
+  upChange = as.numeric(formatC(runif(samples, min=0, max=4), digits=2,format="f"))
+  downChange = as.numeric(formatC(runif(samples, min=-4, max=0), digits=2,format="f"))
+  lowLimit = NA#as.numeric(formatC(runif(samples, min=0, max=0.3), digits=2,format="f"))
+  stopLoss = NA#as.numeric(formatC(runif(samples, min=0, max=1), digits=2,format="f"))
+  stopGain = NA#as.numeric(formatC(runif(samples, min=1, max=5), digits=2,format="f"))
+
+  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
 
   AllSymbols <- startProbe(symbolNames = Symbols, minAge=min(smaPeriod), update=FALSE)
 
@@ -29,6 +31,8 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
   {
     map <- hashmap("1", "1")
     map$clear()
+
+    pars <- new.env(hash=T, parent=emptyenv())
 
     tradeDays <- getTradeDays(symbol)
 
@@ -51,7 +55,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, lowLimit = lowLimit, stopLoss = stopLoss, stopGain = stopGain, map = map)
+      tradeDecisions <- trade(symbol, as.Date(tradeDate), parameters = parameters, map = map)
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
@@ -75,8 +79,9 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
           price <- sprintf("%.2f", tradeDecision$price)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
 
-          parStr <- sprintf("%03d %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f %1.2f", tradeDecision$parameters[1], tradeDecision$parameters[2], tradeDecision$parameters[3],
-                            tradeDecision$parameters[4], tradeDecision$parameters[5], tradeDecision$parameters[6], tradeDecision$parameters[7], tradeDecision$parameters[8], tradeDecision$parameters[9])
+          parStr <- paste(tradeDecision$parameters, collapse = " ")
+
+          pars[[parStr]] <- tradeDecision$parameters
 
           obj <- map[[parStr]]
 
@@ -88,12 +93,12 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
       }
     }
 
-    outputTx <- sprintf("result/%s.txt", symbol)
+    #outputTx <- sprintf("result/%s.txt", symbol)
     outputOp <- sprintf("result/%s.rds", symbol)
 
-    opList <- list()
-    outList <- list()
-    i <- 1
+    parList <- list()
+    resList <- list()
+    i <- 0
 
     for(parStr in map$keys())
     {
@@ -103,10 +108,10 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
 
       if(!is.null(result$output))
       {
-        cat(file = outputTx, result$output, sep = "\n", append = TRUE)
-        outList[[i]] <- result$output
-        opList[[i]]  <- operations
+        #cat(file = outputTx, result$output, sep = "\n", append = TRUE)
         i <- i + 1
+        parList[[i]] <- pars[[parStr]]
+        resList[[i]] <- result$total
       }
 
       if(printCharts && !is.null(result$output))
@@ -123,7 +128,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
       }
     }
 
-    if(length(opList) > 0)
+    if(i > 0)
     {
       opFile <- NULL
       if(file.exists(outputOp))
@@ -131,11 +136,8 @@ computeBacktest <- function(Symbols, printCharts = FALSE)
         opFile <- readRDS(outputOp)
       }
 
-      output     <- c(opFile$output, outList)
-      operations <- c(opFile$operations, opList)
-
-      opFile$output     <- output
-      opFile$operations <- operations
+      opFile$parameters <- rbind(opFile$parameters, rbindlist(parList))
+      opFile$results    <- rbind(opFile$results, rbindlist(resList))
 
       saveRDS(opFile, outputOp)
     }

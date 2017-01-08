@@ -51,10 +51,17 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
         smaPeriod <- 400
         upperBand <- 2.5
         lowerBand <- -2.5
+        upChange = NA
+        downChange = NA
+        lowLimit = NA
+        stopLoss = NA
+        stopGain = NA
+
+        parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
 
         price <- meanPrice(symbol)
 
-        tradeDecisions <- trade(symbol, tradeDate, smaPeriod = smaPeriod, upperBand = upperBand, lowerBand = lowerBand, upChange = upChange, downChange = downChange, price = price)
+        tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, price = price)
 
         for(tradeDecision in tradeDecisions)
         {
