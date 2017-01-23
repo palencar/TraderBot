@@ -17,11 +17,11 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
 
   alertSymbols <- NULL
 
-  smaPeriod = 400
-  upperBand = 2.5
-  lowerBand = -2.5
-  upChange = NA
-  downChange = NA
+  smaPeriod = 300
+  upperBand = 1.5
+  lowerBand = -1.5
+  upChange = 1.0
+  downChange = -1.0
   lowLimit = NA
   stopLoss = NA
   stopGain = NA
@@ -71,36 +71,21 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
           else
             map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
 
-          operations <- unlist(strsplit(map[[parStr]], ";"))
-          lines <- strsplit(operations, " ")
-          result <- singleResultM(parStr, lines, tradeDate)
-
-          addAlerts(symbol, as.Date(tradeDate))
-
-          if(!is.null(chartDev) && !is.null(result$output))
-          {
-            #lines transformar no formato correto
-            #pos <- algumacoisa(lines)
-            #Posit <- getOrders(symbol, pos)
-
-            if(chartDev == "png")
-            {
-              path <- sprintf("charts/%s %s", symbol, parStr)
-              suffix <- as.Date(tradeDate)
-            }
-            else
-            {
-              path = NULL
-              suffix = NULL
-            }
-
-            smaPeriod = as.numeric(unlist(strsplit(parStr, " "))[1])
-            chartSymbols(symbol, dateLimit=as.Date(tradeDate), dev=chartDev, path = path, suffix = suffix, smaPeriod = smaPeriod)
-          }
-
-          print(parStr)
-          print(result)
+          addAlerts(symbol, as.Date(tradeDate), tradeDecision$decision)
         }
+      }
+    }
+
+    for(parStr in map$keys())
+    {
+      operations <- unlist(strsplit(map[[parStr]], ";"))
+      lines <- strsplit(operations, " ")
+      result <- singleResultM(parStr, lines, last(tradeDays))
+
+      if(length(result) > 0)
+      {
+        print(sprintf("[%s] [%s]", symbol, parStr))
+        print(result)
       }
     }
 

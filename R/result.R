@@ -91,7 +91,7 @@ singleResult <- function(key, lines, lastDay = NULL)
     i <- 1
     for(position in positions)
     {
-      sell_price <- as.integer(lastPrice(elements[1])*100)
+      sell_price <- as.integer(lastPrice(elements[1], lastDay) * 100)
       buy_price <- as.integer(position*100)
 
       newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], lastDay)

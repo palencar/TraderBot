@@ -5,7 +5,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2)
+computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = Inf)
 {
   forget(singleResultM)
 
@@ -136,10 +136,12 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2)
         opFile <- readRDS(outputOp)
       }
 
-      opFile$parameters <- rbind(opFile$parameters, rbindlist(parList))
-      opFile$results    <- rbind(opFile$results, rbindlist(resList))
+      opFile$parameters <- tail(rbind(opFile$parameters, rbindlist(parList)), n = limit)
+      opFile$results    <- tail(rbind(opFile$results, rbindlist(resList)), n = limit)
 
       saveRDS(opFile, outputOp)
+
+      print(data.frame(symbol, rbindlist(parList), rbindlist(resList)))
     }
 
     forget(singleResultM)

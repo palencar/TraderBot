@@ -177,9 +177,14 @@ lastTradingSession <- function()
   return(getQuery("select max(date) from stockprices")[,1])
 }
 
-lastPrice <- function(SymbolName)
+lastPrice <- function(SymbolName, dateLimit = NULL)
 {
-  return(getQuery(sprintf("select day_close from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)))
+  if(is.null(dateLimit))
+    queryStr <- sprintf("select day_close from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)
+  else
+    queryStr <- sprintf("select day_close from stockprices where symbol = '%s' and date <= date('%s') order by date desc limit 1", SymbolName, dateLimit)
+
+  return(getQuery(queryStr))
 }
 
 lastTradeDay <- function(SymbolName)

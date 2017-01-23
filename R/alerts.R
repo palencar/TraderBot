@@ -1,5 +1,7 @@
+library("data.table")
+
 #' @export
-addAlerts <- function(symbol, date)
+addAlerts <- function(symbol, date, alert = NA)
 {
   if(is.null(symbol))
     return()
@@ -11,8 +13,8 @@ addAlerts <- function(symbol, date)
     alerts <- readRDS(alertsFile)
   }
 
-  df <- data.frame(symbol, date)
-  df <- rbind(df, alerts)
+  df <- data.frame(symbol, date, alert)
+  df <- rbindlist(list(df, alerts), fill = TRUE)
   df <- unique(df)
   df <- df[order(df$date, decreasing = TRUE),]
 

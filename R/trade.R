@@ -1,6 +1,6 @@
 library("memoise")
 
-trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30)
+trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30, verbose = FALSE)
 {
   i <- 1
 
@@ -277,12 +277,12 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
   allDecisions <- allDecisions[!sapply(allDecisions, is.null)]
 
-  if(!is.null(cantSell))
+  if(verbose && !is.null(cantSell))
   {
     print(cantSell)
   }
 
-  if(!is.null(cantBuy))
+  if(verbose && !is.null(cantBuy))
   {
     print(cantBuy)
   }

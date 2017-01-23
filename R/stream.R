@@ -80,11 +80,11 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
             writeResult(symbol, logLine, "../stream")
 
             alertLog <- paste(alertLog, logLine, sep = "\n")
+
+            addAlerts(symbol, tradeDate, tradeDecision$decision)
           }
         }
       }
-
-      addAlerts(alertSymbols, tradeDate)
 
       fsmState <- "chartAlerts"
     }
