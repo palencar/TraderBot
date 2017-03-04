@@ -309,7 +309,7 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
 #' @export
 filterData <- function(SymbolNames, endDate)
 {
-  toFilter <- filterVolumeM(SymbolNames, endDate, volume = NULL)
+  toFilter <- filterVolumeM(SymbolNames, endDate)
   toFilter <- filterGapM(toFilter, endDate)
   toFilter <- filterBadDataM(toFilter, endDate)
 

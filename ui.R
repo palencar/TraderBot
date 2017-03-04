@@ -5,21 +5,23 @@ shinyUI(navbarPage("TraderBot",
                    tabPanel("Backtest",
                             sidebarPanel(
                               headerPanel("Filters"),
-                              #textInput("filterSymbol", label = h3("Symbol"), value = ""),
                               selectizeInput("filterSymbol", "Symbols", choices = getSymbolNames(), multiple = TRUE),
-                              sliderInput("smaPeriod",  "Sma Period:",  min = 50, max = 500, value = c(50,700)),
-                              sliderInput("upperBand",  "Upper Band:",  min =  0, max =   4, value = c(0,4), step= 0.1),
-                              sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   0, value = c(-4,0), step= 0.1),
-                              sliderInput("downChange", "Down Change:", min = -4, max =   0, value = c(-4,0), step= 0.1),
-                              sliderInput("upChange",   "Up Change:",   min =  0, max =   4, value = c(0,4), step= 0.1),
+                              sliderInput("smaPeriod",  "Sma Period:",  min = 50, max = 500, value = c(50,500), step = 5),
+                              sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(-2,4), step= 0.1),
+                              sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-4,2), step= 0.1),
+                              sliderInput("downChange", "Down Change:", min = -8, max =   0, value = c(-8,0), step= 0.1),
+                              sliderInput("upChange",   "Up Change:",   min =  0, max =   8, value = c(0,8), step= 0.1),
                               sliderInput("lowLimit",   "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.1),
                               sliderInput("stopGain",   "Stop Gain:",   min =  1, max =   5, value = c(1,5), step= 0.1),
-                              sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.1)
+                              sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.1),
+                              sliderInput("bullish",    "Bullish:",     min =  0, max =   1, value = c(0,1), step= 0.1),
+                              sliderInput("bearish",    "Bearish:",     min =  0, max =   1, value = c(0,1), step= 0.1),
+                              sliderInput("proffit",    "Proffit:",     min = -1, max =   5, value = c(0,5), step= 0.1)
                               ),
                             mainPanel(
                               tableOutput("values"),
 
-                              plotOutput("parameters", height = "800px"),
+                              plotOutput("parameters", height = "1600px"),
                               dataTableOutput("dataTable"))
                             ),
 

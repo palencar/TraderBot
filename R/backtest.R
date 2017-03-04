@@ -5,32 +5,39 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = Inf)
+computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, limit = Inf)
 {
-  forget(singleResultM)
-
-  alertSymbols <- NULL
-
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  smaPeriod = sample(150:500, size = samples, replace = TRUE)
-  upperBand = as.numeric(formatC(runif(samples, min=1.0, max=4), digits=2,format="f"))
-  lowerBand = as.numeric(formatC(runif(samples, min=-4, max=-1.0), digits=2,format="f"))
-  upChange = as.numeric(formatC(runif(samples, min=0, max=4), digits=2,format="f"))
-  downChange = as.numeric(formatC(runif(samples, min=-4, max=0), digits=2,format="f"))
-  lowLimit = NA#as.numeric(formatC(runif(samples, min=0, max=0.3), digits=2,format="f"))
-  stopLoss = NA#as.numeric(formatC(runif(samples, min=0, max=1), digits=2,format="f"))
-  stopGain = NA#as.numeric(formatC(runif(samples, min=1, max=5), digits=2,format="f"))
+  samples = 2
 
-  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
+  AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
+  AllSymbols <- sample(AllSymbols)
+  AllSymbols <- filterGapM(AllSymbols)
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=min(smaPeriod), update=FALSE)
+  n <- 0
 
   for(symbol in AllSymbols)
+  tryCatch({
+  while(n <= minSamples)
   {
-    map <- hashmap("1", "1")
+    map <- hashmap("", "")
     map$clear()
+
+    smaPeriod = sample(100:500, size = samples, replace = TRUE)
+    upperBand = as.numeric(formatC(runif(samples, min=-2.0, max=4), digits=2,format="f"))
+    lowerBand = as.numeric(formatC(runif(samples, min=-4, max=2.0), digits=2,format="f"))
+    upChange = as.numeric(formatC(runif(samples, min=0, max=8), digits=2,format="f"))
+    downChange = as.numeric(formatC(runif(samples, min=-8, max=0), digits=2,format="f"))
+    lowLimit = as.numeric(formatC(runif(samples, min=0, max=0.8), digits=2,format="f"))
+    stopLoss = as.numeric(formatC(runif(samples, min=0, max=2), digits=2,format="f"))
+    stopGain = as.numeric(formatC(runif(samples, min=1, max=5), digits=2,format="f"))
+    bearish  = as.numeric(formatC(runif(samples, min=0, max=0.7), digits=2,format="f"))
+    bullish  = as.numeric(formatC(runif(samples, min=0.3, max=1), digits=2,format="f"))
+
+    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain,
+                             bearish, bullish)
 
     pars <- new.env(hash=T, parent=emptyenv())
 
@@ -38,6 +45,8 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
 
     minStart <- as.Date(first(tradeDays)) + max(smaPeriod) + 730  #Min days of data
     maxStart <- as.Date(last(tradeDays)) - 730                    #2 years
+
+    n <- n + nrow(parameters) ^ ncol(parameters)
 
     if(as.integer(maxStart - minStart) < 0)
       return(NULL)
@@ -48,7 +57,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
     tradeDays <- tradeDays[which(tradeDays >= startDate)]
     tradeDays <- tradeDays[which(tradeDays <= endDate)]
 
-    print(sprintf("Backtest %s/%s", startDate, endDate))
+    print(sprintf("Backtest %s %s/%s", symbol, startDate, endDate))
 
     for(tradeDate in tradeDays)
     {
@@ -71,15 +80,10 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
             alerts[[alert]] <- TRUE
           }
 
-          if(symbol %in% alertSymbols == FALSE)
-          {
-            alertSymbols <- c(alertSymbols, symbol)
-          }
-
           price <- sprintf("%.2f", tradeDecision$price)
           logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
 
-          parStr <- paste(tradeDecision$parameters, collapse = " ")
+          parStr <- paste(tradeDecision$parameters, symbol, collapse = " ")
 
           pars[[parStr]] <- tradeDecision$parameters
 
@@ -93,8 +97,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
       }
     }
 
-    #outputTx <- sprintf("result/%s.txt", symbol)
-    outputOp <- sprintf("result/%s.rds", symbol)
+    outputOp <- sprintf("result/%s_%s.rds", symbol, format(Sys.time(), "%m%d%H"))
 
     parList <- list()
     resList <- list()
@@ -108,7 +111,6 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
 
       if(!is.null(result$output))
       {
-        #cat(file = outputTx, result$output, sep = "\n", append = TRUE)
         i <- i + 1
         parList[[i]] <- pars[[parStr]]
         resList[[i]] <- result$total
@@ -116,7 +118,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
 
       if(printCharts && !is.null(result$output))
       {
-        path <- sprintf("charts/%s %s", symbol, parStr)
+        path <- sprintf("charts/%s", symbol, parStr)
 
         for(op in operations)
         {
@@ -143,9 +145,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, samples = 2, limit = I
 
       print(data.frame(symbol, rbindlist(parList), rbindlist(resList)))
     }
-
-    forget(singleResultM)
   }
-
-  return(alertSymbols)
+  }, error = function(e) return(paste0("Symbol '", symbol, "'",
+                                       " caused the error: '", Sys.Date(), "'")))
 }

@@ -98,6 +98,9 @@ shinyServer(function(input, output)
     dataTable <- dataTable[(dataTable$lowLimit   >= input$lowLimit[1]   & dataTable$lowLimit <= input$lowLimit[2])     | is.na(dataTable$lowLimit)]
     dataTable <- dataTable[(dataTable$stopGain   >= input$stopGain[1]   & dataTable$stopGain <= input$stopGain[2])     | is.na(dataTable$stopGain)]
     dataTable <- dataTable[(dataTable$stopLoss   >= input$stopLoss[1]   & dataTable$stopLoss <= input$stopLoss[2])     | is.na(dataTable$stopLoss)]
+    dataTable <- dataTable[(dataTable$bullish    >= input$bullish[1]    & dataTable$bullish <= input$bullish[2])       | is.na(dataTable$bullish)]
+    dataTable <- dataTable[(dataTable$bearish    >= input$bearish[1]    & dataTable$bearish <= input$bearish[2])       | is.na(dataTable$bearish)]
+    dataTable <- dataTable[(dataTable$proffit    >= input$proffit[1]    & dataTable$proffit <= input$proffit[2])       | is.na(dataTable$proffit)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
       dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
@@ -109,7 +112,7 @@ shinyServer(function(input, output)
     nrow(tableValues())
   })
 
-  output$parameters <- renderPlot({par(mfrow=c(2,4))
+  output$parameters <- renderPlot({par(mfrow=c(4,3))
                                            showSmaPeriod(tableValues())
                                            showLowerBand(tableValues())
                                            showUpperBand(tableValues())
@@ -117,7 +120,9 @@ shinyServer(function(input, output)
                                            showUpChange(tableValues())
                                            showLowerLimit(tableValues())
                                            showStopGain(tableValues())
-                                           showStopLoss(tableValues())})
+                                           showStopLoss(tableValues())
+                                           showBullish(tableValues())
+                                           showBearish(tableValues())})
 
   output$dataTable <- renderDataTable({showReport(tableValues())}, options = list(paging = FALSE))
 })

@@ -48,16 +48,18 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
 
       for(symbol in Symbols)
       {
-        smaPeriod <- 400
-        upperBand <- 2.5
-        lowerBand <- -2.5
-        upChange = NA
-        downChange = NA
-        lowLimit = NA
-        stopLoss = NA
-        stopGain = NA
+        smaPeriod <- 250
+        upperBand <- -0.5
+        lowerBand <- -2.7
+        upChange  <- NA
+        downChange<- NA
+        lowLimit  <- NA
+        stopLoss  <- 0.5
+        stopGain  <- NA
+        bullish   <- NA
+        bearish   <- NA
 
-        parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
+        parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bullish, bearish)
 
         price <- meanPrice(symbol)
 

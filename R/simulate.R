@@ -17,16 +17,18 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
 
   alertSymbols <- NULL
 
-  smaPeriod = 300
-  upperBand = 1.5
-  lowerBand = -1.5
-  upChange = 1.0
-  downChange = -1.0
-  lowLimit = NA
-  stopLoss = NA
-  stopGain = NA
+  smaPeriod <- 250
+  upperBand <- -0.5
+  lowerBand <- -2.7
+  upChange  <- NA
+  downChange<- NA
+  lowLimit  <- NA
+  stopLoss  <- 0.5
+  stopGain  <- NA
+  bullish   <- NA
+  bearish   <- NA
 
-  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain)
+  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearish, bullish)
 
   for(symbol in AllSymbols)
   {

@@ -347,9 +347,24 @@ getTradeDays <- function(symbols = NULL)
 getQuery <- function(queryStr = "")
 {
   dbConn <- dbConnect(RSQLite::SQLite(), "db.sqlite")
+  res <- dbGetQuery(dbConn, "PRAGMA busy_timeout=5000;")
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
 
   return(fr)
 }
 
+insertIntraday <- function(name)
+{
+  csv <- read.csv(name, header = F, col.names = c("symbol", "date", "time", "open", "high", "low", "close", "volume"))
+  dff <- within(data.frame(csv), { datetime=format(as.POSIXct(paste(date, time)), "%Y-%m-%d %H:%M:%S") })
+
+  if(nrow(dff) > 0)
+  for(i in 1:nrow(dff))
+  {
+    df <- dff[i,]
+    queryStr <- sprintf("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+                        df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
+    getQuery(queryStr)
+  }
+}

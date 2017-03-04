@@ -15,7 +15,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
   alertR <- NULL
   alertL <- NULL
 
-  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-4 years")),collapse = "::")
+  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-2 years")),collapse = "::")
 
   alertR = tryCatch({
     filterObjectsSets(symbol, tradeDate)
@@ -51,6 +51,10 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     #compute sd for the period
     objPeriod <- get(symbol)[period]
     seq <- as.double((Hi(objPeriod)+Lo(objPeriod)+Cl(objPeriod))/3)
+
+    if(sPeriod > length(seq))
+      next
+
     sma <- SMA(seq, sPeriod)
     ssd <- sd(as.double(na.omit(seq-sma)))
 
@@ -115,6 +119,14 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       canBuy <- FALSE
     }
 
+    if(length(Lo(obj)[tradeDate]) == 1 &&
+       (as.numeric(lowYear[which.min(lowYear)]) * 1.05) < as.numeric(Lo(obj)[tradeDate]))
+    {
+      str <- sprintf("DO NOT BUY: %s | [%s] [%s] near minimal [%s]", symbol, period, as.numeric(Lo(obj)[tradeDate]), as.numeric(lowYear[which.min(lowYear)]))
+      cantBuy <- c(cantBuy[cantBuy != str], str)
+      canBuy <- FALSE
+    }
+
     low2Year <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 730)]
     min2Year <- index(low2Year[which.min(low2Year)])
     if((tradeDate - min2Year) <= 14)
@@ -129,6 +141,14 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     if((tradeDate - maxYear) <= 7)
     {
       str <- sprintf("DO NOT SELL: %s | [%s] Max Year [%s]", symbol, period, maxYear)
+      cantSell <- c(cantSell[cantSell != str], str)
+      canSell <- FALSE
+    }
+
+    if(length(Hi(obj)[tradeDate]) == 1 &&
+       (as.numeric(highYear[which.max(highYear)]) * 0.95) > as.numeric(Hi(obj)[tradeDate]))
+    {
+      str <- sprintf("DO NOT SELL: %s | [%s] [%s] near maximal [%s]", symbol, period, as.numeric(Hi(obj)[tradeDate]), as.numeric(highYear[which.max(highYear)]))
       cantSell <- c(cantSell[cantSell != str], str)
       canSell <- FALSE
     }
@@ -154,12 +174,20 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       canBuy <- FALSE
     }
 
+    rl <- rle(sign(diff(as.vector(sma))))
+    len <- sum(as.vector(na.exclude(rl$lengths))) - 1
+
+    bull  <- sum(as.vector(na.exclude(rl$lengths[rl$values == 1])))/len
+    bear  <- sum(as.vector(na.exclude(rl$lengths[rl$values == -1])))/len
+
     for (ub in parameters$upperBand)
     for (lb in parameters$lowerBand)
     for (dc in parameters$downChange)
     for (uc in parameters$upChange)
     for (sl in parameters$stopLoss)
     for (sg in parameters$stopGain)
+    for (bu in parameters$bullish)
+    for (be in parameters$bearish)
     {
       decision <- "hold"
       reason <- NULL
@@ -172,6 +200,22 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       if(!is.na(ub))
       {
         upper <- ub + (as.numeric(minChange))
+      }
+
+      if(!is.na(bu) && as.numeric(bull) < bu)
+      {
+        str <- sprintf("DO NOT BUY: %s | [%s] Bullish [%.2f] < [%.2f]", symbol, period, bull, bu)
+        #print(str)
+        cantBuy <- c(cantBuy[cantBuy != str], str)
+        canBuy <- FALSE
+      }
+
+      if(!is.na(be) && as.numeric(bear) < be)
+      {
+        str <- sprintf("DO NOT SELL: %s | [%s] Bearish [%.2f] < [%.2f]", symbol, period, bear, be)
+        #print(str)
+        cantSell <- c(cantSell[cantSell != str], str)
+        canSell <- FALSE
       }
 
       if(!is.na(dc) && as.numeric(maxChange) < dc)
@@ -230,7 +274,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
         }
       }
 
-      parStr <- paste(sPeriod, ub, lb, dc, uc, ll, sg, sl, collapse = " ")
+      parStr <- paste(sPeriod, ub, lb, uc, dc, ll, sg, sl, collapse = " ")
       operations <- map[[parStr]]
 
       pr <- price
@@ -267,8 +311,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       allDecisions[[i]]$decision <- decision
       allDecisions[[i]]$reason <- reason
       allDecisions[[i]]$price <- last(seq)
-      pars        <- data.frame(sPeriod, ub, lb, uc, dc, ll, sg, sl)
-      names(pars) <- c("smaPeriod", "upperBand", "lowerBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss")
+      pars        <- data.frame(sPeriod, ub, lb, uc, dc, ll, sg, sl, bu, be)
+      names(pars) <- c("smaPeriod", "upperBand", "lowerBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullish", "bearish")
       allDecisions[[i]]$parameters <- pars
 
       i <- i + 1
