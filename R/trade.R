@@ -49,7 +49,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
   for(ll in parameters$lowLimit)
   {
     #compute sd for the period
-    objPeriod <- get(symbol)[period]
+    objPeriod <- base::get(symbol)[period]
     seq <- as.double((Hi(objPeriod)+Lo(objPeriod)+Cl(objPeriod))/3)
 
     if(sPeriod > length(seq))
@@ -59,7 +59,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     ssd <- sd(as.double(na.omit(seq-sma)))
 
     #compute sma for all the data
-    obj <- get(symbol)[sprintf("/%s", as.Date(tradeDate))]
+    obj <- base::get(symbol)[sprintf("/%s", as.Date(tradeDate))]
     seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
     sma <- SMA(seq, sPeriod)
 

@@ -143,7 +143,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
     return(alert)
   }
 
-  lri <- linearRegressionIndicator(SymbolName, get(SymbolName)[sprintf("/%s", tradeDate)], n)[sprintf("/%s", tradeDate)]
+  lri <- linearRegressionIndicator(SymbolName, base::get(SymbolName)[sprintf("/%s", tradeDate)], n)[sprintf("/%s", tradeDate)]
 
   if(is.null(lri))
   {
@@ -238,7 +238,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 
   for(symbol in SymbolNames)
   {
-    obj <- get(symbol)[sprintf("%s/", as.Date(dateLimit) - 365)]
+    obj <- base::get(symbol)[sprintf("%s/", as.Date(dateLimit) - 365)]
 
     if(anyNA(OHLCV(obj)))
     {
@@ -293,7 +293,7 @@ filterAge <- function(SymbolNames, dateLimit="", age="6 months")
     period <- sprintf("::%s", ds)
 
     print(period)
-    if(length(get(symb)[period]) > 0)
+    if(length(base::get(symb)[period]) > 0)
     {
       print(period)
       print(symb)
@@ -336,7 +336,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
   for(symbol in SymbolNames)
   {
-    obj <- tail(get(symbol)[sprintf("/%s", dateLimit)], 200)
+    obj <- tail(base::get(symbol)[sprintf("/%s", dateLimit)], 200)
 
     if(nrow(obj) < 10)
     {
@@ -391,11 +391,11 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = 400
   {
     period <- sprintf("%s::%s", ds[2], ds[1])
 
-    obj <- (get(symb)[period])
+    obj <- (base::get(symb)[period])
 
     vol <- as.double(Vo(obj))
 
-    if(length(vol) < 200 || as.integer(as.Date(dt) - as.Date(first(index(get(symb))))) < 730)
+    if(length(vol) < 200 || as.integer(as.Date(dt) - as.Date(first(index(base::get(symb))))) < 730)
     {
       next
     }
@@ -465,7 +465,7 @@ filterObjectsSets <- function(symbol, tradeDay)
       return(NULL)
     }
 
-    if(length(get(symbol)[tradeDay]) == 0)
+    if(length(base::get(symbol)[tradeDay]) == 0)
     {
       warning(sprintf("no data for %s", tradeDay))
       return(NULL)

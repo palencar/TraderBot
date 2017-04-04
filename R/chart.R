@@ -44,7 +44,7 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
     else
       polyRegs <- NULL
 
-    Symbol <- get(SymbolName)[sprintf("::%s", ed)]
+    Symbol <- base::get(SymbolName)[sprintf("::%s", ed)]
 
     if("smaSD" %in% indicators)
       smasd <- smaSD(Symbol, smaPeriod)

@@ -1,0 +1,10 @@
+default:
+  engine:   "sqlite"
+  database: "db.sqlite"
+
+aws:
+  engine:   ""
+  host:     ""
+  database: ""
+  user:     ""
+  password: ""

@@ -1,8 +1,11 @@
 library("xts")
 library("quantmod")
 library("RSQLite")
+library("RMySQL")
 library("DBI")
+library("config")
 
+config <- config::get()
 
 getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
 {
@@ -19,7 +22,14 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 
   if(!is.null(FilterAge))
   {
-    query <- sprintf("select * from (select symbol, (julianday(max(date))-julianday(min(date))) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    if(config$engine == "sqlite")
+    {
+      query <- sprintf("select * from (select symbol, (julianday(max(date))-julianday(min(date))) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    }
+    if(config$engine == "mysql")
+    {
+      query <- sprintf("select * from (select symbol, DATEDIFF(max(date), min(date)) as days from stockprices group by symbol) as age where days > %d", FilterAge)
+    }
 
     fr <- getQuery(query)
     Symbols <- intersect(Symbols, fr$symbol)
@@ -102,7 +112,7 @@ updateProbe <- function(Symbols, date)
     if(is.na(quote$Open) || is.na(quote$High) || is.na(quote$Low) || is.na(quote$Last))
       next
 
-    symbol <- get(i)
+    symbol <- base::get(i)
     symbol[date,1] <- quote$Open
     symbol[date,2] <- quote$High
     symbol[date,3] <- quote$Low
@@ -126,13 +136,13 @@ getQuoteDay <- function(SymbolName, Day)
     if(exists(Symbol) == FALSE)
       return(NULL)
 
-    if(is.na(Op(get(Symbol))) || is.na(Hi(get(Symbol))) ||
-       is.na(Lo(get(Symbol))) || is.na(Cl(get(Symbol))) ||
-       as.double(Op(get(Symbol))) == 0.0 || as.double(Hi(get(Symbol))) == 0.0 ||
-       as.double(Lo(get(Symbol))) == 0.0 || as.double(Cl(get(Symbol))) == 0.0 )
+    if(is.na(Op(base::get(Symbol))) || is.na(Hi(base::get(Symbol))) ||
+       is.na(Lo(base::get(Symbol))) || is.na(Cl(base::get(Symbol))) ||
+       as.double(Op(base::get(Symbol))) == 0.0 || as.double(Hi(base::get(Symbol))) == 0.0 ||
+       as.double(Lo(base::get(Symbol))) == 0.0 || as.double(Cl(base::get(Symbol))) == 0.0 )
       return(NULL)
 
-    table <- as.data.frame(get(Symbol))
+    table <- as.data.frame(base::get(Symbol))
     names(table)[1]<-paste("day_open")
     names(table)[2]<-paste("day_high")
     names(table)[3]<-paste("day_low")
@@ -145,7 +155,7 @@ getQuoteDay <- function(SymbolName, Day)
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_low, day_high, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         SymbolName, as.Date(Day), table[1,1], table[1,2], table[1,3], table[1,4], table[1,5])
 
-    print(get(Symbol))
+    print(base::get(Symbol))
 
     getQuery(queryStr)
   }
@@ -191,7 +201,7 @@ lastTradeDay <- function(SymbolName)
 {
   objName <- paste("lastTradeDay", SymbolName, sep = "")
   if(exists(objName))
-    return(get(objName))
+    return(base::get(objName))
 
   day <- getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName))
 
@@ -329,7 +339,7 @@ getWallet <- function(FilterClosed = TRUE)
 getTradeDays <- function(symbols = NULL)
 {
   if(exists("AllTradeDays"))
-    return(get("AllTradeDays"))
+    return(base::get("AllTradeDays"))
 
   if(is.null(symbols))
     queryStr <- sprintf("select distinct date from stockprices order by date asc")
@@ -346,8 +356,17 @@ getTradeDays <- function(symbols = NULL)
 
 getQuery <- function(queryStr = "")
 {
-  dbConn <- dbConnect(RSQLite::SQLite(), "db.sqlite")
-  res <- dbGetQuery(dbConn, "PRAGMA busy_timeout=5000;")
+  if(config$engine == "mysql")
+  {
+    dbConn <- dbConnect(RMySQL::MySQL(), user=config$user, password=config$password, dbname=config$database, host=config$host)
+  }
+
+  if(config$engine == "sqlite")
+  {
+    dbConn <- dbConnect(RSQLite::SQLite(), config$database)
+    dbGetQuery(dbConn, "PRAGMA busy_timeout=5000;")
+  }
+
   fr <- dbGetQuery(dbConn, queryStr)
   dbDisconnect(dbConn)
 

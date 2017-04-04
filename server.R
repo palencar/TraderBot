@@ -3,24 +3,10 @@ library("TraderBot")
 source("R/report.R")
 source("R/chart.R")
 
-# Download data for a stock if needed, and return the data
-require_symbol <- function(symbol, envir = parent.frame())
-{
-  if (is.null(envir[[symbol]]))
-  {
-    envir[[symbol]] <- startProbe(symbol, FALSE) #TRUE?
-    #symbol <- filterGap(symbol, lastTradingSession())
-  }
-
-  envir[[symbol]]
-}
-
 shinyServer(function(input, output)
 {
-  symbol_env <- new.env()
-
   make_chart <- function(symbol, startDate, endDate, timeFrame) {
-    symbol_data <- require_symbol(symbol, symbol_env)
+    startProbe(symbol, FALSE)
 
     if(!is.null(symbol))
       chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate,

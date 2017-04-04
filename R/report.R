@@ -3,8 +3,13 @@ library("memoise")
 library("moments")
 source("R/dbInterface.R")
 
-mergeBacktest_ <- function(path = "result")
+mergeBacktest <- function(path = "result")
 {
+  objName <- "backtest"
+
+  if(exists(objName) && (Sys.time() < base::get(objName)$datetime + 600))
+    return(base::get(objName)$dataTable)
+
   files <- list.files(path, pattern = "*.rds")
 
   data <- list()
@@ -21,10 +26,13 @@ mergeBacktest_ <- function(path = "result")
 
   dataTable <- rbindlist(data, fill = TRUE)
 
+  obj <- c()
+  obj$datetime <- Sys.time()
+  obj$dataTable <- dataTable
+  assign(objName, obj, .GlobalEnv)
+
   return(dataTable)
 }
-
-mergeBacktest <- memoise(mergeBacktest_)
 
 showSmaPeriod <- function(dataTable)
 {
@@ -152,8 +160,8 @@ showReport <- function(dataTable, path = "result")
     variance   <- var(obj$proffit)
     skewness   <- skewness(obj$proffit)
     count      <- length(unique(obj$proffit[obj$symbol == symbolName]))
-    volatility <- mean(na.omit(volatility(get(symbolName))))
-    volume     <- mean(as.numeric(na.omit(Vo(get(symbolName)))))
+    volatility <- mean(na.omit(volatility(base::get(symbolName))))
+    volume     <- mean(as.numeric(na.omit(Vo(base::get(symbolName)))))
     df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count, volatility, volume)
     dff        <- rbind(dff, df)
   }

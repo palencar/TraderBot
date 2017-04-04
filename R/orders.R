@@ -8,7 +8,7 @@ getOrders <- function(name, pos = NULL)
     pos <- getPositions(name)
   }
 
-  symbol <- get(name)
+  symbol <- base::get(name)
 
   if(length(pos) == 0)
   {

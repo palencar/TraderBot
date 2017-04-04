@@ -38,8 +38,8 @@ saveSymbols <- function(symbols)
     if(state == F)
       next
 
-    table <- as.data.frame(get(name))
-    dates <- index(get(name))
+    table <- as.data.frame(base::get(name))
+    dates <- index(base::get(name))
     if(mode == 'google')
     {
       name <- sprintf("BVMF:%s", i)
