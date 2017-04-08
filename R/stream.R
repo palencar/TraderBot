@@ -1,5 +1,6 @@
 source("R/result.R")
 source("R/alerts.R")
+source("R/dbInterface.R")
 
 #' @export
 computeStream <- function(Symbols = NULL, openMarket = TRUE)
@@ -7,6 +8,8 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
   stopdtime <- "18:20:00"
   fsmState <- "startProbe"
   tradeAlerts <- NULL
+
+  config <- config::get()
 
   while(fsmState != "end")
   {
@@ -48,16 +51,16 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
 
       for(symbol in Symbols)
       {
-        smaPeriod <- 250
-        upperBand <- -0.5
-        lowerBand <- -2.7
-        upChange  <- NA
-        downChange<- NA
-        lowLimit  <- NA
-        stopLoss  <- 0.5
-        stopGain  <- NA
-        bullish   <- NA
-        bearish   <- NA
+        smaPeriod <- config$trade$sma_period
+        upperBand <- config$trade$upper_band
+        lowerBand <- config$trade$lower_band
+        upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
+        downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
+        lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
+        stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
+        stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
+        bullish   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
+        bearish   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
 
         parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bullish, bearish)
 
@@ -97,27 +100,18 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
       if(length(alertSymbols) > 0)
         chartSymbols(alertSymbols, dev="png")
 
-      fsmState <- "sendMail"
+      fsmState <- "sendAlert"
 
       dtime <- format(Sys.time(), "%H:%M:%S")
 
       if(dtime > stopdtime)
         openMarket <- FALSE
     }
-    else if(fsmState == "sendMail")
+    else if(fsmState == "sendAlert")
     {
       if(length(alertSymbols) > 0)
       {
-        for(i in alertSymbols)
-          imgAttachmets <- sprintf("-a charts/%s.png", alertSymbols)
-
-        wal <- getWallet()
-        if(length(intersect(alertSymbols,wal)) > 0)
-          muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert W\" %s %s", paste(sprintf("Snapshot time: %s", startTime), alertLog, collapse = "\n"), paste(readLines("mail.addr"), collapse=" "), paste(imgAttachmets, collapse=" "))
-        else
-          muttCmd <- sprintf("echo \"%s\" | mutt -s \"Trader Bot Alert\" %s %s", paste(sprintf("Snapshot time: %s", startTime), alertLog, collapse = "\n"), paste(readLines("mail.addr"), collapse=" "), paste(imgAttachmets, collapse=" "))
-
-        cmdOut <- system(muttCmd, intern=TRUE, ignore.stderr=TRUE)
+        sendNotification(alertSymbols, startDate)
       }
 
       if(openMarket == FALSE)

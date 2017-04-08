@@ -3,3 +3,4 @@
 .RData
 db.sqlite
 mail.addr
+self

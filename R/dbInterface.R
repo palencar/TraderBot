@@ -5,8 +5,6 @@ library("RMySQL")
 library("DBI")
 library("config")
 
-config <- config::get()
-
 getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
 {
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
@@ -19,6 +17,8 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 
     Symbols <- fr$symbol
   }
+
+  config <- config::get()
 
   if(!is.null(FilterAge))
   {
@@ -356,6 +356,8 @@ getTradeDays <- function(symbols = NULL)
 
 getQuery <- function(queryStr = "")
 {
+  config <- config::get()
+
   if(config$engine == "mysql")
   {
     dbConn <- dbConnect(RMySQL::MySQL(), user=config$user, password=config$password, dbname=config$database, host=config$host)

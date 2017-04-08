@@ -11,22 +11,23 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
   tradeDays <- tradeDays[which(tradeDays >= startDate)]
   tradeDays <- tradeDays[which(tradeDays <= endDate)]
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=as.integer(endDate-startDate), update=FALSE)
+  AllSymbols <- startProbe(symbolNames = Symbols, minAge=as.integer(endDate-startDate)+730, update=FALSE)
 
   forget(singleResultM)
 
   alertSymbols <- NULL
 
-  smaPeriod <- 250
-  upperBand <- -0.5
-  lowerBand <- -2.7
-  upChange  <- NA
-  downChange<- NA
-  lowLimit  <- NA
-  stopLoss  <- 0.5
-  stopGain  <- NA
-  bullish   <- NA
-  bearish   <- NA
+  config <- config::get()
+  smaPeriod <- config$trade$sma_period
+  upperBand <- config$trade$upper_band
+  lowerBand <- config$trade$lower_band
+  upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
+  downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
+  lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
+  stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
+  stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
+  bullish   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
+  bearish   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
 
   parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearish, bullish)
 
