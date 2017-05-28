@@ -1,5 +1,6 @@
 library("RcppEigen")
 library("quantmod")
+library("xts")
 
 linearRegression <- function (Symbol)
 {
@@ -12,18 +13,18 @@ linearRegression <- function (Symbol)
     y <- as.double(Symbol[,1])
   }
 
-  x <- as.Date(index(Symbol))
+  x <- index(Symbol)
 
   r <- fastLm(y~x)
 
   yp <- predict(r)
 
-  yr <- xts(yp, as.Date(x))
+  yr <- xts(yp, x)
 
   sigma <- summary(r)$sigma
 
   diffReg <- diff(yr)
-  diffVal <- xts(y-yp, as.Date(x))
+  diffVal <- xts(y-yp, x)
 
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma, coef=r$coefficients["x"]))
 }
@@ -36,43 +37,39 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
 
   fileExists <- file.exists(fileName)
 
-  lastDate  <- as.Date(xts::last(index(Symbol)))
-
+  lriFile <- NULL
   if(fileExists)
   {
     lriFile <- readRDS(file=fileName)
-
-    firstDate <- as.Date(xts::last(index(lriFile)))
   }
-  else
+
+  lastN <- (nrow(Symbol)-n)
+  if(lastN <= 0)
   {
-    firstDate <- as.Date(xts::first(index(Symbol))+n)
+    return(NULL)
   }
 
-  if(firstDate < as.Date(xts::first(index(Symbol))) || length(Symbol) == 0)
-    return(NULL)
-
-  #if(firstDate >= lastDate)
-  #  firstDate <- as.Date(lastDate-window)
-
-  dateInterval <- Symbol[sprintf("%s/%s", firstDate, lastDate)]
+  dateInterval <- index(xts::last(Symbol, lastN))
+  if(!is.null(lriFile))
+  {
+    dateInterval <- dateInterval[!(dateInterval %in% (index(lriFile)))] #TODO atualizar o ultimo
+  }
 
   lri <- c()
 
-  if(nrow(dateInterval) > 0)
+  if(length(dateInterval) > 0)
   {
     update <- TRUE
   }
 
   if(update)
   {
-    for(i in 1:nrow(dateInterval))
+    for(i in 1:length(dateInterval))
     {
-      xDate <- as.Date(index(dateInterval[i]))
+      endDateTime <- dateInterval[i]
+      startDateTime <- index(xts::first(xts::last(Symbol[sprintf("/%s",endDateTime)], n)))
 
-      startDate <- as.Date(xDate-n)
-      endDate   <- as.Date(xDate)
-      subsetSymbol <- Symbol[sprintf("%s::%s", startDate, endDate)]
+      subsetSymbol <- Symbol[sprintf("%s/%s", startDateTime, endDateTime)]
 
       if(nrow(subsetSymbol) < 3)
       {
@@ -89,31 +86,24 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
         y <- as.double(subsetSymbol[,1])
       }
 
-      o = order(x)
+      x <- index(subsetSymbol)
 
-      x <- as.Date(index(subsetSymbol))
-
-      r <- lm(y~x)
-
-      lastDay <- as.Date(last(index(subsetSymbol)))
-      dataextra <-data.frame(x=seq(lastDay, as.Date(lastDay + 1), 1))
-      lri[i] <- predict(lm(y~poly(x,2)), dataextra)[2]
+      lri[i] <- as.numeric(last(predict(lm(y~poly(x,2)))))
     }
   }
 
   if(fileExists)
   {
-    xi <- rbind(lriFile[sprintf("::%s", (index(last(lriFile)))-1)], xts(lri, index(dateInterval)))
+    xi <- rbind(lriFile[sprintf("::%s", (index(xts::last(lriFile)))-1)], xts(lri, dateInterval))
   }
   else
   {
-    xi <- xts(lri, index(dateInterval))
+    xi <- xts(lri, dateInterval)
   }
 
   if(update)
   {
     xi<-xi[!duplicated(index(xi)),]
-    #xi <- DEMA(xi, n = 10)
     xi <- xi[!is.na(xi),]
     saveRDS(xi, file=fileName)
   }
@@ -195,7 +185,7 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unifica
   {
     if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold) || lastSignal == "blue"))
     {
-      bluePoint <- xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]])))
+      bluePoint <- xts(as.double(lri[indexes[i]]), index(lri[indexes[i]]))
       if(is.null(longSignal))
         longSignal <- bluePoint
       else
@@ -205,7 +195,7 @@ getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unifica
 
     if(r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold) || lastSignal == "red"))
     {
-      redPoint <- xts(as.double(lri[indexes[i]]), as.Date(index(lri[indexes[i]])))
+      redPoint <- xts(as.double(lri[indexes[i]]), index(lri[indexes[i]]))
       if(is.null(shortSignal))
         shortSignal <- redPoint
       else

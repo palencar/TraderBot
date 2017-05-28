@@ -15,18 +15,18 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
     SymbolName <- Symbols[i]
 
     if(!is.null(endDate))
-      ed <- as.Date(endDate)
+      ed <- endDate
     else if(is.null(dateLimit))
-      ed <- format(Sys.time(), "%Y-%m-%d")
+      ed <- Sys.time()
     else
       ed <- dateLimit
 
     if(!is.null(startDate))
-      st <- as.Date(startDate)
+      st <- startDate
     else if(is.null(period))
-      st <- seq(as.Date(ed), length=2, by="-5 years")[2]
+      st <- seq(ed, length=2, by="-5 years")[2]
     else
-      st <- seq(as.Date(ed), length=2, by=paste("-", period, sep = ""))[2]
+      st <- seq(ed, length=2, by=paste("-", period, sep = ""))[2]
 
     if(dev == "png")
     {

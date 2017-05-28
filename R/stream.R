@@ -8,6 +8,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
   stopdtime <- "18:20:00"
   fsmState <- "startProbe"
   tradeAlerts <- NULL
+  alerts <- NULL
 
   config <- config::get()
 
@@ -23,8 +24,8 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
     }
     else if(fsmState == "computeRegressions")
     {
-      lastSession <- as.Date(lastTradingSession())
-      startDate <- as.Date(lastSession) + 1
+      lastSession <- lastTradingSession()
+      startDate <- lastSession + 1
 
       if(startDate > Sys.Date())
         startDate <- Sys.Date()
@@ -86,6 +87,10 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
 
             alertLog <- paste(alertLog, logLine, sep = "\n")
 
+            alert <- tradeDecision$decision
+            date  <- tradeDate
+            alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
+
             addAlerts(symbol, tradeDate, tradeDecision$decision)
           }
         }
@@ -111,7 +116,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE)
     {
       if(length(alertSymbols) > 0)
       {
-        sendNotification(alertSymbols, startDate)
+        sendAlert(alerts)
       }
 
       if(openMarket == FALSE)

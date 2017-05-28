@@ -17,7 +17,9 @@ Depends:
     hashmap,
     foreach,
     shiny,
-    moments
+    moments,
+    config,
+    htmltools
 License: MIT
 Encoding: UTF-8
 LazyData: true

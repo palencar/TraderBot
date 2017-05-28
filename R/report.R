@@ -12,7 +12,7 @@ mergeBacktest <- function(path = "result")
 
   files <- list.files(path, pattern = "*.rds")
 
-  data <- list()
+  oper <- list()
   i <- 1
 
   for(file in files)
@@ -20,11 +20,12 @@ mergeBacktest <- function(path = "result")
     name   <- paste(path, file, sep = "/")
     obj    <- readRDS(name)
     symbol <- unlist(strsplit(file, "[._]"))[1]
-    data[[i]] <- data.frame(symbol, obj$parameters, obj$results)
+    oper[[i]] <- data.frame(symbol, obj$operations)
     i <- i + 1
   }
 
-  dataTable <- rbindlist(data, fill = TRUE)
+  dataTable <- rbindlist(oper, fill = TRUE)
+  dataTable$mProffit <- as.numeric(dataTable$proffit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
 
   obj <- c()
   obj$datetime <- Sys.time()
@@ -34,103 +35,10 @@ mergeBacktest <- function(path = "result")
   return(dataTable)
 }
 
-showSmaPeriod <- function(dataTable)
+showPlot <- function(dataTable, xy)
 {
   df <- data.frame(dataTable)
-  df <- df[c("smaPeriod", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-}
-
-showUpperBand <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("upperBand", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-}
-
-showLowerBand <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("lowerBand", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-}
-
-showDownChange <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("downChange", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-}
-
-showUpChange <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("upChange", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-}
-
-showLowerLimit <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("lowLimit", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  if(nrow(df) > 0)
-  {
-    scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-  }
-}
-
-showStopGain <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("stopGain", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  if(nrow(df) > 0)
-  {
-    scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-  }
-}
-
-showStopLoss <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("stopLoss", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  if(nrow(df) > 0)
-  {
-    scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-  }
-}
-
-showBullish <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("bullish", "proffit")]
-  df <- unique(df[complete.cases(df),])
-
-  if(nrow(df) > 0)
-  {
-    scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
-  }
-}
-
-showBearish <- function(dataTable)
-{
-  df <- data.frame(dataTable)
-  df <- df[c("bearish", "proffit")]
+  df <- df[xy]
   df <- unique(df[complete.cases(df),])
 
   if(nrow(df) > 0)
@@ -154,12 +62,12 @@ showReport <- function(dataTable, path = "result")
   for(symbolName in symbols)
   {
     obj        <- dataTable[which(dataTable$symbol == symbolName)]
-    proffit    <- mean(obj$proffit)
-    minProffit <- min(obj$proffit)
-    maxProffit <- max(obj$proffit)
-    variance   <- var(obj$proffit)
-    skewness   <- skewness(obj$proffit)
-    count      <- length(unique(obj$proffit[obj$symbol == symbolName]))
+    proffit    <- mean(obj$proffit_pp)
+    minProffit <- min(obj$proffit_pp)
+    maxProffit <- max(obj$proffit_pp)
+    variance   <- var(obj$proffit_pp)
+    skewness   <- skewness(obj$proffit_pp)
+    count      <- length(unique(obj$proffit_pp[obj$symbol == symbolName]))
     volatility <- mean(na.omit(volatility(base::get(symbolName))))
     volume     <- mean(as.numeric(na.omit(Vo(base::get(symbolName)))))
     df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count, volatility, volume)
@@ -170,5 +78,3 @@ showReport <- function(dataTable, path = "result")
 
   return(dff)
 }
-
-#qplot(factor(symbol), proffit, data = dataTable, geom = "boxplot")

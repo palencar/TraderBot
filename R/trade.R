@@ -1,6 +1,6 @@
 library("memoise")
 
-trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL, minVol = 100000, lriTreshold = 0.6, lriPeriod = 30, verbose = FALSE)
+trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL, minVol = 0, lriTreshold = 0.6, lriPeriod = 30, verbose = FALSE)
 {
   i <- 1
 
@@ -15,7 +15,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
   alertR <- NULL
   alertL <- NULL
 
-  period <- paste(rev(seq(as.Date(tradeDate), length=2, by="-2 years")),collapse = "::")
+  idx <- index(base::get(symbol)[paste0("/", tradeDate)])
+  period <- tail(idx, 500)  #rougthly 2 years (in daily timeframe)
+  period <- paste0(first(period), "::", last(period))
 
   alertR = tryCatch({
     filterObjectsSets(symbol, tradeDate)
@@ -59,7 +61,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     ssd <- sd(as.double(na.omit(seq-sma)))
 
     #compute sma for all the data
-    obj <- base::get(symbol)[sprintf("/%s", as.Date(tradeDate))]
+    obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
     seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
     sma <- SMA(seq, sPeriod)
 
@@ -88,7 +90,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     lastValue <- as.numeric(last(Cl(obj)))
 
-    high <- Hi(objPeriod)[sprintf("/%s", as.Date(tradeDate) - 30)] #Considera ate um mes atras
+    high <- Hi(objPeriod)
+    high <- ifelse(nrow(high) > 20, tail(high, nrow(high) - 20), tail(high, 0))
     maxValue <- as.numeric(high[which.max(high)])
     maxDate <- index(high[which.max(high)])
 
@@ -99,7 +102,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       maxChange <- 0
     }
 
-    low <- Lo(objPeriod)[sprintf("/%s", as.Date(tradeDate) - 30)] #Considera ate um mes atras
+    low <- Lo(objPeriod)
+    low <- ifelse(nrow(low) > 20, tail(low, nrow(low) - 20), tail(low, 0))
     minValue <- as.numeric(low[which.min(low)])
     minDate <- index(low[which.min(low)])
 
@@ -110,7 +114,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       minChange <- 0
     }
 
-    lowYear <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 365)]
+    lowYear <- tail(Lo(obj), 250) #rougthly 1 year (on daily timeframe)
     minYear <- index(lowYear[which.min(lowYear)])
     if((tradeDate - minYear) <= 7)
     {
@@ -127,7 +131,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       canBuy <- FALSE
     }
 
-    low2Year <- Lo(obj)[sprintf("%s/", as.Date(tradeDate) - 730)]
+    low2Year <- tail(Lo(obj), 500)  #rougthly 2 years (on daily timeframe)
     min2Year <- index(low2Year[which.min(low2Year)])
     if((tradeDate - min2Year) <= 14)
     {
@@ -136,7 +140,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
       canBuy <- FALSE
     }
 
-    highYear <- Hi(obj)[sprintf("%s/", as.Date(tradeDate) - 365)]
+    highYear <- tail(Hi(obj), 250)  #rougthly 1 year (on daily timeframe)
     maxYear <- index(highYear[which.max(highYear)])
     if((tradeDate - maxYear) <= 7)
     {
@@ -157,7 +161,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     maxValue <- as.numeric(high[which.max(high)])
     maxDate <- index(high[which.max(high)])
 
-    lowAfter <- Lo(obj)[sprintf("%s/", maxDate)]
+    lowAfter <- Lo(obj)[sprintf("%s/%s", maxDate, tradeDate)]
     minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
 
     if(!is.na(ll) && (minAfter / maxValue) < ll)

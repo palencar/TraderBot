@@ -2,15 +2,14 @@ smaSD <- function(Symbol, n=200)
 {
   seq <- as.xts((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
 
-  if(index(first(seq)) > (index(last(seq)) - n - 730))
+  if((nrow(seq) - n - 500) < 0)
   {
     warning(sprintf("sma(%d, %d)", length(seq), n))
     return(NULL)
   }
 
   #compute sd
-  sma <- SMA(seq, n)
-  sma <- sma[paste(rev(seq(as.Date(index(tail(Symbol,1))), length=2, by="-2 years")),collapse = "::")]
+  sma <- SMA(seq, n) #roughtly 2 years (on daily timeframe)
   ssd <- sd(as.double(na.omit(seq-sma)))
 
   #compute sma for all the data

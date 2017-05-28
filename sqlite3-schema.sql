@@ -1,4 +1,4 @@
-CREATE TABLE "operations" (
+CREATE TABLE IF NOT EXISTS "operations" (
   "symbol" varchar(20) DEFAULT NULL,
   "date" date DEFAULT NULL,
   "type" char(1) DEFAULT NULL,
@@ -6,7 +6,7 @@ CREATE TABLE "operations" (
   "price" float DEFAULT NULL,
   "cost" float DEFAULT NULL
 );
-CREATE TABLE "stockinfo" (
+CREATE TABLE IF NOT EXISTS "stockinfo" (
   "symbol" varchar(12) NOT NULL DEFAULT '',
   "name" varchar(64) NOT NULL DEFAULT '',
   "exchange" varchar(16) NOT NULL DEFAULT '',
@@ -20,7 +20,7 @@ CREATE TABLE "stockinfo" (
   "active" tinyint(1) DEFAULT '1',
   PRIMARY KEY ("symbol")
 );
-CREATE TABLE "stockprices_intraday" (
+CREATE TABLE IF NOT EXISTS "stockprices_intraday" (
   "symbol" varchar(12) NOT NULL DEFAULT '',
   "datetime" datetime DEFAULT NULL,
   "previous_close" float DEFAULT NULL,
@@ -33,5 +33,7 @@ CREATE TABLE "stockprices_intraday" (
   "volume" int(11) DEFAULT NULL
 );
 CREATE INDEX "stockprices_intraday_stockprices_pkey" ON "stockprices_intraday" ("symbol","datetime");
+CREATE TABLE intraday (symbol varchar(12), datetime date, open double, high double, low double, close double, volume int);
+CREATE UNIQUE INDEX intradayindex on intraday(symbol, datetime);
 CREATE TABLE stockprices (symbol varchar(12), date date, previous_close double, day_open double, day_high double, day_low double, day_close double, day_change double, bid float, ask float, volume int);
 CREATE UNIQUE INDEX stockindex on stockprices(symbol, date);

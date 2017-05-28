@@ -63,7 +63,7 @@ singleResult <- function(key, lines, lastDay = NULL)
           sell_price <- as.integer(as.double(elements[4])*100)
           buy_price <- as.integer(position*100)
 
-          newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], elements[2])
+          newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), openDate[i], elements[2])
           closedDF <- rbind(closedDF, newrow)
 
           i <- i + 1
@@ -94,7 +94,7 @@ singleResult <- function(key, lines, lastDay = NULL)
       sell_price <- as.integer(lastPrice(elements[1], lastDay) * 100)
       buy_price <- as.integer(position*100)
 
-      newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), signif(((sell_price - buy_price) / buy_price), 2), openDate[i], lastDay)
+      newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), openDate[i], lastDay)
       openDF <- rbind(openDF, newrow)
 
       i <- i + 1

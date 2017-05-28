@@ -8,13 +8,13 @@ polyRegression <- function (SymbolName, DateInterval, Period)
 
   y <- as.numeric((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
 
-  x <- as.Date(index(Symbol))
+  x <- index(Symbol)
 
   r <- RcppEigen::fastLm(poly(x,2), y)
 
   yp <- predict(r)+mean(r$residuals)
 
-  yr <- xts(yp, as.Date(x))
+  yr <- xts(yp, x)
 
   return(list(regression=yr, sigma=sd(r$residuals), name=SymbolName,
               interval=DateInterval, trend=revertTrend(yr, n=3), period=Period))
@@ -33,46 +33,52 @@ findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
 
 changeRatio <- function(regIndicator)
 {
-  first <- as.Date(substr(regIndicator$interval, 1, 10))
-  last  <- as.Date(substr(regIndicator$interval, 13, 23))
+  interval <- unlist(strsplit(regIndicator$interval, "::"))
+  first <- interval[1]
+  last  <- interval[2]
 
-  days <- as.integer(difftime(last, first))
+  days <- as.numeric(difftime(last, first), units = "days")
 
   return(abs(as.double(first(regIndicator$regression)) - as.double(last(regIndicator$regression))) / (days/30))
 }
 
 getPolyRegs <- function(Symbol, endDate=NULL)
 {
-  ptrnStr <- sprintf(".*%s.*r_.*rds", Symbol)
-  objFiles <- list.files("datacache", pattern=ptrnStr)
+  envObj <- new.env(hash=T, parent=emptyenv())
+  alerts <- NULL
+
+  objFile <- paste0("datacache/", Symbol, "_turnpoints.rds")
+  if(file.exists(objFile))
+  {
+    envObj <- readRDS(file=objFile)
+  }
 
   if(is.null(endDate))
-    endDate <- Sys.Date()
+    endDate <- Sys.time()
 
   k <- 1
   polyRegs <- c()
 
-  for(name in objFiles)
+  for(key in ls(envObj))
   {
-    fileName <- sprintf("datacache/%s", name)
-    alertas <- readRDS(file=fileName)
+    alert <- envObj[[key]]
 
-    if(length(alertas) > 0)
+    if(length(alert) > 0)
     {
-      for(i in 1:(length(alertas)-1))
+      for(i in 1:(length(alert)-1))
       {
-        if(as.Date(substr(name, 1, 10)) <= endDate && changeRatio(alertas[[i]]) > 1.5) #1.5% a.m.
+        if(as.character.Date(key) <= as.character.Date(endDate) && changeRatio(alert[[i]]) > 1.5) #1.5% a.m.
         {
           objName <- sprintf("poly%s.p%d", Symbol, k)
-          assign(objName, alertas[[i]]$regression, .GlobalEnv)
+          assign(objName, alert[[i]]$regression, .GlobalEnv)
           polyRegs <- c(polyRegs, sprintf("addTA(%s, on=1, col=3)", objName))
 
           objName <- sprintf("poly%s.p%dpsigma", Symbol, k)
-          assign(objName, alertas[[i]]$regression+alertas[[i]]$sigma, .GlobalEnv)
+          assign(objName, alert[[i]]$regression+alert[[i]]$sigma, .GlobalEnv)
           polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
 
           objName <- sprintf("poly%s.p%dmsigma", Symbol, k)
-          assign(objName, alertas[[i]]$regression-alertas[[i]]$sigma, .GlobalEnv)
+          assign(objName, alert[[i]]$regression-alert[[i]]$sigma, .GlobalEnv)
           polyRegs <- c(polyRegs, sprintf("addTA(%s, lwd=2, on=1, col=7)", objName, col))
 
           k <- k+1

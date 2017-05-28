@@ -55,6 +55,39 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
+getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
+{
+  symbolList <- NULL
+
+  for(symbol in Symbols)
+  {
+    fr <- getQuery(sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s'", symbol))
+    obj <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+
+    if(nrow(obj) == 0)
+      next
+
+    obj <- switch(timeFrame,
+                  "3M" = to.minutes3(obj),
+                  "5M" = to.minutes5(obj),
+                  "10M" = to.minutes10(obj),
+                  "15M" = to.minutes15(obj),
+                  "30M" = to.minutes30(obj),
+                  "1H" = to.hourly(obj))
+
+    obj <- align.time(obj)
+
+    name <- paste0(symbol,".", timeFrame)
+
+    assign(name, obj, .GlobalEnv)
+
+    symbolList <- c(symbolList, name)
+  }
+
+  return(symbolList)
+}
+
+#' @export
 getSymbolNames <- function()
 {
   fr <- getQuery("SELECT distinct(symbol) from stockprices")
@@ -89,9 +122,9 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
         next
       }
 
-      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %d)",
                           symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
-                          as.double(table[1,5]))
+                          as.numeric(table[1,5]))
 
       getQuery(queryStr)
     }
@@ -184,7 +217,7 @@ meanPrice <- function(SymbolName)
 
 lastTradingSession <- function()
 {
-  return(getQuery("select max(date) from stockprices")[,1])
+  return(as.Date(getQuery("select max(date) from stockprices")[,1]))
 }
 
 lastPrice <- function(SymbolName, dateLimit = NULL)
@@ -338,9 +371,6 @@ getWallet <- function(FilterClosed = TRUE)
 
 getTradeDays <- function(symbols = NULL)
 {
-  if(exists("AllTradeDays"))
-    return(base::get("AllTradeDays"))
-
   if(is.null(symbols))
     queryStr <- sprintf("select distinct date from stockprices order by date asc")
   else
@@ -384,8 +414,12 @@ insertIntraday <- function(name)
   for(i in 1:nrow(dff))
   {
     df <- dff[i,]
-    queryStr <- sprintf("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+    if(config$engine == "sqlite")
+      queryStr <- sprintf("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                         df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
+    if(config$engine == "mysql")
+      queryStr <- sprintf("INSERT IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
+                          df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
     getQuery(queryStr)
   }
 }

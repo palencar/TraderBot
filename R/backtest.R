@@ -5,66 +5,68 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, limit = Inf)
+computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, timeFrame = "1D")
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  samples = 2
+  if(timeFrame == "1D")
+  {
+    AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
+    AllSymbols <- sample(AllSymbols)
+    AllSymbols <- filterGapM(AllSymbols)
+  }
+  else
+  {
+    AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
+  }
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
-  AllSymbols <- sample(AllSymbols)
-  AllSymbols <- filterGapM(AllSymbols)
-
+  empty <- TRUE
   n <- 0
 
   for(symbol in AllSymbols)
   tryCatch({
+  indexes <- index(base::get(symbol))
   while(n <= minSamples)
   {
     map <- hashmap("", "")
     map$clear()
 
-    smaPeriod = sample(100:500, size = samples, replace = TRUE)
-    upperBand = as.numeric(formatC(runif(samples, min=-2.0, max=4), digits=2,format="f"))
-    lowerBand = as.numeric(formatC(runif(samples, min=-4, max=2.0), digits=2,format="f"))
-    upChange = as.numeric(formatC(runif(samples, min=0, max=8), digits=2,format="f"))
-    downChange = as.numeric(formatC(runif(samples, min=-8, max=0), digits=2,format="f"))
-    lowLimit = as.numeric(formatC(runif(samples, min=0, max=0.8), digits=2,format="f"))
-    stopLoss = as.numeric(formatC(runif(samples, min=0, max=2), digits=2,format="f"))
-    stopGain = as.numeric(formatC(runif(samples, min=1, max=5), digits=2,format="f"))
-    bearish  = as.numeric(formatC(runif(samples, min=0, max=0.7), digits=2,format="f"))
-    bullish  = as.numeric(formatC(runif(samples, min=0.3, max=1), digits=2,format="f"))
+    smaPeriod = sample(100:500, size = 1, replace = TRUE)
+    upperBand = as.numeric(formatC(runif(1, min=-2.0, max=4), digits=2,format="f"))
+    lowerBand = as.numeric(formatC(runif(1, min=-4, max=2.0), digits=2,format="f"))
+    upChange = as.numeric(formatC(runif(1, min=0, max=8), digits=2,format="f"))
+    downChange = as.numeric(formatC(runif(1, min=-8, max=0), digits=2,format="f"))
+    lowLimit = as.numeric(formatC(runif(1, min=0, max=0.8), digits=2,format="f"))
+    stopLoss = as.numeric(formatC(runif(1, min=0, max=2), digits=2,format="f"))
+    stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
+    bearish  = as.numeric(formatC(runif(1, min=0, max=0.7), digits=2,format="f"))
+    bullish  = as.numeric(formatC(runif(1, min=0.3, max=1), digits=2,format="f"))
 
-    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain,
-                             bearish, bullish)
+    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearish, bullish)
 
     pars <- new.env(hash=T, parent=emptyenv())
 
-    tradeDays <- getTradeDays(symbol)
-
-    minStart <- as.Date(first(tradeDays)) + max(smaPeriod) + 730  #Min days of data
-    maxStart <- as.Date(last(tradeDays)) - 730                    #2 years
+    timeIndex <- tail(indexes, length(indexes) - 730)
 
     n <- n + nrow(parameters) ^ ncol(parameters)
 
-    if(as.integer(maxStart - minStart) < 0)
-      return(NULL)
-
-    startDate <- as.Date(minStart) + sample(1:as.integer(maxStart - minStart), 1)
-    endDate <- as.Date(startDate) + 730
-
-    tradeDays <- tradeDays[which(tradeDays >= startDate)]
-    tradeDays <- tradeDays[which(tradeDays <= endDate)]
-
-    print(sprintf("Backtest %s %s/%s", symbol, startDate, endDate))
-
-    for(tradeDate in tradeDays)
+    if((n %% 10000) == 0)
     {
+      print(paste0(Sys.time(), " : ", n))
+    }
+
+    if(length(timeIndex) < 730)
+      next
+
+    for(i in 1:length(timeIndex))
+    {
+      tradeDate <- timeIndex[i]
+
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), parameters = parameters, map = map)
+      tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, map = map)
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
@@ -72,7 +74,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, lim
       {
         if(tradeDecision$decision != "hold")
         {
-          alert <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
+          alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
 
           if(is.null(alerts[[alert]]))
           {
@@ -81,7 +83,7 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, lim
           }
 
           price <- sprintf("%.2f", tradeDecision$price)
-          logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
+          logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
 
           parStr <- paste(tradeDecision$parameters, symbol, collapse = " ")
 
@@ -97,10 +99,12 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, lim
       }
     }
 
-    outputOp <- sprintf("result/%s_%s.rds", symbol, format(Sys.time(), "%m%d%H"))
+    outputOp <- sprintf("result/%s.rds", symbol)
 
     parList <- list()
     resList <- list()
+    opList  <- list()
+
     i <- 0
 
     for(parStr in map$keys())
@@ -114,6 +118,8 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, lim
         i <- i + 1
         parList[[i]] <- pars[[parStr]]
         resList[[i]] <- result$total
+        opList[[i]]  <- cbind(pars[[parStr]], rbind(result$closedDF, result$openDF))
+        print(opList[[i]])
       }
 
       if(printCharts && !is.null(result$output))
@@ -138,12 +144,13 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, lim
         opFile <- readRDS(outputOp)
       }
 
-      opFile$parameters <- tail(rbind(opFile$parameters, rbindlist(parList)), n = limit)
-      opFile$results    <- tail(rbind(opFile$results, rbindlist(resList)), n = limit)
+      opFile$parameters <- rbind(opFile$parameters, rbindlist(parList))
+      opFile$results    <- rbind(opFile$results, rbindlist(resList))
+      opFile$operations <- rbind(opFile$operations, rbindlist(opList))
 
       saveRDS(opFile, outputOp)
 
-      print(data.frame(symbol, rbindlist(parList), rbindlist(resList)))
+      print(rbindlist(opList))
     }
   }
   }, error = function(e) return(paste0("Symbol '", symbol, "'",

@@ -1,13 +1,14 @@
 #!/bin/bash
 
 queued=$(tsp | grep queued | wc -l)
+ncpu=$(nproc)
 
-if (($queued > 32))
+if (($queued > $ncpu))
 then
     exit 0
 fi
 
-tsp -S $(nproc)
+tsp -S $ncpu
 
 SYMBOLS=$(sqlite3 db.sqlite 'select distinct(symbol) from stockprices group by symbol' | shuf)
 

@@ -38,10 +38,12 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
 
     for(tradeDate in tradeDays)
     {
+      tradeDate <- as.Date(tradeDate)
+
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, as.Date(tradeDate), parameters = parameters, map = map)
+      tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, map = map)
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
@@ -49,7 +51,7 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
       {
         if(tradeDecision$decision != "hold")
         {
-          alert <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
+          alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
 
           if(is.null(alerts[[alert]]))
           {
@@ -63,7 +65,7 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
           }
 
           price <- sprintf("%.2f", tradeDecision$price)
-          logLine <- paste(symbol, as.Date(tradeDate), tradeDecision$decision, price, collapse = " ")
+          logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
 
           parStr <- paste(tradeDecision$parameters, collapse = " ")
 
@@ -74,7 +76,7 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
           else
             map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
 
-          addAlerts(symbol, as.Date(tradeDate), tradeDecision$decision)
+          addAlerts(symbol, tradeDate, tradeDecision$decision)
         }
       }
     }

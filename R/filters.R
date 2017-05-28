@@ -238,7 +238,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 
   for(symbol in SymbolNames)
   {
-    obj <- base::get(symbol)[sprintf("%s/", as.Date(dateLimit) - 365)]
+    obj <- tail(base::get(symbol), n=300)
 
     if(anyNA(OHLCV(obj)))
     {
@@ -246,9 +246,9 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
       next
     }
 
-    if(any(diff(index(obj)) > 5))
+    if(any(as.double(diff(index(obj)), units="days") > 5))
     {
-      dates <- index(obj[which(diff(index(obj)) > 5)])
+      dates <- index(obj[which(as.double(diff(index(obj)), units="days") > 5)])
       warning(sprintf("excluding %s from symbols %s", symbol, paste(dates, collapse = " ")))
     }
     else
@@ -260,7 +260,7 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Gap Excluding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
+    paste0("Gap Excluding [", dateLimit, "]: ", paste(exclude, collapse = " "))
   }
 
   return (symbols)
@@ -268,43 +268,6 @@ filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
 
 #' @export
 filterGapM <- memoise(filterGap)
-
-#' @export
-filterAge <- function(SymbolNames, dateLimit="", age="6 months")
-{
-  if(dateLimit == "")
-  {
-    dt = as.Date(Sys.Date())
-  }
-  else
-  {
-    dt = as.Date(dateLimit)
-  }
-
-  dc = sprintf("-%s", age)
-
-  ds = seq(dt, length=2, by=dc)[2]
-
-  symbols <- c()
-
-  i <- 1
-  for(symb in SymbolNames)
-  {
-    period <- sprintf("::%s", ds)
-
-    print(period)
-    if(length(base::get(symb)[period]) > 0)
-    {
-      print(period)
-      print(symb)
-
-      symbols[i] <- symb
-      i <- i+1
-    }
-  }
-
-  return(symbols)
-}
 
 #' @export
 filterData <- function(SymbolNames, endDate)
@@ -362,7 +325,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Bad Data Excluding [%s]: %s", as.Date(dateLimit), paste(exclude, collapse = " ")))
+    print(sprintf("Bad Data Excluding [%s]: %s", dateLimit, paste(exclude, collapse = " ")))
   }
 
   return(symbols)
@@ -372,14 +335,19 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 filterBadDataM <- memoise(filterBadData)
 
 #' @export
-filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = 400000)
+filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = NULL)
 {
-  if(is.null(dateLimit) || is.na(dateLimit))
+  if(is.null(volume))
   {
-    dateLimit <- Sys.Date()
+    return(SymbolNames)
   }
 
-  dt = as.Date(dateLimit)
+  if(is.null(dateLimit) || is.na(dateLimit))
+  {
+    dateLimit <- Sys.time()
+  }
+
+  dt = dateLimit
 
   dc = sprintf("-%s", age)
 
@@ -391,11 +359,11 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = 400
   {
     period <- sprintf("%s::%s", ds[2], ds[1])
 
-    obj <- (base::get(symb)[period])
+    obj <- base::get(symb)[period]
 
     vol <- as.double(Vo(obj))
 
-    if(length(vol) < 200 || as.integer(as.Date(dt) - as.Date(first(index(base::get(symb))))) < 730)
+    if(length(vol) < 200 || length(obj) < 500)
     {
       next
     }
@@ -417,7 +385,7 @@ filterVolume <- function(SymbolNames, dateLimit=NULL, age="1 year", volume = 400
   exclude <- setdiff(SymbolNames, symbols)
   if(length(exclude) > 0)
   {
-    print(sprintf("Volume Excluding [%s]: %s", as.Date(dt), paste(exclude, collapse = " ")))
+    paste0("Volume Excluding [", dt, "]: ", paste(exclude, collapse = " "))
   }
 
   return(symbols)
@@ -484,19 +452,20 @@ filterObjectsSets <- function(symbol, tradeDay)
     }, finally={
     })
 
+    turnpoints <- new.env(hash=T, parent=emptyenv())
+    objFile <- paste0("datacache/", symbol, "_turnpoints.rds")
+    if(file.exists(objFile))
+    {
+      turnpoints <- readRDS(file=objFile)
+    }
+
     trend <- c("r_up")
     turnpoints_r$r_up <- filterRevert(alertas, trend, 3)
 
     if(length(turnpoints_r$r_up) > 0)
     {
-      objectName_ru <- sprintf("datacache/%s-%s_%d_%d_turnpoints_r_up.rds", tradeDay, symbol, k1, k2)
-
-      if((trend %in% alerts) == FALSE)
-      {
-        alerts <- c(alerts, trend)
-      }
-
-      saveRDS(turnpoints_r$r_up, file=objectName_ru)
+      turnpoints[[key]] <- turnpoints_r$r_up
+      alerts <- unique(c(alerts, trend))
     }
 
     trend <- c("r_down")
@@ -504,19 +473,17 @@ filterObjectsSets <- function(symbol, tradeDay)
 
     if(length(turnpoints_r$r_down) > 0)
     {
-      objectName_rd <- sprintf("datacache/%s-%s_%d_%d_turnpoints_r_down.rds", tradeDay, symbol, k1, k2)
-
-      if((trend %in% alerts) == FALSE)
-      {
-        alerts <- c(alerts, trend)
-      }
-
-      saveRDS(turnpoints_r$r_down, file=objectName_rd)
+      turnpoints[[key]] <- turnpoints_r$r_down
+      alerts <- unique(c(alerts, trend))
     }
 
     if(is.null(alerts))
     {
       alerts <- FALSE
+    }
+    else
+    {
+      saveRDS(turnpoints, objFile)
     }
 
     filterMap[[key]] <- alerts
