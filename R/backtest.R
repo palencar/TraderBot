@@ -1,11 +1,10 @@
-library("hashmap")
 library("memoise")
 library("data.table")
 source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, timeFrame = "1D")
+computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -13,8 +12,6 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
   if(timeFrame == "1D")
   {
     AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
-    AllSymbols <- sample(AllSymbols)
-    AllSymbols <- filterGapM(AllSymbols)
   }
   else
   {
@@ -27,10 +24,9 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
   for(symbol in AllSymbols)
   tryCatch({
   indexes <- index(base::get(symbol))
-  while(n <= minSamples)
+  while(n < minSamples)
   {
-    map <- hashmap("", "")
-    map$clear()
+    map <- new.env(hash=T, parent=emptyenv())
 
     smaPeriod = sample(100:500, size = 1, replace = TRUE)
     upperBand = as.numeric(formatC(runif(1, min=-2.0, max=4), digits=2,format="f"))
@@ -56,8 +52,11 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
       print(paste0(Sys.time(), " : ", n))
     }
 
-    if(length(timeIndex) < 730)
+    if(length(timeIndex) == 0)
+    {
+      n <- minSamples
       next
+    }
 
     for(i in 1:length(timeIndex))
     {
@@ -82,19 +81,21 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
             alerts[[alert]] <- TRUE
           }
 
-          price <- sprintf("%.2f", tradeDecision$price)
-          logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
+          price <- tradeDecision$price
+          decision <- tradeDecision$decision
 
-          parStr <- paste(tradeDecision$parameters, symbol, collapse = " ")
+          logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
+
+          parStr <- paste(tradeDecision$parameters, collapse = " ")
 
           pars[[parStr]] <- tradeDecision$parameters
 
           obj <- map[[parStr]]
 
-          if(is.na(obj))
+          if(is.null(obj))
             map[[parStr]] <- logLine
           else
-            map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
+            map[[parStr]] <- rbind.data.frame(obj, logLine, stringsAsFactors = FALSE)
         }
       }
     }
@@ -107,10 +108,10 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
 
     i <- 0
 
-    for(parStr in map$keys())
+    for(parStr in ls(map))
     {
-      operations <- unlist(strsplit(map[[parStr]], ";"))
-      lines <- strsplit(operations, " ")
+      lines <- map[[parStr]]
+
       result <- singleResultM(parStr, lines)
 
       if(!is.null(result$output))
@@ -120,19 +121,6 @@ computeBacktest <- function(Symbols, printCharts = FALSE, minSamples = 1024, tim
         resList[[i]] <- result$total
         opList[[i]]  <- cbind(pars[[parStr]], rbind(result$closedDF, result$openDF))
         print(opList[[i]])
-      }
-
-      if(printCharts && !is.null(result$output))
-      {
-        path <- sprintf("charts/%s", symbol, parStr)
-
-        for(op in operations)
-        {
-          op <- unlist(strsplit(op, " "))
-          date <- as.Date(op[2])
-          smaPeriod = as.numeric(unlist(strsplit(parStr, " "))[1])
-          chartSymbols(symbol, dateLimit=date, dev="png", path = path, suffix = date, smaPeriod = smaPeriod)
-        }
       }
     }
 

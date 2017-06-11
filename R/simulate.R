@@ -1,17 +1,22 @@
-library("hashmap")
 library("memoise")
 library("data.table")
 source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NULL)
+computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D")
 {
-  tradeDays <- getTradeDays(Symbols)
-  tradeDays <- tradeDays[which(tradeDays >= startDate)]
-  tradeDays <- tradeDays[which(tradeDays <= endDate)]
+  dir.create("result", showWarnings=FALSE)
+  dir.create("datacache", showWarnings=FALSE)
 
-  AllSymbols <- startProbe(symbolNames = Symbols, minAge=as.integer(endDate-startDate)+730, update=FALSE)
+  if(timeFrame == "1D")
+  {
+    AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
+  }
+  else
+  {
+    AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
+  }
 
   forget(singleResultM)
 
@@ -33,12 +38,23 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
 
   for(symbol in AllSymbols)
   {
-    map <- hashmap("1", "1")
-    map$clear()
+    indexes <- index(base::get(symbol))
+    timeIndex <- tail(indexes, length(indexes) - 730)
 
-    for(tradeDate in tradeDays)
+    if(!is.null(startDate))
+      timeIndex <- timeIndex[which(timeIndex >= startDate)]
+
+    if(!is.null(endDate))
+      timeIndex <- timeIndex[which(timeIndex <= endDate)]
+
+    if(length(timeIndex) == 0)
+      next
+
+    map <- new.env(hash=T, parent=emptyenv())
+
+    for(i in 1:length(timeIndex))
     {
-      tradeDate <- as.Date(tradeDate)
+      tradeDate <- timeIndex[i]
 
       if(is.null(filterDataM(symbol, tradeDate)))
         next
@@ -64,28 +80,32 @@ computeSimulation <- function(Symbols = NULL, startDate, endDate, chartDev = NUL
             alertSymbols <- c(alertSymbols, symbol)
           }
 
-          price <- sprintf("%.2f", tradeDecision$price)
-          logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
+          price <- tradeDecision$price
+          decision <- tradeDecision$decision
+
+          print(paste0("DateTime: ", tradeDate))
+
+          logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
 
           parStr <- paste(tradeDecision$parameters, collapse = " ")
 
           obj <- map[[parStr]]
 
-          if(is.na(obj))
+          if(is.null(obj))
             map[[parStr]] <- logLine
           else
-            map[[parStr]] <- paste(obj, logLine, collapse = ";", sep = ";")
+            map[[parStr]] <- rbind.data.frame(obj, logLine)
 
-          addAlerts(symbol, tradeDate, tradeDecision$decision)
+          addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
         }
       }
     }
 
-    for(parStr in map$keys())
+    for(parStr in ls(map))
     {
-      operations <- unlist(strsplit(map[[parStr]], ";"))
-      lines <- strsplit(operations, " ")
-      result <- singleResultM(parStr, lines, last(tradeDays))
+      lines <- map[[parStr]]
+
+      result <- singleResultM(parStr, lines, last(timeIndex))
 
       if(length(result) > 0)
       {

@@ -59,6 +59,11 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
 {
   symbolList <- NULL
 
+  if(is.null(Symbols))
+  {
+    Symbols <- getSymbolNames()
+  }
+
   for(symbol in Symbols)
   {
     fr <- getQuery(sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s'", symbol))
@@ -110,21 +115,14 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
 
     for(i in 1:length(symbolNames))
     {
-      if(is.na(quotes[i, 1]))
-        next
-
-      table <- coredata(xts(quotes[i, -1], as.Date(quotes[i, 1])))
-
-      if(table[1] == "N/A" || table[2] == "N/A" || table[3] == "N/A" || table[4] == "N/A" || table[5] == "N/A" ||
-         table[1] == 0.0   || table[2] == 0.0   || table[3] == 0.0   || table[4] == 0.0)
+      if(anyNA(quotes[i,]) || quotes[i,"Volume"] == 0)
       {
-        warning(sprintf("NA value in %s [%s %s %s %s %s]", symbolNames[i], table[1], table[2], table[3], table[4], table[5]))
+        warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Close", "Volume")], collapse = " ")))
         next
       }
 
-      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %d)",
-                          symbolNames[i], as.Date(quotes[i, 1]), as.double(table[1,1]), as.double(table[1,2]), as.double(table[1,3]), as.double(table[1,4]),
-                          as.numeric(table[1,5]))
+      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
+                          symbolNames[i], as.Date(quotes[1, "Trade Time"]), quotes[1, "Open"], quotes[1, "High"], quotes[1, "Low"], quotes[1, "Close"], quotes[1, "Volume"])
 
       getQuery(queryStr)
     }

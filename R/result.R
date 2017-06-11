@@ -46,27 +46,21 @@ singleResult <- function(key, lines, lastDay = NULL)
   openDF <- NULL
 
   positions <- NULL
-  openDate <- NULL
   closePosition <- FALSE
 
-  for(line in lines)
+  for(n in 1:nrow(lines))
   {
-    elements <- unlist(strsplit(line, " "))
-
-    if(elements[3] == "sell")
+    if(lines[n,"decision"] == "sell")
     {
       if(is.null(positions) == FALSE)
       {
-        i <- 1
-        for(position in positions)
+        for(i in 1:nrow(positions))
         {
-          sell_price <- as.integer(as.double(elements[4])*100)
-          buy_price <- as.integer(position*100)
+          sell_price <- as.integer(lines[n,"price"]*100)
+          buy_price <- as.integer(positions[i,"price"]*100)
 
-          newrow <- data.frame("closed", elements[1], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), openDate[i], elements[2])
+          newrow <- data.frame("closed", lines[n,"symbol"], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lines[n,"tradeDate"])
           closedDF <- rbind(closedDF, newrow)
-
-          i <- i + 1
         }
         positions <- NULL
         openDate <- NULL
@@ -74,10 +68,12 @@ singleResult <- function(key, lines, lastDay = NULL)
       }
     }
 
-    if(elements[3] == "buy")
+    if(lines[n,"decision"] == "buy")
     {
-      positions <- c(positions, as.double(elements[4]))
-      openDate <- c(openDate, elements[2])
+      openDate <- lines[n,"tradeDate"]
+      price <- lines[n,"price"]
+
+      positions <- rbind.data.frame(positions, data.frame(openDate, price))
     }
   }
 
@@ -85,22 +81,21 @@ singleResult <- function(key, lines, lastDay = NULL)
   {
     if(is.null(lastDay))
     {
-      lastDay <- lastTradeDay(elements[1])
+      lastDay <- last(index(base::get(lines[nrow(lines),"symbol"])))
     }
 
-    i <- 1
-    for(position in positions)
+    if(is.null(positions) == FALSE)
     {
-      sell_price <- as.integer(lastPrice(elements[1], lastDay) * 100)
-      buy_price <- as.integer(position*100)
+      for(i in 1:nrow(positions))
+      {
+        sell_price <- as.numeric(Cl(tail(base::get(lines[nrow(lines),"symbol"]), 1)) * 100)
+        buy_price <- as.integer(positions[i,"price"]*100)
 
-      newrow <- data.frame("open", elements[1], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), openDate[i], lastDay)
-      openDF <- rbind(openDF, newrow)
-
-      i <- i + 1
+        newrow <- data.frame("open", lines[nrow(lines),"symbol"], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
+        openDF <- rbind(openDF, newrow)
+      }
     }
     positions <- NULL
-    openDate <- NULL
   }
   closePosition <- FALSE
 
@@ -114,7 +109,12 @@ singleResult <- function(key, lines, lastDay = NULL)
     closedDF <- closedDF[order(closedDF$proffit_pp),]
 
     result$closedDF <- closedDF
-    result$totalClosed <- sprintf("%d %d %.2f", sum(closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price), sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price))
+    buy     <- sum(closedDF$buy_price)
+    gain    <- sum(closedDF$sell_price-closedDF$buy_price)
+    proffit <- sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)
+
+    result$totalClosed <- data.frame(buy, gain, proffit)
+    result$closedMeanPrice <- sum(closedDF$buy_price)/(nrow(closedDF)*100)
   }
 
   if(!is.null(openDF))
@@ -123,7 +123,11 @@ singleResult <- function(key, lines, lastDay = NULL)
     openDF <- openDF[order(openDF$proffit_pp),]
 
     result$openDF <- openDF
-    result$totalOpen <- sprintf("%d %d %.2f", sum(openDF$buy_price), sum(openDF$sell_price-openDF$buy_price), sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price))
+    buy     <- sum(openDF$buy_price)
+    gain    <- sum(openDF$sell_price-openDF$buy_price)
+    proffit <- sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)
+
+    result$totalOpen <- data.frame(buy, gain, proffit)
     result$openMeanPrice <- sum(openDF$buy_price)/(nrow(openDF)*100)
   }
 
@@ -133,7 +137,10 @@ singleResult <- function(key, lines, lastDay = NULL)
 
   if(!is.null(totalDF$buy_price))
   {
-    result$output <- sprintf("%s %d %d %.2f", key, sum(totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price), sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price))
+    buy     <- sum(totalDF$buy_price)
+    gain    <- sum(totalDF$sell_price-totalDF$buy_price)
+    proffit <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
+    result$output <- data.frame(key, buy, gain, proffit)
   }
 
   result$total <- NULL

@@ -70,6 +70,12 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     sdp <- (seql[2]-smal[2])/ssd
 
+    if(is.na(sdp))
+    {
+      warning(paste0("sdp: ", sdp))
+      next
+    }
+
     cantBuy <- NULL
     cantSell <- NULL
 
@@ -259,7 +265,11 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
       if(!is.null(alertL) && alertL != FALSE) #valor valido
       {
-        if(alertL == "up" && (is.null(lower)|| sdp < lower)) #reversao "para cima" e abaixo da banda inferior
+        if(is.null(lower) || is.na(lower))
+        {
+          warning(paste("lower:", lower))
+        }
+        if(alertL == "up" && sdp < lower) #reversao "para cima" e abaixo da banda inferior
         {
           if(canBuy)
           {
@@ -268,7 +278,11 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
           }
         }
 
-        if(alertL == "down" && (is.null(upper) || sdp > upper)) #reversao "para baixo" e acima da banda superior
+        if(is.null(upper) || is.na(upper))
+        {
+          warning(paste("upper:", upper))
+        }
+        else if(alertL == "down" && sdp > upper) #reversao "para baixo" e acima da banda superior
         {
           if(canSell)
           {
