@@ -3,13 +3,13 @@ library("config")
 library("htmltools")
 
 #' @export
-addAlerts <- function(symbol, date, alert = NA)
+addAlerts <- function(symbol, date, alert = NA, timeFrame = "1D")
 {
   if(is.null(symbol))
     return()
 
   alerts <- NULL
-  alertsFile <- "datacache/alerts.rds"
+  alertsFile <- paste0("datacache/alerts-", timeFrame, ".rds")
   if(file.exists(alertsFile))
   {
     alerts <- readRDS(alertsFile)
@@ -24,10 +24,10 @@ addAlerts <- function(symbol, date, alert = NA)
 }
 
 #' @export
-getAlerts <- function(n = 20, date = NULL)
+getAlerts <- function(n = 20, date = NULL, timeFrame = "1D")
 {
   alerts <- NULL
-  alertsFile <- "datacache/alerts.rds"
+  alertsFile <- paste0("datacache/alerts-", timeFrame, ".rds")
   if(file.exists(alertsFile))
   {
     alerts <- readRDS(alertsFile)
