@@ -45,14 +45,14 @@ getAlerts <- function(n = 20, date = NULL, timeFrame = "1D")
   return(df)
 }
 
-sendAlert <- function(alerts)
+sendAlert <- function(alerts, timeFrame = "1D")
 {
   config <- config::get()
 
   datetime <- Sys.time()
   symbols <- as.vector(alerts$symbol)
 
-  report <- tagList(tags$h3("TraderBot Alert"),
+  report <- tagList(tags$h3(paste0("TraderBot Alert: ", timeFrame)),
                     tags$html(tags$head(),
                               tagList(tags$p(datetime)),
                               tagList(apply(alerts, 1, function(x) {
@@ -60,14 +60,16 @@ sendAlert <- function(alerts)
                                       tags$img(src=paste0(config$alert$baseurl, x['symbol'],".png"))) }))
                     ))
 
-  save_html(report, "index.html")
+  htmlOutput <- ifelse(timeFrame == "1D", "index.html", paste0("index-", timeFrame, ".html"))
+
+  save_html(report, htmlOutput)
 
   sysCmd <- NULL
 
   if(config$alert$type == "s3")
   {
     source <- paste0("charts/", symbols, ".png", sep = "")
-    source <- c(source, "index.html")
+    source <- c(source, htmlOutput)
     sysCmd <- c(sysCmd, paste0("aws s3 cp ", source, " s3://", config$alert$target,"/"))
   }
 
@@ -76,7 +78,7 @@ sendAlert <- function(alerts)
     for(symbol in symbols)
       imgAttachmets <- sprintf("-a charts/%s.png", symbol)
 
-    sysCmd <- c(sysCmd, sprintf("mutt -e \"set content_type=text/html\" %s -s \"Trader Bot Alert\" < index.html", config$alert$target))
+    sysCmd <- c(sysCmd, sprintf(paste0("mutt -e \"set content_type=text/html\" %s -s \"Trader Bot Alert\" < ", htmlOutput), config$alert$target))
   }
 
   for(cmd in sysCmd)

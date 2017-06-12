@@ -122,7 +122,7 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
       }
 
       queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
-                          symbolNames[i], as.Date(quotes[1, "Trade Time"]), quotes[1, "Open"], quotes[1, "High"], quotes[1, "Low"], quotes[1, "Close"], quotes[1, "Volume"])
+                          symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Close"], quotes[i, "Volume"])
 
       getQuery(queryStr)
     }
@@ -419,5 +419,19 @@ insertIntraday <- function(name)
       queryStr <- sprintf("INSERT IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
                           df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
     getQuery(queryStr)
+  }
+}
+
+updateIntraday <- function()
+{
+  symbols <- getSymbolNames()
+
+  for(symbol in symbols)
+  {
+    print(symbol)
+    system(paste0("python2 google_intraday.py ", symbol))
+    fileName <- paste0("intraday/", symbol, "_", Sys.Date())
+
+    insertIntraday(fileName)
   }
 }
