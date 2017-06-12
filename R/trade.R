@@ -72,7 +72,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     if(is.na(sdp))
     {
-      warning(paste0("sdp: ", sdp))
+      warning(paste0("sdp: NA", symbol))
       next
     }
 

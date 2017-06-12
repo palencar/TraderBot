@@ -1,3 +1,4 @@
+library("config")
 source("R/result.R")
 source("R/alerts.R")
 source("R/dbInterface.R")
@@ -17,10 +18,9 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
   computeAlerts <- function(symbol, timeIndex)
   {
-    print(paste0("COMPUTING: ", symbol))
-
-    alertLog <- NULL
     alerts <- NULL
+
+    print(paste0("COMPUTING: ", symbol))
 
     if(length(timeIndex) == 0)
       return(NULL)
@@ -54,18 +54,13 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
         tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
 
-        if(tradeDecision$decision != "hold" && (tradeAlert %in% tradeAlerts) == FALSE)
+        if(tradeDecision$decision != "hold")
         {
-          alertSymbols <- c(alertSymbols, symbol)
-          tradeAlerts <- c(tradeAlert, tradeAlerts)
-
           price <- as.numeric(last(Cl(base::get(symbol)[tradeDate])))
 
           logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
 
           writeResult(symbol, logLine, "../stream")
-
-          alertLog <- paste(alertLog, logLine, sep = "\n")
 
           alert <- tradeDecision$decision
           date  <- tradeDate
@@ -75,6 +70,8 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
         }
       }
     }
+
+    return(alerts)
   }
 
   while(fsmState != "end")
@@ -122,7 +119,8 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
         for(symbol in Symbols)
         {
-          computeAlerts(symbol, as.POSIXct(tradeDate))
+          alert  <- computeAlerts(symbol, as.POSIXct(tradeDate))
+          alerts <- unique(rbind(alerts, alert))
         }
       }
       else
@@ -140,10 +138,13 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
           if(length(newIdx) > 0)
           {
-            computeAlerts(symbol, newIdx)
+            alert  <- computeAlerts(symbol, newIdx)
+            alerts <- unique(rbind(alerts, alert))
           }
         }
       }
+
+      alertSymbols <- as.vector(unique(alerts$symbol))
 
       fsmState <- "chartAlerts"
     }
@@ -165,7 +166,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
     {
       if(length(alertSymbols) > 0)
       {
-        sendAlert(alerts)
+        sendAlert(alerts, timeFrame)
       }
 
       if(openMarket == FALSE)
