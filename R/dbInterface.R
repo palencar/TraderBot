@@ -430,7 +430,7 @@ updateIntraday <- function()
   {
     print(symbol)
     system(paste0("python2 google_intraday.py ", symbol))
-    fileName <- paste0("intraday/", symbol, "_", Sys.Date())
+    fileName <- paste0("intraday/", symbol)
 
     insertIntraday(fileName)
   }

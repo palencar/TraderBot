@@ -95,7 +95,15 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
     }
     else if(fsmState == "computeRegressions")
     {
-      lastSession <- lastTradingSession()
+      if(timeFrame == "1D")
+      {
+        lastSession <- lastTradingSession()
+      }
+      else
+      {
+        lastSession <- as.Date.POSIXct(sapply(last(index(base::get(AllSymbols))), max))
+      }
+
       startDate <- lastSession + 1
 
       if(startDate > Sys.Date())

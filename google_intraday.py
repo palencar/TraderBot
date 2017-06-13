@@ -91,4 +91,4 @@ if __name__ == '__main__':
   for arg in sys.argv[1:]:
     q = GoogleIntradayQuote(arg,60,1)
     #print q                                           # print it out
-    q.write_csv("intraday/"+arg+"_"+now.strftime("%Y-%m-%d"))
+    q.write_csv("intraday/"+arg)
