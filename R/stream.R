@@ -141,11 +141,12 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
           if(!is.null(skipIdx))
           {
             newIdx <- newIdx[newIdx > skipIdx]
-            indexes[[symbol]] <- max(newIdx)
           }
 
           if(length(newIdx) > 0)
           {
+            indexes[[symbol]] <- max(newIdx)
+
             alert  <- computeAlerts(symbol, newIdx)
             alerts <- unique(rbind(alerts, alert))
           }
@@ -174,7 +175,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
     {
       if(length(alertSymbols) > 0)
       {
-        sendAlert(alerts, timeFrame)
+        sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
       }
 
       if(openMarket == FALSE)
