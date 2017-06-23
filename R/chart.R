@@ -104,13 +104,6 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
     if(dev == "png")
     {
       dev.off()
-
-      if(is.null(suffix))
-      {
-        imagePath <- sprintf("chart-history/%s", SymbolName)
-        dir.create(imagePath, showWarnings=FALSE, recursive = TRUE)
-        file.copy(imageName, sprintf("%s/%s-%s.png", imagePath, ed, SymbolName))
-      }
     }
 
     list <- ls(pattern=sprintf(".*%s.*", SymbolName))

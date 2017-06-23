@@ -5,8 +5,18 @@ source("R/chart.R")
 
 shinyServer(function(input, output)
 {
-  make_chart <- function(symbol, startDate, endDate, timeFrame) {
-    startProbe(symbol, FALSE)
+  make_chart <- function(symbol, startDate, endDate, timeFrame)
+  {
+    symbolTimeFrame <- unlist(strsplit(symbol, "[.]"))
+
+    if(length(symbolTimeFrame) == 2)
+    {
+      getSymbolsIntraday(Symbols = symbolTimeFrame[1], timeFrame = symbolTimeFrame[2])
+    }
+    else
+    {
+      startProbe(symbol, FALSE)
+    }
 
     if(!is.null(symbol))
       chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate,
@@ -14,7 +24,7 @@ shinyServer(function(input, output)
   }
 
   observe({
-    alerts <- getAlerts(input$numAlerts)
+    alerts <- getAlerts(input$numAlerts)#TODO select time frame
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
 
@@ -86,7 +96,7 @@ shinyServer(function(input, output)
     dataTable <- dataTable[(dataTable$stopLoss   >= input$stopLoss[1]   & dataTable$stopLoss <= input$stopLoss[2])     | is.na(dataTable$stopLoss)]
     dataTable <- dataTable[(dataTable$bullish    >= input$bullish[1]    & dataTable$bullish <= input$bullish[2])       | is.na(dataTable$bullish)]
     dataTable <- dataTable[(dataTable$bearish    >= input$bearish[1]    & dataTable$bearish <= input$bearish[2])       | is.na(dataTable$bearish)]
-    dataTable <- dataTable[(dataTable$proffit    >= input$proffit[1]    & dataTable$proffit <= input$proffit[2])       | is.na(dataTable$proffit)]
+    dataTable <- dataTable[(dataTable$proffit_pp >= input$proffit[1]    & dataTable$proffit_pp <= input$proffit[2])    | is.na(dataTable$proffit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
       dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
@@ -99,16 +109,27 @@ shinyServer(function(input, output)
   })
 
   output$parameters <- renderPlot({par(mfrow=c(4,3))
-                                           showSmaPeriod(tableValues())
-                                           showLowerBand(tableValues())
-                                           showUpperBand(tableValues())
-                                           showDownChange(tableValues())
-                                           showUpChange(tableValues())
-                                           showLowerLimit(tableValues())
-                                           showStopGain(tableValues())
-                                           showStopLoss(tableValues())
-                                           showBullish(tableValues())
-                                           showBearish(tableValues())})
+                                   showPlot(tableValues(), c("smaPeriod", "proffit_pp"))
+                                   showPlot(tableValues(), c("lowerBand", "proffit_pp"))
+                                   showPlot(tableValues(), c("upperBand", "proffit_pp"))
+                                   showPlot(tableValues(), c("downChange", "proffit_pp"))
+                                   showPlot(tableValues(), c("upChange", "proffit_pp"))
+                                   showPlot(tableValues(), c("lowLimit", "proffit_pp"))
+                                   showPlot(tableValues(), c("stopGain", "proffit_pp"))
+                                   showPlot(tableValues(), c("stopLoss", "proffit_pp"))
+                                   showPlot(tableValues(), c("bullish", "proffit_pp"))
+                                   showPlot(tableValues(), c("bearish", "proffit_pp"))
+                                   #showPlot(tableValues(), c("smaPeriod", "mProffit"))
+                                   #showPlot(tableValues(), c("lowerBand", "mProffit"))
+                                   #showPlot(tableValues(), c("upperBand", "mProffit"))
+                                   #showPlot(tableValues(), c("downChange", "mProffit"))
+                                   #showPlot(tableValues(), c("upChange", "mProffit"))
+                                   #showPlot(tableValues(), c("lowLimit", "mProffit"))
+                                   #showPlot(tableValues(), c("stopGain", "mProffit"))
+                                   #showPlot(tableValues(), c("stopLoss", "mProffit"))
+                                   #showPlot(tableValues(), c("bullish", "mProffit"))
+                                   #showPlot(tableValues(), c("bearish", "mProffit"))
+                                 })
 
   output$dataTable <- renderDataTable({showReport(tableValues())}, options = list(paging = FALSE))
 })

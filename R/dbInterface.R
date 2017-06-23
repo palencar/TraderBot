@@ -66,13 +66,42 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
 
   for(symbol in Symbols)
   {
-    fr <- getQuery(sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s'", symbol))
-    obj <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+    lastIdx <- NULL
+
+    name1M <- paste0("datacache/", symbol, ".1M.rds")
+
+    if(file.exists(name1M))
+    {
+      obj <- readRDS(name1M)
+      #obj <- base::get(name1M)
+
+      lastIdx <- index(tail(obj, 1))
+      lastIdx <- format(lastIdx, usetz = FALSE)
+
+      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime > '%s'", symbol, lastIdx)
+
+      fr <- getQuery(queryStr)
+      objQry <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+
+      obj <- rbind(obj, objQry) #TODO replace last use >= on the query
+    }
+    else
+    {
+      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s'", symbol)
+
+      fr <- getQuery(queryStr)
+      obj <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+    }
 
     if(nrow(obj) == 0)
       next
 
-    obj <- switch(timeFrame,
+    saveRDS(obj, name1M)
+    #assign(name1M, obj, .GlobalEnv)
+
+    if(timeFrame != "1M")
+    {
+      obj <- switch(timeFrame,
                   "3M" = to.minutes3(obj),
                   "5M" = to.minutes5(obj),
                   "10M" = to.minutes10(obj),
@@ -80,9 +109,10 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
                   "30M" = to.minutes30(obj),
                   "1H" = to.hourly(obj))
 
-    obj <- align.time(obj)
+      obj <- align.time(obj)
+    }
 
-    name <- paste0(symbol,".", timeFrame)
+    name <- paste0(symbol, ".", timeFrame)
 
     assign(name, obj, .GlobalEnv)
 
@@ -403,23 +433,25 @@ getQuery <- function(queryStr = "")
   return(fr)
 }
 
-insertIntraday <- function(name)
+insertIntraday <- function(symbol, data, from = NULL)
 {
-  csv <- read.csv(name, header = F, col.names = c("symbol", "date", "time", "open", "high", "low", "close", "volume"))
-  dff <- within(data.frame(csv), { datetime=format(as.POSIXct(paste(date, time)), "%Y-%m-%d %H:%M:%S") })
+  if(nrow(data) == 0)
+    return(NULL)
 
-  if(nrow(dff) > 0)
-  for(i in 1:nrow(dff))
-  {
-    df <- dff[i,]
-    if(config$engine == "sqlite")
-      queryStr <- sprintf("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
-                        df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
-    if(config$engine == "mysql")
-      queryStr <- sprintf("INSERT IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
-                          df$symbol, df$datetime, df$open, df$high, df$low, df$close, df$volume)
-    getQuery(queryStr)
-  }
+  df <- data[paste0(from, "/")]
+
+  if(nrow(df) == 0)
+    return(NULL)
+
+  if(config$engine == "sqlite")
+    queryStr <- paste("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
+                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(df), "%Y-%m-%d %H:%M:%S"),
+                                    df$Open, df$High, df$Low, df$Close, df$Volume), collapse=', '))
+  if(config$engine == "mysql")
+    queryStr <- paste("INSERT IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
+                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(df), "%Y-%m-%d %H:%M:%S"),
+                                    df$Open, df$High, df$Low, df$Close, df$Volume), collapse=', '))
+  getQuery(queryStr)
 }
 
 updateIntraday <- function()
@@ -429,9 +461,63 @@ updateIntraday <- function()
   for(symbol in symbols)
   {
     print(symbol)
-    system(paste0("python2 google_intraday.py ", symbol))
-    fileName <- paste0("intraday/", symbol)
 
-    insertIntraday(fileName)
+    lastIdx <- NULL
+
+    name1M <- paste0("datacache/", symbol, ".1M.rds")
+    #name1M <- paste0(symbol, ".1M")
+
+    if(file.exists(name1M))
+    {
+      obj <- readRDS(name1M)
+      #obj <- base::get(name1M)
+
+      lastIdx <- index(tail(obj, 1))
+      lastIdx <- format(lastIdx, usetz = FALSE)
+    }
+
+    df <- f.get.google.intraday(symbol, 60, "1d")
+    if(!is.null(df))
+      insertIntraday(symbol, df, lastIdx)
   }
+}
+
+#
+# Adapted from
+# https://github.com/frederickpelchat/quantitative-finance/blob/master/intraday-data.R
+#
+f.get.google.intraday <- function(symbol, freq, period) {
+  base.url <- 'http://www.google.com/finance/getprices?'
+  options.url <- paste('i=', freq, '&p=', period, '&f=d,o,h,l,c,v&df=cpct&q=', symbol, sep = '')
+  full.url <- paste(base.url, options.url, sep = '')
+
+  data <- tryCatch({
+    read.csv(full.url, header = FALSE, skip = 7, stringsAsFactors = FALSE)
+  }, error = function(err)
+  {
+    #print(err)
+    return(NULL)
+  })
+
+  if(is.null(data))
+    return(data.frame())
+
+  starting.times.idx <- which(substring(data$V1, 1, 1) == 'a')
+  ending.seconds.idx <- c(starting.times.idx[-1] - 1, nrow(data))
+  r.str.idx.use <- paste(starting.times.idx, ':', ending.seconds.idx, sep = '')
+
+  starting.times <- as.numeric(substring(data[starting.times.idx, 1], 2))
+
+  data[starting.times.idx, 1] <- 0
+  clean.idx <- do.call(c, lapply(seq(1, length(r.str.idx.use)),
+                                 function(i) {
+                                   starting.times[i] + freq * as.numeric(data[eval(parse(text = r.str.idx.use[i])), 1])
+                                 })
+  )
+  data.xts <- xts(data[,-1], as.POSIXct(clean.idx, origin = '1970-01-01', tz = 'America/Sao_Paulo'))
+
+  indexTZ(data.xts) <- 'America/Sao_Paulo'
+  colnames(data.xts) <- c('Open', 'High', 'Low', 'Close', 'Volume')
+
+  data.xts
 }

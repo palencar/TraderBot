@@ -47,13 +47,45 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
   meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
 
+  mGetObjPeriod <- memoise(
+    function(symbol, period)
+      {
+        return(base::get(symbol)[period])
+      }
+    )
+
+  mGetObjSeq <- memoise(
+    function(symbol, tradeDate)
+    {
+      obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
+      seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
+
+      retData <- c()
+      retData$obj <- obj
+      retData$seq <- seq
+
+      return(retData)
+    }
+  )
+
+  mLinReg <- memoise(
+    function(symbol, period, prevDate, tradeDate)
+    {
+      objPeriod <- mGetObjPeriod(symbol, period)
+
+      return(linearRegression(Cl(objPeriod[sprintf("%s/%s", prevDate, tradeDate)])))
+    }
+  )
+
   for(sPeriod in parameters$smaPeriod)
   for(ll in parameters$lowLimit)
   {
-    objPeriod <- base::get(symbol)[period]
+    objPeriod <- mGetObjPeriod(symbol, period)
 
-    obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
-    seq <- as.double((Hi(obj)+Lo(obj)+Cl(obj))/3)
+    retData <- mGetObjSeq(symbol, tradeDate)
+
+    obj <- retData$obj
+    seq <- retData$seq
 
     if(length(seq) < sPeriod)
       next
@@ -103,7 +135,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     maxValue <- as.numeric(high[which.max(high)])
     maxDate <- index(high[which.max(high)])
 
-    lr <- linearRegression(Cl(objPeriod[sprintf("%s/%s", maxDate, tradeDate)]))
+    lr <- mLinReg(symbol, period, maxDate, tradeDate)
     maxChange <- as.numeric((lr$coef*365)/lastValue)
     if(is.na(maxChange))
     {
@@ -115,7 +147,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     minValue <- as.numeric(low[which.min(low)])
     minDate <- index(low[which.min(low)])
 
-    lr <- linearRegression(Cl(objPeriod[sprintf("%s/%s", minDate, tradeDate)]))
+    lr <- mLinReg(symbol, period, minDate, tradeDate)
     minChange <- as.numeric((lr$coef*365)/lastValue)
     if(is.na(minChange))
     {
@@ -124,7 +156,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     lowYear <- tail(Lo(obj), 250) #rougthly 1 year (on daily timeframe)
     minYear <- index(lowYear[which.min(lowYear)])
-    if((tradeDate - minYear) <= 7)
+    if(nrow(objPeriod[paste0(minYear, "::", tradeDate)]) <= 7)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Min Year [%s]", symbol, period, minYear)
       cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -141,7 +173,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     low2Year <- tail(Lo(obj), 500)  #rougthly 2 years (on daily timeframe)
     min2Year <- index(low2Year[which.min(low2Year)])
-    if((tradeDate - min2Year) <= 14)
+    if(nrow(objPeriod[paste0(min2Year, "::", tradeDate)]) <= 14)
     {
       str <- sprintf("DO NOT BUY: %s | [%s] Min 2 Year [%s]", symbol, period, min2Year)
       cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -150,7 +182,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
 
     highYear <- tail(Hi(obj), 250)  #rougthly 1 year (on daily timeframe)
     maxYear <- index(highYear[which.max(highYear)])
-    if((tradeDate - maxYear) <= 7)
+    if(nrow(objPeriod[paste0(maxYear, "::", tradeDate)]) <= 7)
     {
       str <- sprintf("DO NOT SELL: %s | [%s] Max Year [%s]", symbol, period, maxYear)
       cantSell <- c(cantSell[cantSell != str], str)

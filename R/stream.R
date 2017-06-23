@@ -10,6 +10,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
   fsmState <- "startProbe"
   tradeAlerts <- NULL
   alertSymbols <- NULL
+  startTime <- NULL
   alerts <- NULL
 
   indexes <- new.env(hash=T, parent=emptyenv())
@@ -66,7 +67,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
           date  <- tradeDate
           alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
 
-          addAlerts(symbol, tradeDate, tradeDecision$decision)
+          addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
         }
       }
     }
@@ -80,24 +81,37 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
     if(fsmState == "startProbe")
     {
+      if(!is.null(startTime))
+      {
+        minDiff <- as.integer(difftime(Sys.time(), startTime, units='mins'))
+
+        if(minDiff < 60)
+        {
+          print(paste0("difftime (mins): ", minDiff, " waiting: ", 60 - minDiff))
+          Sys.sleep(3600 - (minDiff * 60))
+        }
+      }
+
+      startTime <- Sys.time()
+      startDay <- Sys.Date()
+
       if(timeFrame == "1D")
       {
+        #TODO updateDaily
+        #TODO getSymbolsDaily
+
         AllSymbols <- startProbe(symbolNames=Symbols, minAge=720)
       }
       else
       {
         updateIntraday()
-        #TODO if allready has some data, only append it
+
         AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
       }
 
-      fsmState <- "computeRegressions"
-    }
-    else if(fsmState == "computeRegressions")
-    {
       if(timeFrame == "1D")
       {
-        lastSession <- lastTradingSession()
+        lastSession <- max(index(base::get(AllSymbols)))
       }
       else
       {
@@ -116,9 +130,10 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
       tradeDate <- lastSession
 
-      startTime <- Sys.time()
-      startDay <- Sys.Date()
-
+      fsmState <- "computeRegressions"
+    }
+    else if(fsmState == "computeRegressions")
+    {
       if(timeFrame == "1D")
       {
         toFilter <- setdiff(AllSymbols, Symbols)
@@ -166,7 +181,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
       fsmState <- "sendAlert"
 
-      dtime <- format(Sys.time(), "%H:%M:%S")
+      dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
 
       if(dtime > stopdtime)
         openMarket <- FALSE
@@ -175,23 +190,16 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
     {
       if(length(alertSymbols) > 0)
       {
+        alerts <- alerts[order(alerts[,"date"], decreasing = TRUE),]
         sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
       }
+
+      #print(paste0("Memory use: ", format(object.size(x=lapply(ls(), base::get)), units="Mb")))
 
       if(openMarket == FALSE)
         fsmState <- "end"
       else
         fsmState <- "startProbe"
-    }
-    else if(fsmState == "end")
-    {
-      for(symbol in Symbols)
-      {
-        imagePath <- "chart-history"
-        imageName <- sprintf("%s/%s", imagePath, symbol)
-        dir.create(imagePath, showWarnings=FALSE)
-        chartSymbols(Symbols=symbol, dev="png", path=imagePath, suffix=startDay)
-      }
     }
   }
 }
