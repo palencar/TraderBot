@@ -11,7 +11,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
   if(timeFrame == "1D")
   {
-    AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
+    AllSymbols <- getSymbolsDaily(symbolNames = Symbols)
   }
   else
   {

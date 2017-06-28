@@ -55,7 +55,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
+getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
 {
   symbolList <- NULL
 
@@ -73,17 +73,20 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
     if(file.exists(name1M))
     {
       obj <- readRDS(name1M)
-      #obj <- base::get(name1M)
 
       lastIdx <- index(tail(obj, 1))
       lastIdx <- format(lastIdx, usetz = FALSE)
 
-      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime > '%s'", symbol, lastIdx)
+      cmp <- ifelse(updateLast, ">=", ">")
+      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime %s '%s'", symbol, cmp, lastIdx)
 
       fr <- getQuery(queryStr)
       objQry <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
 
-      obj <- rbind(obj, objQry) #TODO replace last use >= on the query
+      if(nrow(objQry) > 0)
+      {
+        obj <- rbind(obj, objQry)
+      }
     }
     else
     {
@@ -97,7 +100,6 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M")
       next
 
     saveRDS(obj, name1M)
-    #assign(name1M, obj, .GlobalEnv)
 
     if(timeFrame != "1M")
     {
@@ -131,7 +133,7 @@ getSymbolNames <- function()
 }
 
 #' @export
-startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
+getSymbolsDaily <- function(symbolNames = NULL, minAge = NULL)
 {
   if(is.null(symbolNames))
     symbolNames <- getSymbolNames()
@@ -139,26 +141,7 @@ startProbe <- function(symbolNames = NULL, update = TRUE, minAge = NULL)
   if(is.null(symbolNames) || length(symbolNames) == 0)
     return(NULL)
 
-  if(update)
-  {
-    quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
-
-    for(i in 1:length(symbolNames))
-    {
-      if(anyNA(quotes[i,]) || quotes[i,"Volume"] == 0)
-      {
-        warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Close", "Volume")], collapse = " ")))
-        next
-      }
-
-      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
-                          symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Close"], quotes[i, "Volume"])
-
-      getQuery(queryStr)
-    }
-  }
-
-  symbolNamesObj <- getSymbolsDB(symbolNames, FilterToday=update, FilterAge=minAge)
+  symbolNamesObj <- getSymbolsDB(symbolNames, FilterAge=minAge)
 
   return (symbolNamesObj)
 }
@@ -443,20 +426,43 @@ insertIntraday <- function(symbol, data, from = NULL)
   if(nrow(df) == 0)
     return(NULL)
 
-  if(config$engine == "sqlite")
-    queryStr <- paste("INSERT OR IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
+  queryStr <- paste("REPLACE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
                       paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(df), "%Y-%m-%d %H:%M:%S"),
                                     df$Open, df$High, df$Low, df$Close, df$Volume), collapse=', '))
-  if(config$engine == "mysql")
-    queryStr <- paste("INSERT IGNORE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
-                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(df), "%Y-%m-%d %H:%M:%S"),
-                                    df$Open, df$High, df$Low, df$Close, df$Volume), collapse=', '))
+
   getQuery(queryStr)
 }
 
-updateIntraday <- function()
+updateDaily <- function(symbols = NULL)
 {
-  symbols <- getSymbolNames()
+  if(is.null(symbols))
+  {
+    symbolNames <- getSymbolNames()
+  }
+
+  quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
+
+  for(i in 1:length(symbolNames))
+  {
+    if(anyNA(quotes[i,]) || quotes[i,"Volume"] == 0)
+    {
+      warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Close", "Volume")], collapse = " ")))
+      next
+    }
+
+    queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
+                        symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Close"], quotes[i, "Volume"])
+
+    getQuery(queryStr)
+  }
+}
+
+updateIntraday <- function(symbols = NULL)
+{
+  if(is.null(symbols))
+  {
+    symbols <- getSymbolNames()
+  }
 
   for(symbol in symbols)
   {

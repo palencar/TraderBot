@@ -11,20 +11,25 @@ shinyServer(function(input, output)
 
     if(length(symbolTimeFrame) == 2)
     {
-      getSymbolsIntraday(Symbols = symbolTimeFrame[1], timeFrame = symbolTimeFrame[2])
+      timeFrame = symbolTimeFrame[2]
+      #TODO what to do if timeFrame != symbolTimeFrame[2]?
+    }
+
+    if(timeFrame %in% c("weekly", "daily"))
+    {
+      symbol <- getSymbolsDaily(symbol, FALSE)
     }
     else
     {
-      startProbe(symbol, FALSE)
+      symbol <- getSymbolsIntraday(symbolTimeFrame[1], timeFrame)
     }
 
     if(!is.null(symbol))
-      chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate,
-                   timeFrame = timeFrame)
+      chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate, timeFrame = timeFrame)
   }
 
   observe({
-    alerts <- getAlerts(input$numAlerts)#TODO select time frame
+    alerts <- getAlerts(input$numAlerts, input$alertsTimeFrame)
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
 
@@ -85,6 +90,8 @@ shinyServer(function(input, output)
 
   tableValues <- reactive({
     dataTable <- mergeBacktest()
+
+    dataTable <- dataTable[dataTable$state == "closed"]
 
     dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod <= input$smaPeriod[2])   | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand <= input$upperBand[2])   | is.na(dataTable$upperBand)]

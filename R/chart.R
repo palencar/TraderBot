@@ -124,19 +124,6 @@ chartWeekly <- function(symbols, dev="")
 }
 
 #' @export
-chartAlerts <- function()
-{
-  alertsFile <- "datacache/alerts.rds"
-  if(!is.null(alertsFile))
-  {
-    symbols <- startProbe(alertsFile, FALSE)
-    symbols <- filterGap(symbols, lastTradingSession())
-    chartDaily(symbols)
-    chartWeekly(symbols)
-  }
-}
-
-#' @export
 chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
   symbols <- getWallet()
@@ -149,7 +136,7 @@ chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 #' @export
 chartList <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
-  symbols <- startProbe(symbols, FALSE)
+  symbols <- getSymbolsDaily(symbols)
   symbols <- filterGap(symbols, lastTradingSession())
 
   if(daily)

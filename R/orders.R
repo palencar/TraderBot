@@ -5,7 +5,7 @@ getOrders <- function(name, pos = NULL)
 {
   if(is.null(pos))
   {
-    pos <- getPositions(name)
+    pos <- getPositions(unlist(strsplit(name, "[.]"))[1])
   }
 
   symbol <- base::get(name)

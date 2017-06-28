@@ -11,7 +11,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
 
   if(timeFrame == "1D")
   {
-    AllSymbols <- startProbe(symbolNames = Symbols, minAge=730, update=FALSE)
+    AllSymbols <- getSymbolsDaily(symbolNames = Symbols)
   }
   else
   {

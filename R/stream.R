@@ -3,204 +3,164 @@ source("R/result.R")
 source("R/alerts.R")
 source("R/dbInterface.R")
 
+computeAlerts <- function(symbol, timeIndex, timeFrame)
+{
+  alerts <- NULL
+
+  print(paste0("COMPUTING: ", symbol))
+
+  if(length(timeIndex) == 0)
+    return(NULL)
+
+  print(timeIndex)
+
+  for(i in 1:length(timeIndex))
+  {
+    tradeDate <- timeIndex[i]
+
+    smaPeriod <- config$trade$sma_period
+    upperBand <- config$trade$upper_band
+    lowerBand <- config$trade$lower_band
+    upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
+    downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
+    lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
+    stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
+    stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
+    bullish   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
+    bearish   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
+
+    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bullish, bearish)
+
+    price <- meanPrice(symbol)
+
+    tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, price = price)
+
+    for(tradeDecision in tradeDecisions)
+    {
+      print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason))
+
+      tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
+
+      if(tradeDecision$decision != "hold")
+      {
+        price <- as.numeric(last(Cl(base::get(symbol)[tradeDate])))
+
+        logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
+
+        writeResult(symbol, logLine, "../stream")
+
+        alert <- tradeDecision$decision
+        date  <- tradeDate
+        alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
+
+        addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
+      }
+    }
+  }
+
+  return(alerts)
+}
+
 #' @export
 computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 {
   stopdtime <- "18:20:00"
-  fsmState <- "startProbe"
+  endLoop <- FALSE
+
   tradeAlerts <- NULL
   alertSymbols <- NULL
   startTime <- NULL
   alerts <- NULL
+  lastSession <- NULL
 
   indexes <- new.env(hash=T, parent=emptyenv())
 
   config <- config::get()
 
-  computeAlerts <- function(symbol, timeIndex)
+  while(endLoop == FALSE)
   {
-    alerts <- NULL
-
-    print(paste0("COMPUTING: ", symbol))
-
-    if(length(timeIndex) == 0)
-      return(NULL)
-
-    print(timeIndex)
-
-    for(i in 1:length(timeIndex))
+    if(!is.null(startTime))
     {
-      tradeDate <- timeIndex[i]
+      minDiff <- as.integer(difftime(Sys.time(), startTime, units='mins'))
 
-      smaPeriod <- config$trade$sma_period
-      upperBand <- config$trade$upper_band
-      lowerBand <- config$trade$lower_band
-      upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
-      downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
-      lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
-      stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
-      stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
-      bullish   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
-      bearish   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
-
-      parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bullish, bearish)
-
-      price <- meanPrice(symbol)
-
-      tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, price = price)
-
-      for(tradeDecision in tradeDecisions)
+      if(minDiff < 60)
       {
-        print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason))
-
-        tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
-
-        if(tradeDecision$decision != "hold")
-        {
-          price <- as.numeric(last(Cl(base::get(symbol)[tradeDate])))
-
-          logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
-
-          writeResult(symbol, logLine, "../stream")
-
-          alert <- tradeDecision$decision
-          date  <- tradeDate
-          alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
-
-          addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
-        }
+        print(paste0("difftime (mins): ", minDiff, " waiting: ", 60 - minDiff))
+        Sys.sleep(3600 - (minDiff * 60))
       }
     }
 
-    return(alerts)
-  }
+    startTime <- Sys.time()
+    startDay <- Sys.Date()
 
-  while(fsmState != "end")
-  {
-    print(fsmState)
-
-    if(fsmState == "startProbe")
+    if(timeFrame == "1D")
     {
-      if(!is.null(startTime))
-      {
-        minDiff <- as.integer(difftime(Sys.time(), startTime, units='mins'))
+      updateDaily()
 
-        if(minDiff < 60)
-        {
-          print(paste0("difftime (mins): ", minDiff, " waiting: ", 60 - minDiff))
-          Sys.sleep(3600 - (minDiff * 60))
-        }
-      }
+      Symbols <- getSymbolsDaily(Symbols)
+    }
+    else
+    {
+      updateIntraday()
 
-      startTime <- Sys.time()
-      startDay <- Sys.Date()
+      Symbols <- getSymbolsIntraday(Symbols, timeFrame, updateLast = TRUE)
+    }
 
-      if(timeFrame == "1D")
-      {
-        #TODO updateDaily
-        #TODO getSymbolsDaily
+    for(symbol in Symbols)
+    {
+      lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
-        AllSymbols <- startProbe(symbolNames=Symbols, minAge=720)
-      }
-      else
-      {
-        updateIntraday()
-
-        AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
-      }
-
-      if(timeFrame == "1D")
-      {
-        lastSession <- max(index(base::get(AllSymbols)))
-      }
-      else
-      {
-        lastSession <- as.Date.POSIXct(sapply(last(index(base::get(AllSymbols))), max))
-      }
-
-      startDate <- lastSession + 1
-
-      if(startDate > Sys.Date())
-        startDate <- Sys.Date()
+      if(is.null(lastSession) || lastIdx > lastSession)
+        lastSession <- lastIdx
 
       endDate <- Sys.Date()
-
-      if(lastSession < endDate)
-        openMarket <- FALSE
-
       tradeDate <- lastSession
 
-      fsmState <- "computeRegressions"
-    }
-    else if(fsmState == "computeRegressions")
-    {
+      alert <- NULL
+
       if(timeFrame == "1D")
       {
-        toFilter <- setdiff(AllSymbols, Symbols)
-        accepted <- filterDataM(toFilter, endDate)
-        Symbols <- union(accepted, Symbols)
+        alert  <- computeAlerts(symbol, as.POSIXct(tradeDate), timeFrame)
+        alerts <- unique(rbind(alerts, alert))
+      }
+      else
+      {
+        skipIdx <- indexes[[symbol]]
+        newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
 
-        for(symbol in Symbols)
+        if(!is.null(skipIdx))
         {
-          alert  <- computeAlerts(symbol, as.POSIXct(tradeDate))
+          newIdx <- newIdx[newIdx > skipIdx]
+        }
+
+        if(length(newIdx) > 0)
+        {
+          indexes[[symbol]] <- max(newIdx)
+
+          alert  <- computeAlerts(symbol, newIdx, timeFrame)
           alerts <- unique(rbind(alerts, alert))
         }
       }
-      else
+
+      if(!is.null(alert))
       {
-        for(symbol in AllSymbols)
-        {
-          skipIdx <- indexes[[symbol]]
-          newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
-
-          if(!is.null(skipIdx))
-          {
-            newIdx <- newIdx[newIdx > skipIdx]
-          }
-
-          if(length(newIdx) > 0)
-          {
-            indexes[[symbol]] <- max(newIdx)
-
-            alert  <- computeAlerts(symbol, newIdx)
-            alerts <- unique(rbind(alerts, alert))
-          }
-        }
+        print(sprintf("Chart [%s] [%s]: %s", alert$symbol, alert$date, alert$alert))
       }
-
-      alertSymbols <- as.vector(unique(alerts$symbol))
-
-      fsmState <- "chartAlerts"
     }
-    else if(fsmState == "chartAlerts")
-    {
-      print(sprintf("Chart [%s]: %s", alertSymbols, startTime))
 
-      if(length(alertSymbols) > 0)
-        chartSymbols(alertSymbols, dev="png")
+    dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
 
-      fsmState <- "sendAlert"
+    if(dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
+      endLoop <- TRUE
+  }
 
-      dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
+  if(length(alerts) > 0)
+  {
+    for(symbol in as.vector(unique(alerts$symbol)))
+      chartSymbols(symbol, dev="png")
 
-      if(dtime > stopdtime)
-        openMarket <- FALSE
-    }
-    else if(fsmState == "sendAlert")
-    {
-      if(length(alertSymbols) > 0)
-      {
-        alerts <- alerts[order(alerts[,"date"], decreasing = TRUE),]
-        sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
-      }
-
-      #print(paste0("Memory use: ", format(object.size(x=lapply(ls(), base::get)), units="Mb")))
-
-      if(openMarket == FALSE)
-        fsmState <- "end"
-      else
-        fsmState <- "startProbe"
-    }
+    alerts <- alerts[order(alerts[,"date"], decreasing = TRUE),]
+    sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
   }
 }
 

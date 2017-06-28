@@ -56,7 +56,7 @@ showReport <- function(dataTable, path = "result")
 
   if(length(symbols) > 0)
   {
-    symbols <- startProbe(symbolNames = symbols, minAge=400, update=FALSE)
+    symbols <- getSymbolsDaily(symbolNames = symbols)
   }
 
   for(symbolName in symbols)
