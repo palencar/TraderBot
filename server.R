@@ -91,7 +91,7 @@ shinyServer(function(input, output)
   tableValues <- reactive({
     dataTable <- mergeBacktest()
 
-    dataTable <- dataTable[dataTable$state == "closed"]
+    #dataTable <- dataTable[dataTable$state == "closed"]
 
     dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod <= input$smaPeriod[2])   | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand <= input$upperBand[2])   | is.na(dataTable$upperBand)]
@@ -101,8 +101,8 @@ shinyServer(function(input, output)
     dataTable <- dataTable[(dataTable$lowLimit   >= input$lowLimit[1]   & dataTable$lowLimit <= input$lowLimit[2])     | is.na(dataTable$lowLimit)]
     dataTable <- dataTable[(dataTable$stopGain   >= input$stopGain[1]   & dataTable$stopGain <= input$stopGain[2])     | is.na(dataTable$stopGain)]
     dataTable <- dataTable[(dataTable$stopLoss   >= input$stopLoss[1]   & dataTable$stopLoss <= input$stopLoss[2])     | is.na(dataTable$stopLoss)]
-    dataTable <- dataTable[(dataTable$bullish    >= input$bullish[1]    & dataTable$bullish <= input$bullish[2])       | is.na(dataTable$bullish)]
-    dataTable <- dataTable[(dataTable$bearish    >= input$bearish[1]    & dataTable$bearish <= input$bearish[2])       | is.na(dataTable$bearish)]
+    dataTable <- dataTable[(dataTable$bullMin    >= input$bullish[1]    & dataTable$bullMax <= input$bullish[2])       | (is.na(dataTable$bullMin) & is.na(dataTable$bullMax))]
+    dataTable <- dataTable[(dataTable$bearMin    >= input$bearish[1]    & dataTable$bearMax <= input$bearish[2])       | (is.na(dataTable$bearMin) & is.na(dataTable$bearMax))]
     dataTable <- dataTable[(dataTable$proffit_pp >= input$proffit[1]    & dataTable$proffit_pp <= input$proffit[2])    | is.na(dataTable$proffit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
@@ -124,18 +124,10 @@ shinyServer(function(input, output)
                                    showPlot(tableValues(), c("lowLimit", "proffit_pp"))
                                    showPlot(tableValues(), c("stopGain", "proffit_pp"))
                                    showPlot(tableValues(), c("stopLoss", "proffit_pp"))
-                                   showPlot(tableValues(), c("bullish", "proffit_pp"))
-                                   showPlot(tableValues(), c("bearish", "proffit_pp"))
-                                   #showPlot(tableValues(), c("smaPeriod", "mProffit"))
-                                   #showPlot(tableValues(), c("lowerBand", "mProffit"))
-                                   #showPlot(tableValues(), c("upperBand", "mProffit"))
-                                   #showPlot(tableValues(), c("downChange", "mProffit"))
-                                   #showPlot(tableValues(), c("upChange", "mProffit"))
-                                   #showPlot(tableValues(), c("lowLimit", "mProffit"))
-                                   #showPlot(tableValues(), c("stopGain", "mProffit"))
-                                   #showPlot(tableValues(), c("stopLoss", "mProffit"))
-                                   #showPlot(tableValues(), c("bullish", "mProffit"))
-                                   #showPlot(tableValues(), c("bearish", "mProffit"))
+                                   showPlot(tableValues(), c("bullMin", "proffit_pp"))
+                                   showPlot(tableValues(), c("bullMax", "proffit_pp"))
+                                   showPlot(tableValues(), c("bearMin", "proffit_pp"))
+                                   showPlot(tableValues(), c("bearMax", "proffit_pp"))
                                  })
 
   output$dataTable <- renderDataTable({showReport(tableValues())}, options = list(paging = FALSE))
