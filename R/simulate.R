@@ -31,15 +31,17 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
   stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
   stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
-  bullish   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
-  bearish   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
+  bullMin   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
+  bullMax   <- ifelse(is.null(config$trade$bull_max), NA, config$trade$bull_max)
+  bearMin   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
+  bearMin   <- ifelse(is.null(config$trade$bear_max), NA, config$trade$bear_max)
 
-  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearish, bullish)
+  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearMin, bearMax, bullMin, bullMax)
 
   for(symbol in AllSymbols)
   {
     indexes <- index(base::get(symbol))
-    timeIndex <- tail(indexes, length(indexes) - 730)
+    timeIndex <- tail(indexes, length(indexes) - 500)
 
     if(!is.null(startDate))
       timeIndex <- timeIndex[which(timeIndex >= startDate)]
@@ -59,45 +61,45 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, map = map)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, map = map)
+
+      if(is.null(tradeDecision))
+        next
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
-      for(tradeDecision in tradeDecisions)
+      if(tradeDecision$decision != "hold")
       {
-        if(tradeDecision$decision != "hold")
+        alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
+
+        if(is.null(alerts[[alert]]))
         {
-          alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
-
-          if(is.null(alerts[[alert]]))
-          {
-            print(alert)
-            alerts[[alert]] <- TRUE
-          }
-
-          if(symbol %in% alertSymbols == FALSE)
-          {
-            alertSymbols <- c(alertSymbols, symbol)
-          }
-
-          price <- tradeDecision$price
-          decision <- tradeDecision$decision
-
-          print(paste0("DateTime: ", tradeDate))
-
-          logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
-
-          parStr <- paste(tradeDecision$parameters, collapse = " ")
-
-          obj <- map[[parStr]]
-
-          if(is.null(obj))
-            map[[parStr]] <- logLine
-          else
-            map[[parStr]] <- rbind.data.frame(obj, logLine)
-
-          addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
+          print(alert)
+          alerts[[alert]] <- TRUE
         }
+
+        if(symbol %in% alertSymbols == FALSE)
+        {
+          alertSymbols <- c(alertSymbols, symbol)
+        }
+
+        price <- tradeDecision$price
+        decision <- tradeDecision$decision
+
+        print(paste0("DateTime: ", tradeDate))
+
+        logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
+
+        parStr <- paste(tradeDecision$parameters, collapse = " ")
+
+        obj <- map[[parStr]]
+
+        if(is.null(obj))
+          map[[parStr]] <- logLine
+        else
+          map[[parStr]] <- rbind.data.frame(obj, logLine)
+
+        addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
       }
     }
 

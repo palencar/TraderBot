@@ -36,20 +36,23 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
     lowLimit = as.numeric(formatC(runif(1, min=0, max=0.8), digits=2,format="f"))
     stopLoss = as.numeric(formatC(runif(1, min=0, max=2), digits=2,format="f"))
     stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
-    bearish  = as.numeric(formatC(runif(1, min=0, max=0.7), digits=2,format="f"))
-    bullish  = as.numeric(formatC(runif(1, min=0.3, max=1), digits=2,format="f"))
 
-    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearish, bullish)
+    bearMin  = as.numeric(formatC(runif(1, min=0.0, max=0.6), digits=2,format="f"))
+    bearMax  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
+    bullMin  = as.numeric(formatC(runif(1, min=0.0, max=0.6), digits=2,format="f"))
+    bullMax  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
+
+    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearMin, bearMax, bullMin, bullMax)
 
     pars <- new.env(hash=T, parent=emptyenv())
 
-    timeIndex <- tail(indexes, length(indexes) - 730)
+    timeIndex <- tail(indexes, length(indexes) - 500)
 
     n <- n + nrow(parameters) ^ ncol(parameters)
 
-    if((n %% 10000) == 0)
+    if((n %% 10) == 0)
     {
-      print(paste0(Sys.time(), " : ", n))
+      print(paste0(Sys.time(), " Sample: ", n))
     }
 
     if(length(timeIndex) == 0)
@@ -65,38 +68,38 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecisions <- trade(symbol, tradeDate, parameters = parameters, map = map)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, map = map)
+
+      if(is.null(tradeDecision))
+        next
 
       alerts <- new.env(hash=T, parent=emptyenv())
 
-      for(tradeDecision in tradeDecisions)
+      if(tradeDecision$decision != "hold")
       {
-        if(tradeDecision$decision != "hold")
+        alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
+
+        if(is.null(alerts[[alert]]))
         {
-          alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
-
-          if(is.null(alerts[[alert]]))
-          {
-            print(alert)
-            alerts[[alert]] <- TRUE
-          }
-
-          price <- tradeDecision$price
-          decision <- tradeDecision$decision
-
-          logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
-
-          parStr <- paste(tradeDecision$parameters, collapse = " ")
-
-          pars[[parStr]] <- tradeDecision$parameters
-
-          obj <- map[[parStr]]
-
-          if(is.null(obj))
-            map[[parStr]] <- logLine
-          else
-            map[[parStr]] <- rbind.data.frame(obj, logLine, stringsAsFactors = FALSE)
+          print(alert)
+          alerts[[alert]] <- TRUE
         }
+
+        price <- tradeDecision$price
+        decision <- tradeDecision$decision
+
+        logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
+
+        parStr <- paste(tradeDecision$parameters, collapse = " ")
+
+        pars[[parStr]] <- tradeDecision$parameters
+
+        obj <- map[[parStr]]
+
+        if(is.null(obj))
+          map[[parStr]] <- logLine
+        else
+          map[[parStr]] <- rbind.data.frame(obj, logLine, stringsAsFactors = FALSE)
       }
     }
 

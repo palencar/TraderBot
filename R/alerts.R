@@ -49,6 +49,8 @@ sendAlert <- function(alerts, timeFrame = "1D")
 {
   config <- config::get()
 
+  print(alerts)
+
   datetime <- Sys.time()
   symbols <- as.vector(alerts$symbol)
 
