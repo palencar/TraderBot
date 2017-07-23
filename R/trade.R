@@ -272,30 +272,30 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
     upper <- parameters$upperBand + (as.numeric(minChange))
   }
 
-  if(!is.na(parameters$bullMin) && as.numeric(bull) < parameters$bullMin)
+  if(!is.na(parameters$bullBuy) && as.numeric(bull) < parameters$bullBuy)
   {
-    str <- sprintf("DO NOT BUY: %s | [%s] Bullish [%.2f] < [%.2f]", symbol, period, bull, parameters$bullMin)
+    str <- sprintf("DO NOT BUY: %s | [%s] Bullish [%.2f] < [%.2f]", symbol, period, bull, parameters$bullBuy)
     cantBuy <- c(cantBuy[cantBuy != str], str)
     canBuy <- FALSE
   }
 
-  if(!is.na(parameters$bullMax) && as.numeric(bull) > parameters$bullMax)
+  if(!is.na(parameters$bullSell) && as.numeric(bull) > parameters$bullSell)
   {
-    str <- sprintf("DO NOT SELL: %s | [%s] Bullish [%.2f] > [%.2f]", symbol, period, bull, parameters$bullMax)
+    str <- sprintf("DO NOT SELL: %s | [%s] Bullish [%.2f] > [%.2f]", symbol, period, bull, parameters$bullSell)
     cantSell <- c(cantSell[cantSell != str], str)
     canSell <- FALSE
   }
 
-  if(!is.na(parameters$bearMin) && as.numeric(bear) < parameters$bearMin)
+  if(!is.na(parameters$bearSell) && as.numeric(bear) < parameters$bearSell)
   {
-    str <- sprintf("DO NOT SELL: %s | [%s] Bearish [%.2f] < [%.2f]", symbol, period, bear, parameters$bearMin)
+    str <- sprintf("DO NOT SELL: %s | [%s] Bearish [%.2f] < [%.2f]", symbol, period, bear, parameters$bearSell)
     cantSell <- c(cantSell[cantSell != str], str)
     canSell <- FALSE
   }
 
-  if(!is.na(parameters$bearMax) && as.numeric(bear) > parameters$bearMax)
+  if(!is.na(parameters$bearBuy) && as.numeric(bear) > parameters$bearBuy)
   {
-    str <- sprintf("DO NOT BUY: %s | [%s] Bearish [%.2f] > [%.2f]", symbol, period, bear, parameters$bearMax)
+    str <- sprintf("DO NOT BUY: %s | [%s] Bearish [%.2f] > [%.2f]", symbol, period, bear, parameters$bearBuy)
     cantBuy <- c(cantBuy[cantBuy != str], str)
     canBuy <- FALSE
   }
@@ -413,9 +413,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, map = NULL, price = NULL
   tradeDecision$canSell <- canSell
   tradeDecision$price <- as.numeric(last(seq))
   pars        <- data.frame(parameters$smaPeriod, parameters$upperBand, parameters$lowerBand, parameters$upChange, parameters$downChange, parameters$lowLimit,
-                            parameters$stopGain, parameters$stopLoss, parameters$bullMin, parameters$bullMax, parameters$bearMin, parameters$bearMax)
+                            parameters$stopGain, parameters$stopLoss, parameters$bullBuy, parameters$bullSell, parameters$bearSell, parameters$bearBuy)
   names(pars) <- c("smaPeriod", "upperBand", "lowerBand", "upChange", "downChange", "lowLimit",
-                   "stopGain", "stopLoss", "bullMin", "bullMax", "bearMin", "bearMax")
+                   "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")
   tradeDecision$parameters <- pars
 
   #if(decision != "hold")

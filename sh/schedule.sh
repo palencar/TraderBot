@@ -1,20 +1,24 @@
 #!/bin/bash
 
+timeframe=$(printf '1D\n15M\n30M\n' | shuf -n1)
 queued=$(tsp | grep queued | wc -l)
 ncpu=$(nproc)
 
-if (($queued > $ncpu))
+if (($queued > 20))
 then
     exit 0
 fi
 
-tsp -S $ncpu
+list=$(shuf -n 40 list.txt)
 
-SYMBOLS=$(sqlite3 db.sqlite 'select distinct(symbol) from stockprices group by symbol' | shuf)
-
-for i in $SYMBOLS ;
+for i in $list
 do
-    tsp sh/compute.sh $i 10000 1D;
-    #tsp sh/compute.sh $i 10000 1H;
-    #tsp sh/compute.sh $i 10000 15M;
+  if [ $(tsp | egrep -v "queued|running" | grep $i | wc -l) == 0 ];
+  then
+    echo "Queueing $i $timeframe"
+
+    tsp sh/compute.sh $i 100 $timeframe
+  fi
 done
+
+tsp -S $ncpu

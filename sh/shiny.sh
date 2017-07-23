@@ -1,3 +1,3 @@
 #!/bin/bash
 
-Rscript -e "library('shiny')" -e "runApp(host = '$1', port = $2)" -e "warnings()"
+Rscript -e "library('TraderBot')" -e "runShinyApp(options = list(host='127.0.0.1', port=8000))" -e "warnings()"

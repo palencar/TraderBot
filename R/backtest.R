@@ -4,7 +4,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
+computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replaceFile = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -28,21 +28,21 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
   {
     map <- new.env(hash=T, parent=emptyenv())
 
-    smaPeriod = sample(100:500, size = 1, replace = TRUE)
-    upperBand = as.numeric(formatC(runif(1, min=-2.0, max=4), digits=2,format="f"))
-    lowerBand = as.numeric(formatC(runif(1, min=-4, max=2.0), digits=2,format="f"))
+    smaPeriod = sample(50:1000, size = 1, replace = TRUE)
+    upperBand = as.numeric(formatC(runif(1, min=0.6, max=2.0), digits=2,format="f"))
+    lowerBand = as.numeric(formatC(runif(1, min=-2.0, max=-0.6), digits=2,format="f"))
     upChange = as.numeric(formatC(runif(1, min=0, max=8), digits=2,format="f"))
     downChange = as.numeric(formatC(runif(1, min=-8, max=0), digits=2,format="f"))
     lowLimit = as.numeric(formatC(runif(1, min=0, max=0.8), digits=2,format="f"))
-    stopLoss = as.numeric(formatC(runif(1, min=0, max=2), digits=2,format="f"))
+    stopLoss = as.numeric(formatC(runif(1, min=0, max=1), digits=2,format="f"))
     stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
 
-    bearMin  = as.numeric(formatC(runif(1, min=0.0, max=0.6), digits=2,format="f"))
-    bearMax  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
-    bullMin  = as.numeric(formatC(runif(1, min=0.0, max=0.6), digits=2,format="f"))
-    bullMax  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
+    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
+    bearBuy  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
+    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
+    bullSell  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
 
-    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearMin, bearMax, bullMin, bullMax)
+    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
     pars <- new.env(hash=T, parent=emptyenv())
 
@@ -103,7 +103,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
       }
     }
 
-    outputOp <- sprintf("result/%s.rds", symbol)
+    outputOp <- sprintf("result/%s%s.rds", symbol, ifelse(timeFrame == "1D", ".1D", ""))
 
     parList <- list()
     resList <- list()
@@ -129,6 +129,13 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D")
 
     if(i > 0)
     {
+      if(replaceFile)
+      {
+        if(file.exists(outputOp))
+          file.remove(outputOp)
+        replaceFile <- FALSE
+      }
+
       opFile <- NULL
       if(file.exists(outputOp))
       {

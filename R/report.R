@@ -52,25 +52,19 @@ showReport <- function(dataTable, path = "result")
   dff <- NULL
   i <- 1
 
-  symbols <- unique(as.vector(dataTable$symbol))
-
-  if(length(symbols) > 0)
-  {
-    symbols <- getSymbolsDaily(symbolNames = symbols)
-  }
+  symbols <- unique(as.vector(dataTable$name))
 
   for(symbolName in symbols)
   {
-    obj        <- dataTable[which(dataTable$symbol == symbolName)]
+    obj        <- dataTable[which(dataTable$name == symbolName)]
     proffit    <- mean(obj$proffit_pp)
     minProffit <- min(obj$proffit_pp)
     maxProffit <- max(obj$proffit_pp)
     variance   <- var(obj$proffit_pp)
     skewness   <- skewness(obj$proffit_pp)
-    count      <- length(unique(obj$proffit_pp[obj$symbol == symbolName]))
-    volatility <- mean(na.omit(volatility(base::get(symbolName))))
-    volume     <- mean(as.numeric(na.omit(Vo(base::get(symbolName)))))
-    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count, volatility, volume)
+    count      <- length(unique(obj$proffit_pp[obj$name == symbolName]))
+    #volume     <- mean(as.numeric(na.omit(Vo(base::get(symbolName)))))
+    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count)#, volume)
     dff        <- rbind(dff, df)
   }
 

@@ -31,12 +31,12 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
   stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
   stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
-  bullMin   <- ifelse(is.null(config$trade$bull_min), NA, config$trade$bull_min)
-  bullMax   <- ifelse(is.null(config$trade$bull_max), NA, config$trade$bull_max)
-  bearMin   <- ifelse(is.null(config$trade$bear_min), NA, config$trade$bear_min)
-  bearMin   <- ifelse(is.null(config$trade$bear_max), NA, config$trade$bear_max)
+  bullBuy   <- ifelse(is.null(config$trade$bull_buy), NA, config$trade$bull_buy)
+  bullSell   <- ifelse(is.null(config$trade$bull_sell), NA, config$trade$bull_sell)
+  bearSell   <- ifelse(is.null(config$trade$bear_sell), NA, config$trade$bear_sell)
+  bearBuy   <- ifelse(is.null(config$trade$bear_buy), NA, config$trade$bear_buy)
 
-  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearMin, bearMax, bullMin, bullMax)
+  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
   for(symbol in AllSymbols)
   {
