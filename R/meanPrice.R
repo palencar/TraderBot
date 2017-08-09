@@ -2,7 +2,7 @@ source("R/dbInterface.R")
 
 getMeanPrice <- function(Symbol, SymbolName)
 {
-  mePrice <- meanPrice(SymbolName)
+  mePrice <- meanPrice(unlist(strsplit(SymbolName, "[.]"))[1])
 
   if(is.null(mePrice))
     return(NULL)

@@ -15,7 +15,7 @@ linearRegression <- function (Symbol)
 
   x <- index(Symbol)
 
-  r <- fastLm(y~x)
+  r <- RcppEigen::fastLm(y~x)
 
   yp <- predict(r)
 
@@ -29,10 +29,8 @@ linearRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma, coef=r$coefficients["x"]))
 }
 
-linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
+linearRegressionIndicator <- function (SymbolName, Symbol, n=30)
 {
-  update <- FALSE
-
   fileName <- sprintf("datacache/%s_%d_lri.rds", SymbolName, n)
 
   fileExists <- file.exists(fileName)
@@ -49,66 +47,39 @@ linearRegressionIndicator <- function (SymbolName, Symbol, window=720, n=30)
     return(NULL)
   }
 
+  dolm <- function(x)
+  {
+    as.numeric(last(predict(RcppEigen::fastLm(formula = y~poly(x,2), data = as.data.frame(x)))))
+  }
+
   dateInterval <- index(xts::last(Symbol, lastN))
   if(!is.null(lriFile))
   {
-    dateInterval <- dateInterval[!(dateInterval %in% (index(lriFile)))] #TODO atualizar o ultimo
+    idx <- dateInterval
+    dateInterval <- dateInterval[!(dateInterval %in% index(lriFile))]
+    dateInterval <- idx[idx >= first(dateInterval) & idx <= last(dateInterval)]
   }
-
-  lri <- c()
 
   if(length(dateInterval) > 0)
   {
-    update <- TRUE
+    period <- paste0(index(xts::first(xts::last(Symbol[sprintf("/%s", first(dateInterval))], n))), "/", last(dateInterval))
+    subsetSymbol <- Symbol[period]
+
+    y <- as.double((Hi(subsetSymbol)+Lo(subsetSymbol)+Cl(subsetSymbol))/3)
+    x <- 1:nrow(subsetSymbol)
+
+    df <- data.frame(x, y)
+
+    lri <- rollapplyr(df, n, dolm, by.column = FALSE)
+
+    lriFile <- rbind(lriFile, xts(lri, dateInterval))
+    lriFile <- lriFile[!duplicated(index(lriFile), fromLast = TRUE),]
+    lriFile <- na.omit(lriFile)
+
+    saveRDS(lriFile, file=fileName)
   }
 
-  if(update)
-  {
-    for(i in 1:length(dateInterval))
-    {
-      endDateTime <- dateInterval[i]
-      startDateTime <- index(xts::first(xts::last(Symbol[sprintf("/%s",endDateTime)], n)))
-
-      subsetSymbol <- Symbol[sprintf("%s/%s", startDateTime, endDateTime)]
-
-      if(nrow(subsetSymbol) < 3)
-      {
-        next
-      }
-
-      x <- as.integer(index(subsetSymbol))
-      if(is.HLC(subsetSymbol))
-      {
-        y <- as.double((Hi(subsetSymbol)+Lo(subsetSymbol)+Cl(subsetSymbol))/3)
-      }
-      else
-      {
-        y <- as.double(subsetSymbol[,1])
-      }
-
-      x <- index(subsetSymbol)
-
-      lri[i] <- as.numeric(last(predict(lm(y~poly(x,2)))))
-    }
-  }
-
-  if(fileExists)
-  {
-    xi <- rbind(lriFile[sprintf("::%s", (index(xts::last(lriFile)))-1)], xts(lri, dateInterval))
-  }
-  else
-  {
-    xi <- xts(lri, dateInterval)
-  }
-
-  if(update)
-  {
-    xi<-xi[!duplicated(index(xi)),]
-    xi <- xi[!is.na(xi),]
-    saveRDS(xi, file=fileName)
-  }
-
-  return(xi)
+  return(lriFile)
 }
 
 getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))

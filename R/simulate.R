@@ -9,17 +9,6 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  if(timeFrame == "1D")
-  {
-    AllSymbols <- getSymbolsDaily(symbolNames = Symbols)
-  }
-  else
-  {
-    AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
-  }
-
-  forget(singleResultM)
-
   alertSymbols <- NULL
 
   config <- config::get()
@@ -38,8 +27,21 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
   parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
+  if(is.null(Symbols))
+    AllSymbols <- getSymbolNames()
+  else
+    AllSymbols <- Symbols
+
   for(symbol in AllSymbols)
   {
+    if(timeFrame == "1D")
+      symbol <- getSymbolsDaily(symbolNames = symbol)
+    else
+      symbol <- getSymbolsIntraday(symbol, timeFrame)
+
+    if(is.null(symbol))
+      next
+
     indexes <- index(base::get(symbol))
     timeIndex <- tail(indexes, length(indexes) - 500)
 
@@ -52,16 +54,16 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     if(length(timeIndex) == 0)
       next
 
-    map <- new.env(hash=T, parent=emptyenv())
+    operations <- list()
 
-    for(i in 1:length(timeIndex))
+    for(i in length(timeIndex):1)
     {
       tradeDate <- timeIndex[i]
 
-      if(is.null(filterDataM(symbol, tradeDate)))
+      if(is.null(filterData(symbol, tradeDate)))
         next
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, map = map)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations)
 
       if(is.null(tradeDecision))
         next
@@ -90,33 +92,23 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
         logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
 
-        parStr <- paste(tradeDecision$parameters, collapse = " ")
+        i <- length(operations)
+        operations[[i+1]] <- logLine
 
-        obj <- map[[parStr]]
-
-        if(is.null(obj))
-          map[[parStr]] <- logLine
-        else
-          map[[parStr]] <- rbind.data.frame(obj, logLine)
-
-        addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
+        addAlerts(symbol, tradeDate, decision, price, timeFrame)
       }
     }
 
-    for(parStr in ls(map))
+    result <- singleResult(rbindlist(operations), max(timeIndex))
+
+    if(length(result) > 0)
     {
-      lines <- map[[parStr]]
-
-      result <- singleResultM(parStr, lines, last(timeIndex))
-
-      if(length(result) > 0)
-      {
-        print(sprintf("[%s] [%s]", symbol, parStr))
-        print(result)
-      }
+      print(sprintf("[%s]", symbol))
+      print(parameters)
+      print(result)
     }
 
-    forget(singleResultM)
+    base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
 
   return(alertSymbols)

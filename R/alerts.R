@@ -3,7 +3,7 @@ library("config")
 library("htmltools")
 
 #' @export
-addAlerts <- function(symbol, date, alert = NA, timeFrame = "1D")
+addAlerts <- function(symbol, date, alert = NA, price = NA, timeFrame = "1D")
 {
   if(is.null(symbol))
     return()
@@ -15,7 +15,7 @@ addAlerts <- function(symbol, date, alert = NA, timeFrame = "1D")
     alerts <- readRDS(alertsFile)
   }
 
-  df <- data.frame(symbol, date, alert)
+  df <- data.frame(symbol, date, alert, price)
   df <- rbindlist(list(df, alerts), fill = TRUE)
   df <- unique(df)
   df <- df[order(df$date, decreasing = TRUE),]

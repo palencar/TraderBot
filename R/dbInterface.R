@@ -55,7 +55,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
+getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -67,6 +67,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
   for(symbol in Symbols)
   {
     lastIdx <- NULL
+    updateFile <- FALSE
 
     name1M <- paste0("datacache/", symbol, ".1M.rds")
 
@@ -81,11 +82,12 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
       queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime %s '%s'", symbol, cmp, lastIdx)
 
       fr <- getQuery(queryStr)
-      objQry <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+      objQry <- xts(fr[,-1], as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'), tz='America/Sao_Paulo'))
 
       if(nrow(objQry) > 0)
       {
         obj <- rbind(obj, objQry)
+        updateFile <- TRUE
       }
     }
     else
@@ -93,13 +95,17 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
       queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s'", symbol)
 
       fr <- getQuery(queryStr)
-      obj <- xts(fr[,-1], as.POSIXct(as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'))))
+      obj <- xts(fr[,-1], as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'), tz='America/Sao_Paulo'))
+      updateFile <- TRUE
     }
 
     if(nrow(obj) == 0)
       next
 
-    saveRDS(obj, name1M)
+    obj <- obj[!duplicated(index(obj))]
+
+    if(updateFile)
+      saveRDS(obj, name1M)
 
     if(timeFrame != "1M")
     {
@@ -116,7 +122,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
 
     name <- paste0(symbol, ".", timeFrame)
 
-    assign(name, obj, .GlobalEnv)
+    assign(name, obj, env)
 
     symbolList <- c(symbolList, name)
   }
@@ -127,7 +133,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE)
 #' @export
 getSymbolNames <- function()
 {
-  fr <- getQuery("SELECT distinct(symbol) from stockprices")
+  fr <- getQuery("SELECT distinct(symbol) FROM stockprices UNION SELECT distinct(symbol) FROM intraday")
 
   return(fr$symbol)
 }
@@ -187,11 +193,7 @@ getQuoteDay <- function(SymbolName, Day)
       return(NULL)
 
     table <- as.data.frame(base::get(Symbol))
-    names(table)[1]<-paste("day_open")
-    names(table)[2]<-paste("day_high")
-    names(table)[3]<-paste("day_low")
-    names(table)[4]<-paste("day_close")
-    names(table)[5]<-paste("volume")
+    names(table) <- c("day_open", "day_high", "day_low", "day_close", "volume")
     table["date"] <- as.Date(Day)
     table["symbol"] <- SymbolName
     table[6] <- NULL
@@ -231,14 +233,11 @@ lastTradingSession <- function()
   return(as.Date(getQuery("select max(date) from stockprices")[,1]))
 }
 
-lastPrice <- function(SymbolName, dateLimit = NULL)
+lastPrice <- function(symbol)
 {
-  if(is.null(dateLimit))
-    queryStr <- sprintf("select day_close from stockprices where symbol = '%s' order by date desc limit 1", SymbolName)
-  else
-    queryStr <- sprintf("select day_close from stockprices where symbol = '%s' and date <= date('%s') order by date desc limit 1", SymbolName, dateLimit)
+  queryStr <- sprintf("select close from intraday where symbol = '%s' order by datetime desc limit 1", symbol)
 
-  return(getQuery(queryStr))
+  return(as.numeric(getQuery(queryStr)))
 }
 
 lastTradeDay <- function(SymbolName)
@@ -346,22 +345,16 @@ getPositions <- function(symbol = NULL)
   return(positions)
 }
 
-getWallet <- function(FilterClosed = TRUE)
+getWallet <- function(showClosed = FALSE)
 {
   fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
 
   symbols <- c()
 
-  if(FilterClosed == FALSE)
+  if(showClosed == TRUE)
   {
-    for(i in fr[[1]])
-    {
-      symbols <- c(symbols, i)
-    }
-
-    return(symbols)
+    return(fr$symbol)
   }
-
 
   for(i in fr[[1]])
   {
@@ -433,6 +426,7 @@ insertIntraday <- function(symbol, data, from = NULL)
   getQuery(queryStr)
 }
 
+#' @export
 updateDaily <- function(symbols = NULL)
 {
   if(is.null(symbols))
@@ -444,7 +438,7 @@ updateDaily <- function(symbols = NULL)
 
   for(i in 1:length(symbolNames))
   {
-    if(anyNA(quotes[i,]) || quotes[i,"Volume"] == 0)
+    if(anyNA(as.numeric(quotes[i,])) || quotes[i,"Volume"] == 0)
     {
       warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Close", "Volume")], collapse = " ")))
       next
@@ -457,6 +451,42 @@ updateDaily <- function(symbols = NULL)
   }
 }
 
+#' @export
+updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDate = Sys.Date())
+{
+  env = new.env()
+
+  for(symbol in symbols)
+  {
+    symbol1M = getSymbolsIntraday(symbol, "1M", env = env)
+
+    if(is.null(symbol1M) || !exists(symbol1M, envir = env))
+      next
+
+    obj <- base::get(symbol1M, envir = env)
+    obj <- to.daily(obj)[tradeDate]
+
+    if(nrow(obj) == 0)
+      next
+
+    names(obj) <- c('Open', 'High', 'Low', 'Close', 'Volume')
+
+    if(anyNA(as.numeric(obj)) || obj[,"Volume"] == 0)
+    {
+      warning(paste0("Bad Data: ", symbol1M, " ", paste(obj, collapse = " ")))
+      next
+    }
+
+    queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
+                        symbol, index(obj), obj[,"Open"], obj[,"High"], obj[, "Low"], obj[, "Close"], obj[, "Volume"])
+
+    getQuery(queryStr)
+
+    base::rm(list = symbol1M, envir = env)
+  }
+}
+
+#' @export
 updateIntraday <- function(symbols = NULL)
 {
   if(is.null(symbols))

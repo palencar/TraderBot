@@ -2,7 +2,7 @@ smaSD <- function(Symbol, n=200)
 {
   seq <- as.xts((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
 
-  if((nrow(seq) - n - 500) < 0)
+  if((nrow(seq) - n) <= 0)
   {
     warning(sprintf("sma(%d, %d)", length(seq), n))
     return(NULL)

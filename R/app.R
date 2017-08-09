@@ -7,6 +7,8 @@ ui <- shinyUI(navbarPage("TraderBot",
                    tabPanel("Backtest",
                             sidebarPanel(
                               headerPanel("Filters"),
+                              checkboxInput('open', 'Open', TRUE),
+                              checkboxInput('closed', 'Closed', TRUE),
                               selectizeInput("filterSymbol", "Symbols", choices = as.vector(unique(mMergeBacktest()$name)), multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
@@ -174,7 +176,14 @@ server <- shinyServer(function(input, output)
   tableValues <- reactive({
     dataTable <- mMergeBacktest(path = "result/")
 
-    dataTable <- dataTable[dataTable$state == "closed"]
+    if(xor(input$open, input$closed))
+    {
+      if(input$open)
+        dataTable <- dataTable[dataTable$state == "open"]
+
+      if(input$closed)
+        dataTable <- dataTable[dataTable$state == "closed"]
+    }
 
     dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod  <= input$smaPeriod[2])  | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand  <= input$upperBand[2])  | is.na(dataTable$upperBand)]

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-Rscript -e "library('TraderBot')" -e "showBallance()" -e "warnings()"
+Rscript -e "library('TraderBot')" -e "showBalance()" -e "warnings()"

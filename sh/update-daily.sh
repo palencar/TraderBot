@@ -1,3 +1,3 @@
 #!/bin/bash
 
-Rscript -e "library('TraderBot')" -e "source('R/dbInterface.R')" -e "updateDaily()"
+Rscript -e "library('TraderBot')" -e "updateDaily()"

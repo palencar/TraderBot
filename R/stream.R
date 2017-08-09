@@ -14,7 +14,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
 
   print(timeIndex)
 
-  for(i in 1:length(timeIndex))
+  for(i in length(timeIndex):1)
   {
     tradeDate <- timeIndex[i]
 
@@ -46,7 +46,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
 
     if(tradeDecision$decision != "hold")
     {
-      price <- as.numeric(last(Cl(base::get(symbol)[tradeDate])))
+      price <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
 
       logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
 
@@ -56,7 +56,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
       date  <- tradeDate
       alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
 
-      addAlerts(symbol, tradeDate, tradeDecision$decision, timeFrame)
+      addAlerts(symbol, tradeDate, tradeDecision$decision, price, timeFrame)
     }
   }
 
@@ -64,7 +64,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
 }
 
 #' @export
-computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
+computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D", updateData = TRUE)
 {
   stopdtime <- "18:20:00"
   endLoop <- FALSE
@@ -81,34 +81,50 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
 
   while(endLoop == FALSE)
   {
-    if(timeFrame == "1D")
-    {
-      updateDaily()
+    dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
 
-      Symbols <- getSymbolsDaily(Symbols)
-    }
-    else
+    if(updateData)
     {
-      updateIntraday()
-
-      Symbols <- getSymbolsIntraday(Symbols, timeFrame, updateLast = TRUE)
+      if(timeFrame == "1D")
+      {
+        updateDaily()
+      }
+      else
+      {
+        updateIntraday()
+      }
     }
+
+    Symbols <- getSymbolNames()
+
+    endDate <- Sys.Date()
 
     for(symbol in Symbols)
     {
+      if(timeFrame == "1D")
+      {
+        symbol <- getSymbolsDaily(symbol)
+      }
+      else
+      {
+        symbol <- getSymbolsIntraday(symbol, timeFrame, updateLast = TRUE)
+      }
+
+      if(is.null(symbol))
+        next
+
       lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
       if(is.null(lastSession) || lastIdx > lastSession)
         lastSession <- lastIdx
 
-      endDate <- Sys.Date()
       tradeDate <- lastSession
 
       alert <- NULL
 
       if(timeFrame == "1D")
       {
-        alert  <- computeAlerts(symbol, as.POSIXct(tradeDate), timeFrame)
+        alert  <- computeAlerts(symbol, tradeDate, timeFrame)
         alerts <- unique(rbind(alerts, alert))
       }
       else
@@ -133,19 +149,17 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D")
       if(!is.null(alert))
       {
         print(sprintf("Chart [%s] [%s]: %s", alert$symbol, alert$date, alert$alert))
+        chartSymbols(symbol, dev="png")
       }
+
+      base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
     }
 
     if(length(alerts) > 0)
     {
-      for(symbol in as.vector(unique(alerts$symbol)))
-        chartSymbols(symbol, dev="png")
-
       alerts <- alerts[order(alerts[,"date"], decreasing = TRUE),]
       sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
     }
-
-    dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
 
     if(dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
     {

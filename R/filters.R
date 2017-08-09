@@ -272,15 +272,22 @@ filterGapM <- memoise(filterGap)
 #' @export
 filterData <- function(SymbolNames, endDate)
 {
-  toFilter <- filterVolumeM(SymbolNames, endDate)
-  toFilter <- filterGapM(toFilter, endDate)
-  toFilter <- filterBadDataM(toFilter, endDate)
+  toFilter <- filterVolume(SymbolNames, endDate)
+  toFilter <- filterGap(toFilter, endDate)
+  toFilter <- filterBadData(toFilter, endDate)
 
   return(toFilter)
 }
 
 #' @export
-filterDataM <- memoise(filterData)
+filterDataM <- memoise(function(SymbolNames, endDate)
+{
+  toFilter <- filterVolume(SymbolNames, endDate)
+  toFilter <- filterGap(toFilter, endDate)
+  toFilter <- filterBadData(toFilter, endDate)
+
+  return(toFilter)
+})
 
 #' @export
 filterBadData <- function(SymbolNames, dateLimit=NULL)

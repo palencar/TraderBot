@@ -33,17 +33,16 @@ getOrders <- function(name, pos = NULL)
 
     period <- sprintf("%s::%s", startDate, endDate)
 
+    if(nrow(symbol[period]) == 0)
+      next
+
     firstVal <- reg$openVal
 
     firstReg <- head(symbol[period], n=1)
     lastReg <- tail(symbol[period], n=1)
 
-    xNew = xts(rep(NA,length(index(symbol[period]))), index(symbol[period]))
-
-    if(firstVal == 0)
-      xNew[time(firstReg)] <- as.double(Cl(firstReg))
-    else
-      xNew[time(firstReg)] <- firstVal
+    xNew = xts(rep(NA, length(index(symbol[period]))), index(symbol[period]))
+    xNew[time(firstReg)] <- firstVal
 
     if(is.na(reg$closeVal) == FALSE)
     {
@@ -61,7 +60,7 @@ getOrders <- function(name, pos = NULL)
 
     i <- i + 1
     objName <- sprintf("%s.p%d", name, i)
-    position <- xts(na.approx(xNew))
+    position <- xts(na.approx(as.double(xNew)), order.by = index(xNew))
     assign(objName, position, .GlobalEnv)
 
     posit <- c(posit, sprintf("addTA(%s, lwd=2, on=1, col=%d)", objName, col))

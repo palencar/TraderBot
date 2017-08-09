@@ -1,6 +1,6 @@
 #!/bin/bash
 
-timeframe=$(printf '1D\n15M\n30M\n' | shuf -n1)
+timeframe=$(printf '5M\n10M\n15M\n30M\n1H\n' | shuf -n1)
 queued=$(tsp | grep queued | wc -l)
 ncpu=$(nproc)
 

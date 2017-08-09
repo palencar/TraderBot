@@ -1,14 +1,15 @@
 source("R/dbInterface.R")
 
 #' @export
-showBallance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
+showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
 {
   cTotal <- 0
   oTotal <- 0
+  df <- NULL
 
   if(is.null(symbols))
   {
-    symbols <- getWallet()
+    symbols <- getWallet(showClosed)
   }
 
   for(symbol in symbols)
@@ -41,10 +42,12 @@ showBallance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
 
       if(!is.null(state))
       {
-        print(paste(symbol, state, size, price, value, proffit))
+        df <- rbind(df, data.frame(symbol, state, size, price, value, proffit))
       }
     }
   }
+
+  print(df)
 
   if(showOpen && showClosed)
   {

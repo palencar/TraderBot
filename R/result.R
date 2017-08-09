@@ -40,7 +40,7 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
 }
 
-singleResult <- function(key, lines, lastDay = NULL)
+singleResult <- function(lines, lastDay = NULL)
 {
   closedDF <- NULL
   openDF <- NULL
@@ -48,7 +48,10 @@ singleResult <- function(key, lines, lastDay = NULL)
   positions <- NULL
   closePosition <- FALSE
 
-  for(n in 1:nrow(lines))
+  if(nrow(lines) == 0)
+    return(NULL)
+
+  for(n in order(lines$tradeDate))
   {
     if(lines[n,"decision"] == "sell")
     {
@@ -71,6 +74,7 @@ singleResult <- function(key, lines, lastDay = NULL)
     if(lines[n,"decision"] == "buy")
     {
       openDate <- lines[n,"tradeDate"]
+      names(openDate) <- c("openDate")
       price <- lines[n,"price"]
 
       positions <- rbind.data.frame(positions, data.frame(openDate, price))
@@ -81,17 +85,17 @@ singleResult <- function(key, lines, lastDay = NULL)
   {
     if(is.null(lastDay))
     {
-      lastDay <- last(index(base::get(lines[nrow(lines),"symbol"])))
+      lastDay <- last(index(base::get(as.character(unique(lines[,"symbol"])))))
     }
 
     if(is.null(positions) == FALSE)
     {
       for(i in 1:nrow(positions))
       {
-        sell_price <- as.numeric(Cl(tail(base::get(lines[nrow(lines),"symbol"]), 1)) * 100)
+        sell_price <- as.numeric(Cl(tail(base::get(as.character(unique(lines[i,"symbol"]))), 1)) * 100)
         buy_price <- as.integer(positions[i,"price"]*100)
 
-        newrow <- data.frame("open", lines[nrow(lines),"symbol"], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
+        newrow <- data.frame("open", as.character(unique(lines[i,"symbol"])), buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
         openDF <- rbind(openDF, newrow)
       }
     }
@@ -140,7 +144,7 @@ singleResult <- function(key, lines, lastDay = NULL)
     buy     <- sum(totalDF$buy_price)
     gain    <- sum(totalDF$sell_price-totalDF$buy_price)
     proffit <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
-    result$output <- data.frame(key, buy, gain, proffit)
+    result$output <- data.frame(buy, gain, proffit)
   }
 
   result$total <- NULL

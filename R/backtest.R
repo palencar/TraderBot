@@ -26,9 +26,9 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   indexes <- index(base::get(symbol))
   while(n < minSamples)
   {
-    map <- new.env(hash=T, parent=emptyenv())
+    operations <- list()
 
-    smaPeriod = sample(50:1000, size = 1, replace = TRUE)
+    smaPeriod = sample(250:500, size = 1, replace = TRUE)
     upperBand = as.numeric(formatC(runif(1, min=0.6, max=2.0), digits=2,format="f"))
     lowerBand = as.numeric(formatC(runif(1, min=-2.0, max=-0.6), digits=2,format="f"))
     upChange = as.numeric(formatC(runif(1, min=0, max=8), digits=2,format="f"))
@@ -37,14 +37,14 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
     stopLoss = as.numeric(formatC(runif(1, min=0, max=1), digits=2,format="f"))
     stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
 
-    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
-    bearBuy  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
-    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
-    bullSell  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
+    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.5), digits=2,format="f"))
+    bearBuy  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
+    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.5), digits=2,format="f"))
+    bullSell  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
 
     parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
-    pars <- new.env(hash=T, parent=emptyenv())
+    pars <- NULL
 
     timeIndex <- tail(indexes, length(indexes) - 500)
 
@@ -61,14 +61,14 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
       next
     }
 
-    for(i in 1:length(timeIndex))
+    for(i in length(timeIndex):1)
     {
       tradeDate <- timeIndex[i]
 
       if(is.null(filterDataM(symbol, tradeDate)))
         next
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, map = map)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations, memoised = TRUE)
 
       if(is.null(tradeDecision))
         next
@@ -90,16 +90,10 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
 
         logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
 
-        parStr <- paste(tradeDecision$parameters, collapse = " ")
+        pars <- tradeDecision$parameters
 
-        pars[[parStr]] <- tradeDecision$parameters
-
-        obj <- map[[parStr]]
-
-        if(is.null(obj))
-          map[[parStr]] <- logLine
-        else
-          map[[parStr]] <- rbind.data.frame(obj, logLine, stringsAsFactors = FALSE)
+        i <- length(operations)
+        operations[[i+1]] <- logLine
       }
     }
 
@@ -109,22 +103,17 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
     resList <- list()
     opList  <- list()
 
+    result <- singleResultM(rbindlist(operations))
+
     i <- 0
 
-    for(parStr in ls(map))
+    if(!is.null(result$output))
     {
-      lines <- map[[parStr]]
-
-      result <- singleResultM(parStr, lines)
-
-      if(!is.null(result$output))
-      {
-        i <- i + 1
-        parList[[i]] <- pars[[parStr]]
-        resList[[i]] <- result$total
-        opList[[i]]  <- cbind(pars[[parStr]], rbind(result$closedDF, result$openDF))
-        print(opList[[i]])
-      }
+      i <- i + 1
+      parList[[i]] <- pars
+      resList[[i]] <- result$total
+      opList[[i]]  <- cbind(pars, rbind(result$closedDF, result$openDF))
+      print(opList[[i]])
     }
 
     if(i > 0)
