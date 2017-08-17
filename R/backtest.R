@@ -28,7 +28,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   {
     operations <- list()
 
-    smaPeriod = sample(250:500, size = 1, replace = TRUE)
+    smaPeriod = sample(300:1000, size = 1, replace = TRUE)
     upperBand = as.numeric(formatC(runif(1, min=0.6, max=2.0), digits=2,format="f"))
     lowerBand = as.numeric(formatC(runif(1, min=-2.0, max=-0.6), digits=2,format="f"))
     upChange = as.numeric(formatC(runif(1, min=0, max=8), digits=2,format="f"))
@@ -37,16 +37,16 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
     stopLoss = as.numeric(formatC(runif(1, min=0, max=1), digits=2,format="f"))
     stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
 
-    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.5), digits=2,format="f"))
-    bearBuy  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
-    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.5), digits=2,format="f"))
-    bullSell  = as.numeric(formatC(runif(1, min=0.4, max=1.0), digits=2,format="f"))
+    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
+    bearBuy  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
+    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
+    bullSell  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
 
     parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
     pars <- NULL
 
-    timeIndex <- tail(indexes, length(indexes) - 500)
+    timeIndex <- tail(indexes, length(indexes) - smaPeriod)
 
     n <- n + nrow(parameters) ^ ncol(parameters)
 

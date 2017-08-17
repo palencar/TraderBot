@@ -1,9 +1,9 @@
 default:
-  engine:   "mysql"
-  host:     "db_hostname"
-  database: "db_name"
-  user:     "db_username"
-  password: "db_password"
+  #engine:   "sqlite"
+  #host:     "db_hostname"
+  #database: "db.sqlite"
+  #user:     "db_username"
+  #password: "db_password"
 
   backtest:
     sma_period:

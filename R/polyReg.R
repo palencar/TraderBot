@@ -8,13 +8,13 @@ polyRegression <- function (SymbolName, DateInterval, Period)
 
   y <- as.numeric((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
 
-  x <- index(Symbol)
+  x <- 1:nrow(Symbol)
 
   r <- RcppEigen::fastLm(poly(x,2), y)
 
   yp <- predict(r)+mean(r$residuals)
 
-  yr <- xts(yp, x)
+  yr <- xts(yp, index(Symbol))
 
   return(list(regression=yr, sigma=sd(r$residuals), name=SymbolName,
               interval=DateInterval, trend=revertTrend(yr, n=3), period=Period))
@@ -25,7 +25,7 @@ findCurves <- function(SymbolName, minDays, maxDays, dateLimit="")
 {
   lista <- foreach (i = minDays:maxDays, .combine = rbind, .errorhandling="remove") %do%
   {
-    list(polyRegression(SymbolName, sprintf("%s::%s", seq(dateLimit, length=2, by=sprintf("-%d days", i))[2], dateLimit), i))
+    list(polyRegression(SymbolName, sprintf("%s::%s", index(first(tail(base::get(SymbolName)[paste0("/", dateLimit)], i))), dateLimit), i))
   }
 
   return(lista)

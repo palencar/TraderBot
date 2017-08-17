@@ -1,14 +1,9 @@
 ^.*\.Rproj$
-^\.Rproj\.user$
+^\.rcache$
+^\.Rproj\.user/$
 ^result*$
 ^chart*$
-^\.rcache$
 ^data$
-^R/ChartSymbols\.R$
-^R/InsertOperations\.R$
-^R/Report\.R$
-^R/SaveSymbols\.R$
-^\.Rproj\.user/$
 ^test/*$
 ^data/*$
 ^result/*$
@@ -16,3 +11,4 @@
 ^chart-history/*$
 ^chart-weekly/*$
 ^docker$
+^\.Rproj\.user$

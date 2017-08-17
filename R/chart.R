@@ -137,7 +137,6 @@ chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 chartList <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
   symbols <- getSymbolsDaily(symbols)
-  symbols <- filterGap(symbols, lastTradingSession())
 
   if(daily)
   {

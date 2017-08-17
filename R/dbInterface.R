@@ -392,6 +392,9 @@ getQuery <- function(queryStr = "")
 {
   config <- config::get()
 
+  if(is.null(config$engine))
+    return(NULL)
+
   if(config$engine == "mysql")
   {
     dbConn <- dbConnect(RMySQL::MySQL(), user=config$user, password=config$password, dbname=config$database, host=config$host)

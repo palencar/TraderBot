@@ -25,7 +25,9 @@ mergeBacktest <- function(path = "result")
   }
 
   dataTable <- rbindlist(oper, fill = TRUE)
-  dataTable$mProffit <- as.numeric(dataTable$proffit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
+
+  if(nrow(dataTable) > 0)
+    dataTable$mProffit <- as.numeric(dataTable$proffit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
 
   obj <- c()
   obj$datetime <- Sys.time()

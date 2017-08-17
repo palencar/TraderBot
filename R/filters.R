@@ -2,8 +2,7 @@ library("pastecs")
 library("memoise")
 library("xts")
 library("quantmod")
-source("R/polyReg.R")
-source("R/dbInterface.R")
+
 
 turnPoints <- function(object, maxTpoints=8)
 {
@@ -222,58 +221,9 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
 }
 
 #' @export
-filterGap <- function(SymbolNames=NULL, dateLimit=NULL)
-{
-  if(is.null(SymbolNames))
-  {
-    return(NULL)
-  }
-
-  if(is.null(dateLimit))
-  {
-    dateLimit <- Sys.Date()
-  }
-
-  symbols <- NULL
-
-  for(symbol in SymbolNames)
-  {
-    obj <- tail(base::get(symbol), n=300)
-
-    if(anyNA(OHLCV(obj)))
-    {
-      warning(sprintf("NA values for %s", symbol))
-      next
-    }
-
-    if(any(as.double(diff(index(obj)), units="days") > 5))
-    {
-      dates <- index(obj[which(as.double(diff(index(obj)), units="days") > 5)])
-      warning(sprintf("excluding %s from symbols %s", symbol, paste(dates, collapse = " ")))
-    }
-    else
-    {
-      symbols <- c(symbols, symbol)
-    }
-  }
-
-  exclude <- setdiff(SymbolNames, symbols)
-  if(length(exclude) > 0)
-  {
-    paste0("Gap Excluding [", dateLimit, "]: ", paste(exclude, collapse = " "))
-  }
-
-  return (symbols)
-}
-
-#' @export
-filterGapM <- memoise(filterGap)
-
-#' @export
 filterData <- function(SymbolNames, endDate)
 {
   toFilter <- filterVolume(SymbolNames, endDate)
-  toFilter <- filterGap(toFilter, endDate)
   toFilter <- filterBadData(toFilter, endDate)
 
   return(toFilter)
@@ -283,7 +233,6 @@ filterData <- function(SymbolNames, endDate)
 filterDataM <- memoise(function(SymbolNames, endDate)
 {
   toFilter <- filterVolume(SymbolNames, endDate)
-  toFilter <- filterGap(toFilter, endDate)
   toFilter <- filterBadData(toFilter, endDate)
 
   return(toFilter)
