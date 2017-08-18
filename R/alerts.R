@@ -33,6 +33,9 @@ getAlerts <- function(n = 20, date = NULL, timeFrame = "1D")
     alerts <- readRDS(alertsFile)
   }
 
+  if(is.null(alerts))
+    return(NULL)
+
   if(!is.null(date))
   {
     alerts <- alerts[which(alerts$date >= date)]

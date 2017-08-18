@@ -5,11 +5,6 @@ source("R/dbInterface.R")
 
 mergeBacktest <- function(path = "result")
 {
-  objName <- "backtest"
-
-  if(exists(objName) && (Sys.time() < base::get(objName)$datetime + 600))
-    return(base::get(objName)$dataTable)
-
   files <- list.files(path, pattern = "*.rds")
 
   oper <- list()
@@ -28,11 +23,6 @@ mergeBacktest <- function(path = "result")
 
   if(nrow(dataTable) > 0)
     dataTable$mProffit <- as.numeric(dataTable$proffit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
-
-  obj <- c()
-  obj$datetime <- Sys.time()
-  obj$dataTable <- dataTable
-  assign(objName, obj, .GlobalEnv)
 
   return(dataTable)
 }

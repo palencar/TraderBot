@@ -9,12 +9,12 @@ ui <- shinyUI(navbarPage("TraderBot",
                               headerPanel("Filters"),
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
-                              selectizeInput("filterSymbol", "Symbols", choices = as.vector(unique(mMergeBacktest()$name)), multiple = TRUE),
+                              selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
                               sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-2.5,-0.5), step= 0.01),
-                              sliderInput("downChange", "Down Change:", min = -8, max =   0, value = c(-8,-4), step= 0.01),
-                              sliderInput("upChange",   "Up Change:",   min =  0, max =   8, value = c(4,8), step= 0.01),
+                              sliderInput("downChange", "Down Change:", min = -8, max =   0, value = c(-8,0), step= 0.01),
+                              sliderInput("upChange",   "Up Change:",   min =  0, max =   8, value = c(0,8), step= 0.01),
                               sliderInput("lowLimit",   "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("stopGain",   "Stop Gain:",   min =  1, max =   5, value = c(1,5), step= 0.01),
                               sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
@@ -50,7 +50,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                                           selected = "1D"),
 
                               dateRangeInput(inputId = "alertsDateRange", label = "Date range",
-                                             start = Sys.Date() - 730, end = Sys.Date())
+                                             start = (Sys.Date() - 730), end = Sys.Date())
                             ),
 
                             mainPanel(
@@ -63,7 +63,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               headerPanel("Options"),
 
                               selectizeInput(
-                                'symbolNames', 'Symbols', choices = getSymbolNames(), multiple = TRUE
+                                'symbolNames', 'Symbols', choices = NULL, multiple = TRUE
                               ),
 
                               selectInput(inputId = "chartsTimeFrame",
@@ -79,7 +79,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                                           selected = "1D"),
 
                               dateRangeInput(inputId = "chartsDateRange", label = "Date range",
-                                             start = Sys.Date() - 730, end = Sys.Date())
+                                             start = (Sys.Date() - 730), end = Sys.Date())
                             ),
 
                             mainPanel(
@@ -88,7 +88,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                    )
 ))
 
-server <- shinyServer(function(input, output)
+server <- shinyServer(function(input, output, session)
 {
   make_chart <- function(symbol, startDate, endDate, timeFrame)
   {
@@ -117,6 +117,21 @@ server <- shinyServer(function(input, output)
     alerts <- getAlerts(input$numAlerts, input$alertsTimeFrame)
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
+
+    backtestSymbols <- input$filterSymbol
+    chartSymbols <- input$symbolNames
+
+    updateSelectizeInput(session, "filterSymbol",
+                         label = "Symbols",
+                         choices = as.vector(unique(mMergeBacktest()$name)),
+                         selected = backtestSymbols
+                         )
+
+    updateSelectizeInput(session, "symbolNames",
+                         label = "Symbols",
+                         choices = getSymbolNames(),
+                         selected = chartSymbols
+                         )
 
     if(numAlerts > 0)
     {
@@ -176,6 +191,9 @@ server <- shinyServer(function(input, output)
   tableValues <- reactive({
     dataTable <- mMergeBacktest(path = "result/")
 
+    if(is.null(dataTable) || nrow(dataTable) == 0)
+      return(NULL)
+
     if(xor(input$open, input$closed))
     {
       if(input$open)
@@ -210,21 +228,30 @@ server <- shinyServer(function(input, output)
   })
 
   output$parameters <- renderPlot({par(mfrow=c(4,3))
-    showPlot(tableValues(), c("smaPeriod", "proffit_pp"))
-    showPlot(tableValues(), c("lowerBand", "proffit_pp"))
-    showPlot(tableValues(), c("upperBand", "proffit_pp"))
-    showPlot(tableValues(), c("downChange", "proffit_pp"))
-    showPlot(tableValues(), c("upChange", "proffit_pp"))
-    showPlot(tableValues(), c("lowLimit", "proffit_pp"))
-    showPlot(tableValues(), c("stopGain", "proffit_pp"))
-    showPlot(tableValues(), c("stopLoss", "proffit_pp"))
-    showPlot(tableValues(), c("bullBuy", "proffit_pp"))
-    showPlot(tableValues(), c("bullSell", "proffit_pp"))
-    showPlot(tableValues(), c("bearSell", "proffit_pp"))
-    showPlot(tableValues(), c("bearBuy", "proffit_pp"))
+    tv <- tableValues()
+    if(!is.null(tv) && nrow(tv) > 0)
+    {
+      showPlot(tv, c("smaPeriod", "proffit_pp"))
+      showPlot(tv, c("lowerBand", "proffit_pp"))
+      showPlot(tv, c("upperBand", "proffit_pp"))
+      showPlot(tv, c("downChange", "proffit_pp"))
+      showPlot(tv, c("upChange", "proffit_pp"))
+      showPlot(tv, c("lowLimit", "proffit_pp"))
+      showPlot(tv, c("stopGain", "proffit_pp"))
+      showPlot(tv, c("stopLoss", "proffit_pp"))
+      showPlot(tv, c("bullBuy", "proffit_pp"))
+      showPlot(tv, c("bullSell", "proffit_pp"))
+      showPlot(tv, c("bearSell", "proffit_pp"))
+      showPlot(tv, c("bearBuy", "proffit_pp"))
+    }
   })
 
-  output$dataTable <- renderDataTable({showReport(tableValues())}, options = list(paging = FALSE))
+  output$dataTable <- renderDataTable({
+    tv <- tableValues()
+    if(!is.null(tv) && nrow(tv) > 0)
+      showReport(tv)
+    },
+    options = list(paging = FALSE))
 })
 
 #' @export

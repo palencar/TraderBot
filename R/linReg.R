@@ -31,6 +31,8 @@ linearRegression <- function (Symbol)
 
 linearRegressionIndicator <- function (SymbolName, Symbol, n=30)
 {
+  dir.create("datacache", showWarnings=FALSE)
+
   fileName <- sprintf("datacache/%s_%d_lri.rds", SymbolName, n)
 
   fileExists <- file.exists(fileName)
