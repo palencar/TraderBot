@@ -55,7 +55,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -99,13 +99,23 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, en
       updateFile <- TRUE
     }
 
-    if(nrow(obj) == 0)
+    if(nrow(obj) <= 1)
       next
 
     obj <- obj[!duplicated(index(obj))]
 
     if(updateFile)
       saveRDS(obj, name1M)
+
+    if(filterPeriod)
+    {
+      pr <- periodicity(obj)
+      if(pr$frequency > switch(timeFrame, "1M" = 1, "3M" = 3, "5M" = 5, "10M" = 10, "15M" = 15, "30M" = 30, "1H" = 60))
+      {
+        print(paste0("Periodicity: ", pr$frequency, " > ", timeFrame))
+        next
+      }
+    }
 
     if(timeFrame != "1M")
     {
@@ -238,19 +248,6 @@ lastPrice <- function(symbol)
   queryStr <- sprintf("select close from intraday where symbol = '%s' order by datetime desc limit 1", symbol)
 
   return(as.numeric(getQuery(queryStr)))
-}
-
-lastTradeDay <- function(SymbolName)
-{
-  objName <- paste("lastTradeDay", SymbolName, sep = "")
-  if(exists(objName))
-    return(base::get(objName))
-
-  day <- getQuery(sprintf("select max(date) from stockprices where symbol = '%s'", SymbolName))
-
-  assign(objName, day, .GlobalEnv)
-
-  return(day)
 }
 
 loadLocalCSV <- function(symbol)
@@ -544,7 +541,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDate = Sys.
 
   for(symbol in symbols)
   {
-    symbol1M = getSymbolsIntraday(symbol, "1M", env = env)
+    symbol1M = getSymbolsIntraday(symbol, "1M", filterPeriod = FALSE, env = env)
 
     if(is.null(symbol1M) || !exists(symbol1M, envir = env))
       next

@@ -8,7 +8,7 @@ apt-get install -y r-base r-base-dev sqlite3 libxml2-dev libmysqlclient-dev libs
 ```
 
 ## Clone repository
-Clone the git repository and start a R session.
+Clone the git repository.
 ```
 git clone https://github.com/palencar/TraderBot
 cd TraderBot
@@ -38,7 +38,7 @@ Install devtools Package.
 install.packages("devtools")
 ```
 
-Install TraderBot and dependencies
+Install TraderBot and dependencies.
 ```R
 library(devtools)
 install_git(".")

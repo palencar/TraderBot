@@ -217,8 +217,8 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$bullSell   >= input$bullSell[1]   & dataTable$bullSell   <= input$bullSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
     dataTable <- dataTable[(dataTable$proffit_pp >= input$proffit[1]    & dataTable$proffit_pp <= input$proffit[2])    | is.na(dataTable$proffit_pp)]
 
-    if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
-      dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
+    if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$name))))
+      dataTable <- dataTable[dataTable$name %in% input$filterSymbol]
 
     dataTable
   })

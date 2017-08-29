@@ -122,18 +122,21 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
 filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
 {
   alert <- NULL
-  cacheName <- sprintf("datacache/lricache_%s_%1.2f.rds", SymbolName, threshold)
+  cacheName <- sprintf("datacache/lricache_%s_%1.2f.csv", SymbolName, threshold)
+
+  cache.name <- paste0("lricache", SymbolName)
 
   key <- as.character(tradeDate)
-
-  filterMap <- new.env(hash=T, parent=emptyenv())
-
   if(file.exists(cacheName))
   {
-    filterMap <- readRDS(cacheName)
-    if(!is.null(filterMap))
+    file.con <- file(cacheName, "r")
+    table <- read.table(file.con, sep = ",", col.names = c("key", "alert"))
+    close(file.con)
+    entry <- table[table$key == key, "alert"]
+
+    if(length(entry) > 0)
     {
-      alert <- filterMap[[key]]
+      alert <- as.character(entry)
     }
   }
 
@@ -146,7 +149,11 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
 
   if(is.null(lri))
   {
-    return("none")
+    alert <- "none"
+    file.con <- file(cacheName, "a")
+    write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
+    close(file.con)
+    return(alert)
   }
 
   r <- rle(sign(diff(as.vector(lri))))
@@ -156,9 +163,9 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
   if(r$lengths[len] > 1 || len <= 3)
   {
     alert <- "none"
-    filterMap[[key]] <- alert
-    saveRDS(filterMap, file=cacheName)
-
+    file.con <- file(cacheName, "a")
+    write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
+    close(file.con)
     return(alert)
   }
 
@@ -214,8 +221,9 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
     alert <- "down"
   }
 
-  filterMap[[key]] <- alert
-  saveRDS(filterMap, file=cacheName)
+  file.con <- file(cacheName, "a")
+  write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
+  close(file.con)
 
   return(alert)
 }
@@ -359,17 +367,19 @@ filterObjectsSets <- function(symbol, tradeDay)
   regset <- NULL
   turnpoints_r <- list()
 
-  filterMap <- new.env(hash=T, parent=emptyenv())
-
   key <- as.character(tradeDay)
 
-  cacheName <- sprintf("datacache/turncache_%s_%d_%d.rds", symbol, k1, k2)
+  cacheName <- sprintf("datacache/turncache_%s_%d_%d.csv", symbol, k1, k2)
   if(file.exists(cacheName))
   {
-    filterMap <- readRDS(cacheName)
-    if(!is.null(filterMap))
+    file.con <- file(cacheName, "a+")
+    table <- read.table(file.con, sep = ",", col.names = c("key", "alert"))
+    close(file.con)
+    entry <- table[table$key == key, "alert"]
+
+    if(length(entry) > 0)
     {
-      alerts <- filterMap[[key]]
+      alerts <- as.character(entry)
     }
   }
 
@@ -442,8 +452,9 @@ filterObjectsSets <- function(symbol, tradeDay)
       saveRDS(turnpoints, objFile)
     }
 
-    filterMap[[key]] <- alerts
-    saveRDS(filterMap, cacheName)
+    file.con <- file(cacheName, "a")
+    write.table(data.frame(key=key, alerts=alerts), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
+    close(file.con)
   }
 
   return(alerts)
