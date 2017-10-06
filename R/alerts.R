@@ -3,52 +3,51 @@ library("config")
 library("htmltools")
 
 #' @export
-addAlerts <- function(symbol, date, alert = NA, price = NA, timeFrame = "1D")
+addAlerts <- function(symbol, datetime, alert, price, timeframe)
 {
-  if(is.null(symbol))
-    return()
+  alerts <- data.frame(symbol, timeframe, datetime, alert, price)
 
-  alerts <- NULL
-  alertsFile <- paste0("datacache/alerts-", timeFrame, ".rds")
-  if(file.exists(alertsFile))
-  {
-    alerts <- readRDS(alertsFile)
-  }
+  query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price) VALUES",
+                 paste(sprintf("('%s', '%s', '%s', '%s', %s)", alerts$symbol, alerts$timeframe, alerts$date, alerts$alert, alerts$price), collapse=', '))
 
-  df <- data.frame(symbol, date, alert, price)
-  df <- rbindlist(list(df, alerts), fill = TRUE)
-  df <- unique(df)
-  df <- df[order(df$date, decreasing = TRUE),]
-
-  saveRDS(df, file=alertsFile)
+  getQuery(query)
 }
 
 #' @export
-getAlerts <- function(n = 20, date = NULL, timeFrame = "1D")
+getAlerts <- function(n = 50)
 {
-  alerts <- NULL
-  alertsFile <- paste0("datacache/alerts-", timeFrame, ".rds")
-  if(file.exists(alertsFile))
-  {
-    alerts <- readRDS(alertsFile)
-  }
+  alerts <- getQuery("select * from alerts order by datetime desc")
 
-  if(is.null(alerts))
-    return(NULL)
-
-  if(!is.null(date))
-  {
-    alerts <- alerts[which(alerts$date >= date)]
-  }
-
-  alerts <- alerts[order(alerts$date, decreasing = TRUE),]
-
-  df <- head(alerts, n = n)
-
-  return(df)
+  return(head(alerts[!duplicated(alerts[,c('symbol','alert')]),], n))
 }
 
-sendAlert <- function(alerts, timeFrame = "1D")
+#' @export
+chartAlerts <- function(alerts = NULL)
+{
+  if(is.null(alerts) || nrow(alerts) == 0)
+    return(NULL)
+
+  for(i in 1:nrow(alerts))
+  {
+    alert <- alerts[i,]
+
+    if(alert$timeframe == "1D")
+      symbol <- getSymbolsDaily(alert$symbol)
+    else
+      symbol <- getSymbolsIntraday(alert$symbol, alert$timeframe, updateLast = FALSE)
+
+    print(sprintf("Chart [%s] [%s] [%s]: %s", alert$symbol, alert$timeframe, alert$date, alert$alert))
+
+    if(!is.null(alert))
+    {
+      chartSymbols(symbol, dev="png", xres = 1850)
+    }
+
+    base::rm(list = base::ls(pattern = alert$symbol, envir = .GlobalEnv), envir = .GlobalEnv)
+  }
+}
+
+sendAlert <- function(alerts)
 {
   config <- config::get()
 
@@ -57,15 +56,30 @@ sendAlert <- function(alerts, timeFrame = "1D")
   datetime <- Sys.time()
   symbols <- as.vector(alerts$symbol)
 
-  report <- tagList(tags$h3(paste0("TraderBot Alert: ", timeFrame)),
+  pr <- alerts$price
+  lp <- unlist(lapply(symbols, lastPrice))
+
+  alerts$date       <- as.character(alerts$date)
+  alerts$alert      <- as.vector(alerts$alert)
+  alerts$price      <- round(pr, digits = 2)
+  alerts$lastprice  <- round(lp, digits = 2)
+  alerts$proffit    <- formatC(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 3, format = "f")
+  alerts$proffit_pp <- formatC(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr), digits = 3, format = "f")
+
+  report <- tagList(tags$h3("TraderBot Alert:"),
                     tags$html(tags$head(),
                               tagList(tags$p(datetime)),
-                              tagList(apply(alerts, 1, function(x) {
-                              tagList(tags$p(paste0(x['symbol'], " [", x['date'], "]: ", x['alert'])),
-                                      tags$img(src=paste0(config$alert$baseurl, x['symbol'],".png"))) }))
+                              tagList(apply(alerts, 1,
+                                            function(x) {
+                                              tags$p(
+                                                tagList(
+                                                  tags$a(href=paste0(config$alert$baseurl, x['symbol'], ".", x['timeframe'], ".png"),
+                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Proffit: ", x['proffit_pp'], "%")
+                                                  )))
+                                              }))
                     ))
 
-  htmlOutput <- ifelse(timeFrame == "1D", "index.html", paste0("index-", timeFrame, ".html"))
+  htmlOutput <- "index.html"
 
   save_html(report, htmlOutput)
 
@@ -73,7 +87,7 @@ sendAlert <- function(alerts, timeFrame = "1D")
 
   if(config$alert$type == "s3")
   {
-    source <- paste0("charts/", symbols, ".png", sep = "")
+    source <- paste0("charts/", paste(alerts$symbol, alerts$timeframe, sep = "."), ".png", sep = "")
     source <- c(source, htmlOutput)
     sysCmd <- c(sysCmd, paste0("aws s3 cp ", source, " s3://", config$alert$target,"/"))
   }

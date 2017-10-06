@@ -18,7 +18,9 @@ Depends:
     shiny,
     moments,
     config,
-    htmltools
+    htmltools,
+    ggplot2,
+    gridExtra
 License: MIT
 Encoding: UTF-8
 LazyData: true

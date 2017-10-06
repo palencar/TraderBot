@@ -7,7 +7,7 @@ source("R/smaSD.R")
 source("R/filters.R")
 
 #' @export
-chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
 {
   for(i in 1:length(Symbols))
@@ -21,19 +21,27 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
     else
       ed <- dateLimit
 
+    Symbol <- base::get(SymbolName)[sprintf("::%s", ed)]
+
     if(!is.null(startDate))
       st <- startDate
-    else if(is.null(period))
-      st <- seq(ed, length=2, by="-5 years")[2]
-    else
-      st <- seq(ed, length=2, by=paste("-", period, sep = ""))[2]
+    else if(!is.null(period))
+      st <- index(first(tail(Symbol, period)))
 
     if(dev == "png")
     {
+      chartName <- SymbolName
+
+      if(timeFrame == "daily")
+        chartName <- paste0(SymbolName, ".1D")
+
+      if(timeFrame == "weekly")
+        chartName <- paste0(SymbolName, ".1W")
+
       if(is.null(suffix) == FALSE)
-        imageName <- sprintf("%s/%s-%s.png", path, SymbolName, suffix)
+        imageName <- sprintf("%s/%s-%s.png", path, chartName, suffix)
       else
-        imageName <- sprintf("%s/%s.png", path, SymbolName)
+        imageName <- sprintf("%s/%s.png", path, chartName)
 
       dir.create(path, showWarnings=FALSE, recursive = TRUE)
       png(filename = imageName, width=xres, height=yres)
@@ -43,8 +51,6 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
       polyRegs <- getPolyRegs(SymbolName, endDate=ed)
     else
       polyRegs <- NULL
-
-    Symbol <- base::get(SymbolName)[sprintf("::%s", ed)]
 
     if("smaSD" %in% indicators)
       smasd <- smaSD(Symbol, smaPeriod)
@@ -109,18 +115,6 @@ chartSymbols <- function(Symbols, period=NULL, dateLimit=NULL, startDate=NULL, e
     list <- ls(pattern=sprintf(".*%s.*", SymbolName))
     rm(list = list[list != SymbolName], envir =  .GlobalEnv)
   }
-}
-
-#' @export
-chartDaily <- function(symbols, dev="")
-{
-  chartSymbols(symbols, dev=dev)
-}
-
-#' @export
-chartWeekly <- function(symbols, dev="")
-{
-  chartSymbols(Symbols=symbols, period="10 years", timeFrame = "weekly", dev = dev, path = "chart-weekly/")
 }
 
 #' @export

@@ -56,7 +56,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
       date  <- tradeDate
       alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
 
-      addAlerts(symbol, tradeDate, tradeDecision$decision, price, timeFrame)
+      addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, tradeDecision$decision, price, timeFrame)
     }
   }
 
@@ -64,14 +64,12 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
 }
 
 #' @export
-computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D", updateData = TRUE)
+computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M", "10M", "15M", "30M", "1H", "1D"), updateData = TRUE)
 {
   stopdtime <- "18:20:00"
-  endLoop <- FALSE
 
   tradeAlerts <- NULL
   alertSymbols <- NULL
-  alerts <- NULL
   lastSession <- NULL
   startTime <- Sys.time()
 
@@ -79,91 +77,94 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrame = "1D", u
 
   config <- config::get()
 
-  while(endLoop == FALSE)
+  while(TRUE)
   {
     dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
-
-    if(updateData)
-    {
-      if(timeFrame == "1D")
-      {
-        updateDaily()
-      }
-      else
-      {
-        updateIntraday()
-      }
-    }
 
     Symbols <- getSymbolNames()
 
     endDate <- Sys.Date()
 
-    for(symbol in Symbols)
+    sendAlerts <- FALSE
+
+    for(symbolName in Symbols)
     {
-      if(timeFrame == "1D")
+      if(updateData)
       {
-        symbol <- getSymbolsDaily(symbol)
+        updateIntraday(symbolName)
+
+        if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
+          updateDailyFromIntraday(symbolName)
+        else
+          updateDaily(symbolName)
       }
-      else
+
+      for(timeFrame in timeFrames)
       {
-        symbol <- getSymbolsIntraday(symbol, timeFrame, updateLast = TRUE)
-      }
-
-      if(is.null(symbol))
-        next
-
-      lastIdx <- as.Date(index(xts::last(base::get(symbol))))
-
-      if(is.null(lastSession) || lastIdx > lastSession)
-        lastSession <- lastIdx
-
-      tradeDate <- lastSession
-
-      alert <- NULL
-
-      if(timeFrame == "1D")
-      {
-        alert  <- computeAlerts(symbol, tradeDate, timeFrame)
-        alerts <- unique(rbind(alerts, alert))
-      }
-      else
-      {
-        skipIdx <- indexes[[symbol]]
-        newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
-
-        if(!is.null(skipIdx))
+        if(timeFrame == "1D")
         {
-          newIdx <- newIdx[newIdx > skipIdx]
+          symbol <- getSymbolsDaily(symbolName)
+        }
+        else
+        {
+          symbol <- getSymbolsIntraday(symbolName, timeFrame, updateLast = TRUE)
         }
 
-        if(length(newIdx) > 0)
+        if(is.null(symbol) || is.null(filterBadData(symbol)))
+          next
+
+        lastIdx <- as.Date(index(xts::last(base::get(symbol))))
+
+        if(is.null(lastSession) || lastIdx > lastSession)
+          lastSession <- lastIdx
+
+        tradeDate <- lastSession
+
+        if(timeFrame == "1D")
         {
-          indexes[[symbol]] <- max(newIdx)
+          alert  <- computeAlerts(symbol, tradeDate, timeFrame)
 
-          alert  <- computeAlerts(symbol, newIdx, timeFrame)
-          alerts <- unique(rbind(alerts, alert))
+          if(!is.null(alert))
+            sendAlerts <- TRUE
         }
-      }
+        else
+        {
+          skipIdx <- indexes[[symbol]]
+          newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
 
-      if(!is.null(alert))
-      {
-        print(sprintf("Chart [%s] [%s]: %s", alert$symbol, alert$date, alert$alert))
-        chartSymbols(symbol, dev="png")
-      }
+          if(!is.null(skipIdx))
+          {
+            newIdx <- newIdx[newIdx > skipIdx]
+          }
 
-      base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
+          if(length(newIdx) > 0)
+          {
+            indexes[[symbol]] <- max(newIdx)
+
+            alert  <- computeAlerts(symbol, newIdx, timeFrame)
+
+            if(!is.null(alert))
+              sendAlerts <- TRUE
+          }
+        }
+
+        base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
+      }
     }
 
-    if(length(alerts) > 0)
+    if(sendAlerts)
     {
-      alerts <- alerts[order(alerts[,"date"], decreasing = TRUE),]
-      sendAlert(alerts[!duplicated(alerts[,c('symbol','alert')]),], timeFrame)
+      alerts <- getAlerts()
+      alerts <- alerts[as.Date(alerts$datetime) >= Sys.Date() - 1, ]
+
+      chartAlerts(alerts)
+
+      sendAlert(alerts)
     }
 
     if(dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
     {
-      endLoop <- TRUE
+      break
     }
     else
     {

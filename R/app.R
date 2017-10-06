@@ -114,7 +114,7 @@ server <- shinyServer(function(input, output, session)
   }
 
   observe({
-    alerts <- getAlerts(input$numAlerts, input$alertsTimeFrame)
+    alerts <- getAlerts(input$numAlerts)
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
 
@@ -227,22 +227,24 @@ server <- shinyServer(function(input, output, session)
     nrow(tableValues())
   })
 
-  output$parameters <- renderPlot({par(mfrow=c(4,3))
+  output$parameters <- renderPlot({
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
     {
-      showPlot(tv, c("smaPeriod", "proffit_pp"))
-      showPlot(tv, c("lowerBand", "proffit_pp"))
-      showPlot(tv, c("upperBand", "proffit_pp"))
-      showPlot(tv, c("downChange", "proffit_pp"))
-      showPlot(tv, c("upChange", "proffit_pp"))
-      showPlot(tv, c("lowLimit", "proffit_pp"))
-      showPlot(tv, c("stopGain", "proffit_pp"))
-      showPlot(tv, c("stopLoss", "proffit_pp"))
-      showPlot(tv, c("bullBuy", "proffit_pp"))
-      showPlot(tv, c("bullSell", "proffit_pp"))
-      showPlot(tv, c("bearSell", "proffit_pp"))
-      showPlot(tv, c("bearBuy", "proffit_pp"))
+      grid.arrange(showPlot(tv, c("smaPeriod", "proffit_pp")),
+                   showPlot(tv, c("lowerBand", "proffit_pp")),
+                   showPlot(tv, c("upperBand", "proffit_pp")),
+                   showPlot(tv, c("downChange", "proffit_pp")),
+                   showPlot(tv, c("upChange", "proffit_pp")),
+                   showPlot(tv, c("lowLimit", "proffit_pp")),
+                   showPlot(tv, c("stopGain", "proffit_pp")),
+                   showPlot(tv, c("stopLoss", "proffit_pp")),
+                   showPlot(tv, c("bullBuy", "proffit_pp")),
+                   showPlot(tv, c("bullSell", "proffit_pp")),
+                   showPlot(tv, c("bearSell", "proffit_pp")),
+                   showPlot(tv, c("bearBuy", "proffit_pp")),
+                   nrow=4, ncol=3)
+
     }
   })
 

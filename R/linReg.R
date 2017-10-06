@@ -60,6 +60,8 @@ linearRegressionIndicator <- function (SymbolName, Symbol, n=30)
     idx <- dateInterval
     dateInterval <- dateInterval[!(dateInterval %in% index(lriFile))]
     dateInterval <- idx[idx >= first(dateInterval) & idx <= last(dateInterval)]
+
+    lriFile <- lriFile[index(lriFile) %in% index(Symbol)]
   }
 
   if(length(dateInterval) > 0)
@@ -103,7 +105,7 @@ getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))
   return(lri)
 }
 
-getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0.6)#TODO unificar esta funcao com filterLRI
+getLinRegOrders <- function(SymbolName, symbol, lri, threshold=0)
 {
   if(is.null(lri))
   {

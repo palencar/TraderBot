@@ -155,7 +155,7 @@ fPreventMinMax <- function(symbol, period, tradeDate)
 
 mPreventMinMax <- memoise(fPreventMinMax)
 
-trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price = NULL, minVol = 0, lriTreshold = 0.6, lriPeriod = 30, verbose = FALSE, memoised = FALSE)
+trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price = NULL, minVol = 0, lriTreshold = 0, lriPeriod = 30, verbose = FALSE, memoised = FALSE)
 {
   if(is.null(parameters))
     return(NULL)

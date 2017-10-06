@@ -99,7 +99,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, fi
       updateFile <- TRUE
     }
 
-    if(nrow(obj) <= 1)
+    if(is.null(nrow(obj)) || nrow(obj) == 0)
       next
 
     obj <- obj[!duplicated(index(obj))]
@@ -107,12 +107,15 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, fi
     if(updateFile)
       saveRDS(obj, name1M)
 
+    if(nrow(obj) <= 1)
+      next
+
     if(filterPeriod)
     {
       pr <- periodicity(obj)
       if(pr$frequency > switch(timeFrame, "1M" = 1, "3M" = 3, "5M" = 5, "10M" = 10, "15M" = 15, "30M" = 30, "1H" = 60))
       {
-        print(paste0("Periodicity: ", pr$frequency, " > ", timeFrame))
+        print(paste0("Periodicity [", symbol, "]: ", pr$frequency, " > ", timeFrame))
         next
       }
     }
@@ -337,8 +340,6 @@ getPositions <- function(symbol = NULL)
     i <- i + 1
   }
 
-  #print(positions)
-
   return(positions)
 }
 
@@ -510,13 +511,8 @@ saveSymbolsIntraday <- function(symbols)
 }
 
 #' @export
-updateDaily <- function(symbols = NULL)
+updateDaily <- function(symbolNames = getSymbolNames())
 {
-  if(is.null(symbols))
-  {
-    symbolNames <- getSymbolNames()
-  }
-
   quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
 
   for(i in 1:length(symbolNames))
@@ -596,6 +592,8 @@ updateIntraday <- function(symbols = NULL)
     }
 
     df <- f.get.google.intraday(symbol, 60, "1d")
+    df <- df[df$Volume != 0, ]
+
     if(!is.null(df))
       insertIntraday(symbol, df, lastIdx)
   }
@@ -606,7 +604,7 @@ updateIntraday <- function(symbols = NULL)
 # https://github.com/frederickpelchat/quantitative-finance/blob/master/intraday-data.R
 #
 f.get.google.intraday <- function(symbol, freq, period) {
-  base.url <- 'http://www.google.com/finance/getprices?'
+  base.url <- 'http://finance.google.com/finance/getprices?'
   options.url <- paste('i=', freq, '&p=', period, '&f=d,o,h,l,c,v&df=cpct&q=', symbol, sep = '')
   full.url <- paste(base.url, options.url, sep = '')
 

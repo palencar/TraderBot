@@ -69,6 +69,14 @@ CREATE TABLE `intraday` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+CREATE TABLE `alerts` (
+  `symbol` varchar(12) DEFAULT NULL,
+  `timeframe` varchar(3) DEFAULT NULL,
+  `datetime` datetime DEFAULT NULL,
+  `alert` varchar(4) DEFAULT NULL,
+  `price` double DEFAULT NULL,
+  UNIQUE KEY `intradayindex` (`symbol`,`timeframe`,`datetime`,`alert`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 --
 -- Table structure for table `operations`
 --
@@ -239,7 +247,7 @@ BEGIN
      select `ERROR (RDS): REPLICA SLAVE PRIVILEGE CANNOT BE GRANTED OR MAINTAINED` into foo from mysql.user;
    elseif new.repl_client_priv = 'Y' then
        select `ERROR (RDS): REPLICA CLIENT PRIVILEGE CANNOT BE GRANTED OR MAINTAINED` into foo from mysql.user;
-  end if; 
+  end if;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -277,7 +285,7 @@ BEGIN
      select `ERROR (RDS): REPLICA SLAVE PRIVILEGE CANNOT BE GRANTED OR MAINTAINED` into foo from mysql.user;
    elseif old.repl_client_priv = 'N' and new.repl_client_priv = 'Y' then
        select `ERROR (RDS): REPLICA CLIENT PRIVILEGE CANNOT BE GRANTED OR MAINTAINED` into foo from mysql.user;
-  end if; 
+  end if;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

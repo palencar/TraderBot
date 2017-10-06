@@ -39,7 +39,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     else
       symbol <- getSymbolsIntraday(symbol, timeFrame)
 
-    if(is.null(symbol))
+    if(is.null(symbol) || is.null(filterBadData(symbol)))
       next
 
     indexes <- index(base::get(symbol))
@@ -95,7 +95,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         i <- length(operations)
         operations[[i+1]] <- logLine
 
-        addAlerts(symbol, tradeDate, decision, price, timeFrame)
+        addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
       }
     }
 

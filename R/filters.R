@@ -119,7 +119,7 @@ filterRevert <- function(Regressions, trend=NULL, period=NULL)
   return(lista)
 }
 
-filterLRI <- function(SymbolName, tradeDate, threshold=0.6, n=30)
+filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
 {
   alert <- NULL
   cacheName <- sprintf("datacache/lricache_%s_%1.2f.csv", SymbolName, threshold)
@@ -279,7 +279,7 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
     if(max(abs(na.omit(diff(volatility(obj))))) > 5)
     {
-      warning(print(sprintf("Probable adjust in %s: %s", symbol, paste(index(obj[which(na.omit(diff(volatility(obj))) > 5)]), collapse = " "))))
+      warning(print(sprintf("Probable adjust in %s: %s", symbol, paste(index(obj[which(na.omit(abs(diff(volatility(obj)))) > 5)]), collapse = " "))))
       next
     }
 

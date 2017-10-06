@@ -15,7 +15,8 @@ mergeBacktest <- function(path = "result")
     name   <- paste(path, file, sep = "/")
     obj    <- readRDS(name)
     symbol <- unlist(strsplit(file, "[._]"))[1]
-    oper[[i]] <- data.frame(symbol, obj$operations)
+    timeframe <- unlist(strsplit(file, "[._]"))[2]
+    oper[[i]] <- data.frame(symbol, timeframe, obj$operations)
     i <- i + 1
   }
 
@@ -30,12 +31,12 @@ mergeBacktest <- function(path = "result")
 showPlot <- function(dataTable, xy)
 {
   df <- data.frame(dataTable)
-  df <- df[xy]
+  df <- df[c(xy, 'timeframe')]
   df <- unique(df[complete.cases(df),])
 
   if(nrow(df) > 0)
   {
-    scatter.smooth(df, col=rgb(0,100,0,50,maxColorValue=255), pch=16)
+    ggplot(df, aes_string(x = xy[1], y = xy[2], color='timeframe')) + geom_point(alpha=0.1) + geom_smooth()
   }
 }
 
@@ -55,8 +56,7 @@ showReport <- function(dataTable, path = "result")
     variance   <- var(obj$proffit_pp)
     skewness   <- skewness(obj$proffit_pp)
     count      <- length(unique(obj$proffit_pp[obj$name == symbolName]))
-    #volume     <- mean(as.numeric(na.omit(Vo(base::get(symbolName)))))
-    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count)#, volume)
+    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count)
     dff        <- rbind(dff, df)
   }
 
