@@ -32,10 +32,12 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
     {
       chartName <- SymbolName
 
-      if(timeFrame == "daily")
+      tf <- unlist(strsplit(SymbolName, "[._]"))[2]
+
+      if(is.na(tf) && timeFrame == "daily")
         chartName <- paste0(SymbolName, ".1D")
 
-      if(timeFrame == "weekly")
+      if(is.na(tf) && timeFrame == "weekly")
         chartName <- paste0(SymbolName, ".1W")
 
       if(is.null(suffix) == FALSE)
