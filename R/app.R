@@ -10,6 +10,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
                               selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
+                              selectizeInput("timeFrames", "Time Frames", choices = c('1D', '1H', '30M', '15M', '10M'), selected = c('1D', '1H', '30M', '15M', '10M'), multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
                               sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-2.5,-0.5), step= 0.01),
@@ -202,6 +203,9 @@ server <- shinyServer(function(input, output, session)
       if(input$closed)
         dataTable <- dataTable[dataTable$state == "closed"]
     }
+
+    if(!is.null(input$timeFrames) && !is.na(input$timeFrames))
+      dataTable <- dataTable[(dataTable$timeframe  %in% input$timeFrames)]
 
     dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod  <= input$smaPeriod[2])  | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand  <= input$upperBand[2])  | is.na(dataTable$upperBand)]

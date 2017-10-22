@@ -10,22 +10,12 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   dir.create("datacache", showWarnings=FALSE)
 
   alertSymbols <- NULL
+  openDF <- NULL
+  closedDF <- NULL
 
   config <- config::get()
-  smaPeriod <- config$trade$sma_period
-  upperBand <- config$trade$upper_band
-  lowerBand <- config$trade$lower_band
-  upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
-  downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
-  lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
-  stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
-  stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
-  bullBuy   <- ifelse(is.null(config$trade$bull_buy), NA, config$trade$bull_buy)
-  bullSell   <- ifelse(is.null(config$trade$bull_sell), NA, config$trade$bull_sell)
-  bearSell   <- ifelse(is.null(config$trade$bear_sell), NA, config$trade$bear_sell)
-  bearBuy   <- ifelse(is.null(config$trade$bear_buy), NA, config$trade$bear_buy)
 
-  parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
+  parameters <- getParameters(timeFrame, "trade")
 
   if(is.null(Symbols))
     AllSymbols <- getSymbolNames()
@@ -90,10 +80,8 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
         print(paste0("DateTime: ", tradeDate))
 
-        logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
-
         i <- length(operations)
-        operations[[i+1]] <- logLine
+        operations[[i+1]] <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
 
         addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
       }
@@ -106,10 +94,24 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
       print(sprintf("[%s]", symbol))
       print(parameters)
       print(result)
+
+      openDF <- rbind(openDF, result$openDF)
+      closedDF <- rbind(closedDF, result$closedDF)
     }
 
     base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
+
+  total <- rbind(closedDF, openDF)
+  saveRDS(total, paste0("datacache/simulate-", gsub(" ", "_", Sys.time()), ".rds"))
+
+  buy_price=sum(total$buy_price)
+  sell_price=sum(total$sell_price)
+  proffit=sell_price-buy_price
+  proffit_pp=proffit/buy_price
+
+  print("Total:")
+  print(data.frame(buy_price, sell_price, proffit, proffit_pp))
 
   return(alertSymbols)
 }

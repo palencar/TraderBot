@@ -81,24 +81,22 @@ singleResult <- function(lines, lastDay = NULL)
     }
   }
 
-  if(closePosition == FALSE)
+  if(is.null(positions) == FALSE)
   {
     if(is.null(lastDay))
     {
       lastDay <- last(index(base::get(as.character(unique(lines[,"symbol"])))))
     }
 
-    if(is.null(positions) == FALSE)
+    for(i in 1:nrow(positions))
     {
-      for(i in 1:nrow(positions))
-      {
-        sell_price <- as.numeric(Cl(tail(base::get(as.character(unique(lines[i,"symbol"]))), 1)) * 100)
-        buy_price <- as.integer(positions[i,"price"]*100)
+      sell_price <- as.numeric(Cl(tail(base::get(as.character(unique(lines[i,"symbol"]))), 1)) * 100)
+      buy_price <- as.integer(positions[i,"price"]*100)
 
-        newrow <- data.frame("open", as.character(unique(lines[i,"symbol"])), buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
-        openDF <- rbind(openDF, newrow)
-      }
+      newrow <- data.frame("open", as.character(unique(lines[i,"symbol"])), buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
+      openDF <- rbind(openDF, newrow)
     }
+
     positions <- NULL
   }
   closePosition <- FALSE

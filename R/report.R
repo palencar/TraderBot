@@ -36,7 +36,7 @@ showPlot <- function(dataTable, xy)
 
   if(nrow(df) > 0)
   {
-    ggplot(df, aes_string(x = xy[1], y = xy[2], color='timeframe')) + geom_point(alpha=0.1) + geom_smooth()
+    ggplot(df, aes_string(x = xy[1], y = xy[2], color='timeframe')) + geom_point(alpha=0.05) + geom_smooth()
   }
 }
 

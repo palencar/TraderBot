@@ -22,7 +22,7 @@ getAlerts <- function(n = 50)
 }
 
 #' @export
-chartAlerts <- function(alerts = NULL)
+chartAlerts <- function(alerts = NULL, parameters)
 {
   if(is.null(alerts) || nrow(alerts) == 0)
     return(NULL)
@@ -40,7 +40,7 @@ chartAlerts <- function(alerts = NULL)
 
     if(!is.null(alert))
     {
-      chartSymbols(symbol, dev="png", xres = 1850)
+      chartSymbols(symbol, dev="png", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
     }
 
     base::rm(list = base::ls(pattern = alert$symbol, envir = .GlobalEnv), envir = .GlobalEnv)

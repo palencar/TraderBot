@@ -531,7 +531,7 @@ updateDaily <- function(symbolNames = getSymbolNames())
 }
 
 #' @export
-updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDate = Sys.Date())
+updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys.Date())
 {
   env = new.env()
 
@@ -543,21 +543,25 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDate = Sys.
       next
 
     obj <- base::get(symbol1M, envir = env)
-    obj <- to.daily(obj)[tradeDate]
+    obj <- align.time(to.daily(obj)[paste0(min(tradeDates), "/", max(tradeDates))])
 
     if(nrow(obj) == 0)
       next
 
-    names(obj) <- c('Open', 'High', 'Low', 'Close', 'Volume')
+    names(obj) <- c("day_open", "day_high", "day_low", "day_close", "volume")
 
-    if(anyNA(as.numeric(obj)) || obj[,"Volume"] == 0)
+    if(anyNA(as.numeric(obj)))
     {
       warning(paste0("Bad Data: ", symbol1M, " ", paste(obj, collapse = " ")))
       next
     }
 
-    queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
-                        symbol, index(obj), obj[,"Open"], obj[,"High"], obj[, "Low"], obj[, "Close"], obj[, "Volume"])
+    if(any(obj$volume == 0))
+      warning(paste("Zero volume:", symbol, "[", index(obj[obj$volume == 0, ]), "]", collapse=" "))
+
+    queryStr <- paste("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES ",
+                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %s)",
+                      symbol, index(obj), as.double(obj$day_open), as.double(obj$day_high), as.double(obj$day_low), as.double(obj$day_close), as.double(obj$volume)), collapse=', '))
 
     getQuery(queryStr)
 
@@ -580,19 +584,19 @@ updateIntraday <- function(symbols = NULL)
     lastIdx <- NULL
 
     name1M <- paste0("datacache/", symbol, ".1M.rds")
-    #name1M <- paste0(symbol, ".1M")
 
     if(file.exists(name1M))
     {
       obj <- readRDS(name1M)
-      #obj <- base::get(name1M)
 
       lastIdx <- index(tail(obj, 1))
       lastIdx <- format(lastIdx, usetz = FALSE)
     }
 
     df <- f.get.google.intraday(symbol, 60, "1d")
-    df <- df[df$Volume != 0, ]
+
+    if(any(df$Volume == 0))
+      warning(paste("Zero volume:", symbol, "[", index(df[df$Volume == 0, ]), "]", collapse=" "))
 
     if(!is.null(df))
       insertIntraday(symbol, df, lastIdx)

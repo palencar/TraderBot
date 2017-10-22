@@ -3,7 +3,7 @@ source("R/result.R")
 source("R/alerts.R")
 source("R/dbInterface.R")
 
-computeAlerts <- function(symbol, timeIndex, timeFrame)
+computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
 {
   alerts <- NULL
 
@@ -17,21 +17,6 @@ computeAlerts <- function(symbol, timeIndex, timeFrame)
   for(i in length(timeIndex):1)
   {
     tradeDate <- timeIndex[i]
-
-    smaPeriod <- config$trade$sma_period
-    upperBand <- config$trade$upper_band
-    lowerBand <- config$trade$lower_band
-    upChange  <- ifelse(is.null(config$trade$up_change), NA, config$trade$up_change)
-    downChange<- ifelse(is.null(config$trade$down_change), NA, config$trade$down_change)
-    lowLimit  <- ifelse(is.null(config$trade$low_limit), NA, config$trade$low_limit)
-    stopLoss  <- ifelse(is.null(config$trade$stop_loss), NA, config$trade$stop_loss)
-    stopGain  <- ifelse(is.null(config$trade$stop_gain), NA, config$trade$stop_gain)
-    bullBuy   <- ifelse(is.null(config$trade$bull_buy), NA, config$trade$bull_buy)
-    bullSell   <- ifelse(is.null(config$trade$bull_sell), NA, config$trade$bull_sell)
-    bearSell   <- ifelse(is.null(config$trade$bear_sell), NA, config$trade$bear_sell)
-    bearBuy   <- ifelse(is.null(config$trade$bear_buy), NA, config$trade$bear_buy)
-
-    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 
     price <- meanPrice(symbol)
 
@@ -77,11 +62,14 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
   config <- config::get()
 
+  parameters <- getParameters(timeFrame, "trade")
+
   while(TRUE)
   {
     dtime <- format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo")
 
-    Symbols <- getSymbolNames()
+    if(is.null(Symbols))
+      Symbols <- getSymbolNames()
 
     endDate <- Sys.Date()
 
@@ -122,7 +110,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
         if(timeFrame == "1D")
         {
-          alert  <- computeAlerts(symbol, tradeDate, timeFrame)
+          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters)
 
           if(!is.null(alert))
             sendAlerts <- TRUE
@@ -141,7 +129,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
           {
             indexes[[symbol]] <- max(newIdx)
 
-            alert  <- computeAlerts(symbol, newIdx, timeFrame)
+            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters)
 
             if(!is.null(alert))
               sendAlerts <- TRUE
@@ -157,7 +145,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
       alerts <- getAlerts()
       alerts <- alerts[as.Date(alerts$datetime) >= Sys.Date() - 1, ]
 
-      chartAlerts(alerts)
+      chartAlerts(alerts, parameters)
 
       sendAlert(alerts)
     }

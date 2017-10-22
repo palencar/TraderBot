@@ -3,11 +3,14 @@ library("data.table")
 source("R/trade.R")
 source("R/result.R")
 
+
 #' @export
 computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replaceFile = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
+
+  config <- config::get()
 
   if(timeFrame == "1D")
   {
@@ -19,7 +22,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   }
 
   empty <- TRUE
-  n <- 0
+  n <- 1
 
   for(symbol in AllSymbols)
   tryCatch({
@@ -28,27 +31,15 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   {
     operations <- list()
 
-    smaPeriod = sample(300:1000, size = 1, replace = TRUE)
-    upperBand = as.numeric(formatC(runif(1, min=0.6, max=2.0), digits=2,format="f"))
-    lowerBand = as.numeric(formatC(runif(1, min=-2.0, max=-0.6), digits=2,format="f"))
-    upChange = as.numeric(formatC(runif(1, min=0, max=8), digits=2,format="f"))
-    downChange = as.numeric(formatC(runif(1, min=-8, max=0), digits=2,format="f"))
-    lowLimit = as.numeric(formatC(runif(1, min=0, max=0.8), digits=2,format="f"))
-    stopLoss = as.numeric(formatC(runif(1, min=0, max=1), digits=2,format="f"))
-    stopGain = as.numeric(formatC(runif(1, min=1, max=5), digits=2,format="f"))
+    parameters <- getParameters(timeFrame, "backtest")
 
-    bearSell  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
-    bearBuy  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
-    bullBuy  = as.numeric(formatC(runif(1, min=0.0, max=0.8), digits=2,format="f"))
-    bullSell  = as.numeric(formatC(runif(1, min=0.2, max=1.0), digits=2,format="f"))
-
-    parameters <- data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
+    print(parameters)
 
     pars <- NULL
 
-    timeIndex <- tail(indexes, length(indexes) - smaPeriod)
+    timeIndex <- tail(indexes, length(indexes) - parameters$smaPeriod)
 
-    n <- n + nrow(parameters) ^ ncol(parameters)
+    n <- n + 1
 
     if((n %% 10) == 0)
     {

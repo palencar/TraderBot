@@ -481,3 +481,4 @@ filterSMA <- function(rleSeq)
 
   return (as.double((daysUp) / (daysDown + daysUp)))
 }
+

@@ -46,9 +46,12 @@ fMaxChange <- function(symbol, period, lastValue)
   maxValue <- as.numeric(high[which.max(high)])
   maxDate <- index(high[which.max(high)])
 
-  lr <- linearRegression(Cl(objPeriod[sprintf("%s/", maxDate)]))
+  obj <- objPeriod[sprintf("%s/", maxDate)]
+  obj <- xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
+
+  lr <- linearRegression(obj)
   maxChange <- as.numeric((lr$coef*365)/lastValue)
-  if(is.na(maxChange))
+  if(is.na(maxChange) || nrow(obj) < 30)
   {
     maxChange <- 0
   }
@@ -66,9 +69,12 @@ fMinChange <- function(symbol, period, lastValue)
   minValue <- as.numeric(low[which.min(low)])
   minDate <- index(low[which.min(low)])
 
-  lr <- linearRegression(Cl(objPeriod[sprintf("%s/", minDate)]))
+  obj <- objPeriod[sprintf("%s/", minDate)]
+  obj <- xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
+
+  lr <- linearRegression(obj)
   minChange <- as.numeric((lr$coef*365)/lastValue)
-  if(is.na(minChange))
+  if(is.na(minChange) || nrow(obj) < 30)
   {
     minChange <- 0
   }
@@ -189,22 +195,19 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   obj <- fullObj[sprintf("/%s", tradeDate)]
   seq <- fullSeq[sprintf("/%s", tradeDate)]
 
-  if(length(seq) < parameters$smaPeriod)
+  if(length(seq) <= parameters$smaPeriod + 500)
     return(NULL)
 
   sma <- SMA(seq, parameters$smaPeriod)
 
   dif <- as.double(na.omit(tail(seq-sma, 500)))
 
-  if(parameters$smaPeriod > length(dif))
-    return(NULL)
+  sdp <- (last(seq)-last(sma))/sd(dif)
 
-  ssd <- sd(dif)
-
-  seql = tail(seq, 2)
-  smal = tail(sma, 2)
-
-  sdp <- (seql[2]-smal[2])/ssd
+  #sm <- smaSDdata(obj, 500, parameters$smaPeriod)
+  #dif <- sm$dif
+  #sma <- sm$mavg
+  #sdp <- last(sm$dif/sm$sd)
 
   if(is.na(sdp))
   {
@@ -340,7 +343,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
 
   if(!is.null(alertR) && alertR != FALSE) #valor valido
   {
-    if(alertR == "r_up" && (is.null(lower)|| sdp < lower)) #reversao "para cima" e abaixo da banda inferior
+    if(alertR == "r_up" && (is.null(lower) || sdp < lower)) #reversao "para cima" e abaixo da banda inferior
     {
       if(canBuy)
       {

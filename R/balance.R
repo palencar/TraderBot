@@ -42,7 +42,7 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
 
       if(!is.null(state))
       {
-        df <- rbind(df, data.frame(symbol, state, size, price, value, proffit))
+        df <- rbind(df, data.frame(symbol, state, size, price, value, proffit, proffit_p=round((proffit/price)*100, digits=2)))
       }
     }
   }
