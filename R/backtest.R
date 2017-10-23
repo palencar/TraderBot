@@ -2,7 +2,7 @@ library("memoise")
 library("data.table")
 source("R/trade.R")
 source("R/result.R")
-
+source("R/parameters.R")
 
 #' @export
 computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replaceFile = FALSE)
@@ -11,6 +11,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   dir.create("datacache", showWarnings=FALSE)
 
   config <- config::get()
+  assign("config", config, .GlobalEnv)
 
   if(timeFrame == "1D")
   {
@@ -131,6 +132,6 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
       print(rbindlist(opList))
     }
   }
-  }, error = function(e) return(paste0("Symbol '", symbol, "'",
-                                       " caused the error: '", Sys.Date(), "'")))
+  }, error = function(e)
+      print(paste0("Symbol ", symbol, " caused the error: ", Sys.Date(), " ", e)))
 }

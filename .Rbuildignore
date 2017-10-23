@@ -12,3 +12,7 @@
 ^chart-weekly/*$
 ^docker$
 ^\.Rproj\.user$
+^datacache$
+^test$
+^tests$
+^result$

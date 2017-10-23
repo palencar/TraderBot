@@ -61,8 +61,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
   indexes <- new.env(hash=T, parent=emptyenv())
 
   config <- config::get()
-
-  parameters <- getParameters(timeFrame, "trade")
+  assign("config", config, .GlobalEnv)
 
   while(TRUE)
   {
@@ -89,6 +88,8 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
       for(timeFrame in timeFrames)
       {
+        parameters <- getParameters(timeFrame, "trade")
+
         if(timeFrame == "1D")
         {
           symbol <- getSymbolsDaily(symbolName)

@@ -14,6 +14,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   closedDF <- NULL
 
   config <- config::get()
+  assign("config", config, .GlobalEnv)
 
   parameters <- getParameters(timeFrame, "trade")
 
