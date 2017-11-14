@@ -57,14 +57,16 @@ sendAlert <- function(alerts)
   symbols <- as.vector(alerts$symbol)
 
   pr <- alerts$price
-  lp <- unlist(lapply(symbols, lastPrice))
+  lp <- unlist(lapply(symbols, function(x) {df <- lastPrice(x); df$close} ))
 
   alerts$date       <- as.character(alerts$date)
   alerts$alert      <- as.vector(alerts$alert)
   alerts$price      <- round(pr, digits = 2)
   alerts$lastprice  <- round(lp, digits = 2)
-  alerts$proffit    <- formatC(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 3, format = "f")
-  alerts$proffit_pp <- formatC(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr), digits = 3, format = "f")
+  alerts$profit    <- formatC(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 3, format = "f")
+  alerts$profit_pp <- formatC(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr), digits = 3, format = "f")
+
+  alerts <- na.omit(alerts)
 
   report <- tagList(tags$h3("TraderBot Alert:"),
                     tags$html(tags$head(),
@@ -74,7 +76,7 @@ sendAlert <- function(alerts)
                                               tags$p(
                                                 tagList(
                                                   tags$a(href=paste0(config$alert$baseurl, x['symbol'], ".", x['timeframe'], ".png"),
-                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Proffit: ", x['proffit_pp'], "%")
+                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Profit: ", x['profit_pp'], "%")
                                                   )))
                                               }))
                     ))

@@ -151,8 +151,19 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
       sendAlert(alerts)
     }
 
-    if(dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
+    if(openMarket == FALSE || dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
     {
+      #update cache files before the end
+      for(symbol in Symbols)
+      {
+        getSymbolsIntraday(symbol, updateCache = TRUE, updateLast = TRUE)
+
+        if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
+          updateDailyFromIntraday(symbol)
+        else
+          updateDaily(symbol)
+      }
+
       break
     }
     else

@@ -101,35 +101,35 @@ singleResult <- function(lines, lastDay = NULL)
   }
   closePosition <- FALSE
 
-  colNames <- c("state", "name", "buy_price", "sell_price", "profit", "proffit_pp", "open", "last")
+  colNames <- c("state", "name", "buy_price", "sell_price", "profit", "profit_pp", "open", "last")
 
   result <- list()
 
   if(!is.null(closedDF))
   {
     colnames(closedDF) <- colNames
-    closedDF <- closedDF[order(closedDF$proffit_pp),]
+    closedDF <- closedDF[order(closedDF$profit_pp),]
 
     result$closedDF <- closedDF
     buy     <- sum(closedDF$buy_price)
     gain    <- sum(closedDF$sell_price-closedDF$buy_price)
-    proffit <- sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)
+    profit  <- sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)
 
-    result$totalClosed <- data.frame(buy, gain, proffit)
+    result$totalClosed <- data.frame(buy, gain, profit)
     result$closedMeanPrice <- sum(closedDF$buy_price)/(nrow(closedDF)*100)
   }
 
   if(!is.null(openDF))
   {
     colnames(openDF) <- colNames
-    openDF <- openDF[order(openDF$proffit_pp),]
+    openDF <- openDF[order(openDF$profit_pp),]
 
     result$openDF <- openDF
     buy     <- sum(openDF$buy_price)
     gain    <- sum(openDF$sell_price-openDF$buy_price)
-    proffit <- sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)
+    profit  <- sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)
 
-    result$totalOpen <- data.frame(buy, gain, proffit)
+    result$totalOpen <- data.frame(buy, gain, profit)
     result$openMeanPrice <- sum(openDF$buy_price)/(nrow(openDF)*100)
   }
 
@@ -141,8 +141,8 @@ singleResult <- function(lines, lastDay = NULL)
   {
     buy     <- sum(totalDF$buy_price)
     gain    <- sum(totalDF$sell_price-totalDF$buy_price)
-    proffit <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
-    result$output <- data.frame(buy, gain, proffit)
+    profit  <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
+    result$output <- data.frame(buy, gain, profit)
   }
 
   result$total <- NULL
@@ -151,8 +151,8 @@ singleResult <- function(lines, lastDay = NULL)
   {
     capital <- sum(totalDF$buy_price)
     gain    <- sum(totalDF$sell_price-totalDF$buy_price)
-    proffit <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
-    result$total <- data.frame(capital, gain, proffit)
+    profit  <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
+    result$total <- data.frame(capital, gain, profit)
   }
 
   return(result)

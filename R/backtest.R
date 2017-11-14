@@ -95,7 +95,8 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
     resList <- list()
     opList  <- list()
 
-    result <- singleResultM(rbindlist(operations))
+    lastDay <- max(timeIndex)
+    result <- singleResultM(rbindlist(operations), lastDay)
 
     i <- 0
 

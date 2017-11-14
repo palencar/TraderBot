@@ -4,19 +4,17 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D")
+computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv")
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
-  alertSymbols <- NULL
-  openDF <- NULL
-  closedDF <- NULL
+  resultDF <- NULL
 
   config <- config::get()
   assign("config", config, .GlobalEnv)
 
-  parameters <- getParameters(timeFrame, "trade")
+  parameters <- getParameters(timeFrame, "trade", parametersFile)
 
   if(is.null(Symbols))
     AllSymbols <- getSymbolNames()
@@ -71,11 +69,6 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
           alerts[[alert]] <- TRUE
         }
 
-        if(symbol %in% alertSymbols == FALSE)
-        {
-          alertSymbols <- c(alertSymbols, symbol)
-        }
-
         price <- tradeDecision$price
         decision <- tradeDecision$decision
 
@@ -96,23 +89,31 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
       print(parameters)
       print(result)
 
-      openDF <- rbind(openDF, result$openDF)
-      closedDF <- rbind(closedDF, result$closedDF)
+      resultDF <- rbind(resultDF, result$openDF, result$closedDF)
     }
 
     base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
 
-  total <- rbind(closedDF, openDF)
-  saveRDS(total, paste0("datacache/simulate-", gsub(" ", "_", Sys.time()), ".rds"))
+  total <- rbind(resultDF[resultDF$state == "closed",], resultDF[resultDF$state == "open",])
 
   buy_price=sum(total$buy_price)
   sell_price=sum(total$sell_price)
-  proffit=sell_price-buy_price
-  proffit_pp=proffit/buy_price
+  profit=sell_price-buy_price
+  profit_pp=profit/buy_price
+
+  finalResults <- list()
+  finalResults$total   <- total
+  finalResults$summary <- data.frame(buy_price, sell_price, profit, profit_pp)
+  finalResults$parameters <- parameters
+
+  saveRDS(finalResults, paste0("datacache/simulate-", gsub(" ", "_", Sys.time()), ".rds"))
+
+  print("Parameters")
+  print(finalResults$parameters)
 
   print("Total:")
-  print(data.frame(buy_price, sell_price, proffit, proffit_pp))
+  print(finalResults$summary)
 
-  return(alertSymbols)
+  return(sort(unique(finalResults$total$name)))
 }

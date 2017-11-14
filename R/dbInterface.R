@@ -55,7 +55,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "1H", updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -104,7 +104,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "5M", updateLast = FALSE, fi
 
     obj <- obj[!duplicated(index(obj))]
 
-    if(updateFile)
+    if(updateCache & updateFile)
       saveRDS(obj, name1M)
 
     if(nrow(obj) <= 1)
@@ -248,9 +248,9 @@ lastTradingSession <- function()
 
 lastPrice <- function(symbol)
 {
-  queryStr <- sprintf("select close from intraday where symbol = '%s' order by datetime desc limit 1", symbol)
+  queryStr <- sprintf("select datetime,close from intraday where symbol = '%s' order by datetime desc limit 1", symbol)
 
-  return(as.numeric(getQuery(queryStr)))
+  return(getQuery(queryStr))
 }
 
 loadLocalCSV <- function(symbol)
@@ -315,8 +315,6 @@ getPositions <- function(symbol = NULL)
             positions[[j]] <- position
             date <- fr[i,]$date
             price <- fr[i,]$price
-
-            #TODO validar acSize >= 0
 
             if(fr[j,]$size >= vSize)
             {

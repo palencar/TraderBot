@@ -83,14 +83,14 @@ fMinChange <- function(symbol, period, lastValue)
 
 mMinChange <- memoise(fMinChange)
 
-fBullBear <-function(symbol, tradeDate, period)
+fBullBear <-function(symbol, tradeDate, period, context = 500)
 {
   obj <- base::get(symbol)[paste0("/", tradeDate)]
   seq <- xts(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), index(obj))
-  sma <- SMA(seq, period)
+  sma <- tail(SMA(seq, period), context + 1)
 
   rl <- rle(sign(diff(as.vector(sma))))
-  len <- sum(as.vector(na.exclude(rl$lengths))) - 1
+  len <- sum(as.vector(na.exclude(rl$lengths)))
 
   bull  <- sum(as.vector(na.exclude(rl$lengths[rl$values == 1])))/len
   bear  <- sum(as.vector(na.exclude(rl$lengths[rl$values == -1])))/len
@@ -176,13 +176,13 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
 
   if(memoised)
   {
-    alertR <- mAlertR(symbol, tradeDate)
+    #alertR <- mAlertR(symbol, tradeDate)
     alertL <- mAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
     meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
   }
   else
   {
-    alertR <- fAlertR(symbol, tradeDate)
+    #alertR <- fAlertR(symbol, tradeDate)
     alertL <- fAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
     meanVol <- filterVolume(symbol, tradeDate, volume = minVol)
   }
@@ -395,9 +395,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   if(is.null(pr) && length(operations) > 0)
   {
     if(memoised)
-      result <- singleResultM(rbindlist(operations))
+      result <- singleResultM(rbindlist(operations), tradeDate)
     else
-      result <- singleResult(rbindlist(operations))
+      result <- singleResult(rbindlist(operations), tradeDate)
 
     pr <- result$openMeanPrice
   }

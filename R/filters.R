@@ -3,6 +3,8 @@ library("memoise")
 library("xts")
 library("quantmod")
 
+lricache.l <- new.env(hash=T, parent=emptyenv())
+lricache   <- new.env(hash=T, parent=emptyenv())
 
 turnPoints <- function(object, maxTpoints=8)
 {
@@ -124,25 +126,28 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
   alert <- NULL
   cacheName <- sprintf("datacache/lricache_%s_%1.2f.csv", SymbolName, threshold)
 
-  cache.name <- paste0("lricache", SymbolName)
-
   key <- as.character(tradeDate)
-  if(file.exists(cacheName))
-  {
-    file.con <- file(cacheName, "r")
-    table <- read.table(file.con, sep = ",", col.names = c("key", "alert"))
-    close(file.con)
-    entry <- table[table$key == key, "alert"]
 
-    if(length(entry) > 0)
+  envObj <- sprintf("%s_%1.2f_%d", SymbolName, threshold, n)
+  if(is.null(lricache.l[[envObj]]))
+  {
+    if(file.exists(cacheName))
     {
-      alert <- as.character(entry)
+      file.con <- file(cacheName, "r")
+      table <- read.table(file.con, sep = ",", col.names = c("key", "alert"))
+      close(file.con)
+
+      for(i in 1:nrow(table))
+        lricache[[as.character(table[i, "key"])]] <- table[i, "alert"]
     }
+
+    lricache.l[[envObj]] <- TRUE
   }
 
-  if(!is.null(alert))
+  entry <- lricache[[key]]
+  if(!is.null(entry))
   {
-    return(alert)
+    return(as.character(entry))
   }
 
   lri <- linearRegressionIndicator(SymbolName, base::get(SymbolName)[sprintf("/%s", tradeDate)], n)[sprintf("/%s", tradeDate)]
@@ -153,6 +158,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
     file.con <- file(cacheName, "a")
     write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
     close(file.con)
+    lricache[[key]] <- alert
     return(alert)
   }
 
@@ -166,6 +172,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
     file.con <- file(cacheName, "a")
     write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
     close(file.con)
+    lricache[[key]] <- alert
     return(alert)
   }
 
@@ -224,6 +231,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
   file.con <- file(cacheName, "a")
   write.table(data.frame(key=key, alert=alert), file.con, row.names = F, na = "NA", append = T, quote = FALSE, sep=",", col.names=F)
   close(file.con)
+  lricache[[key]] <- alert
 
   return(alert)
 }

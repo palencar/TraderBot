@@ -10,7 +10,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
                               selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
-                              selectizeInput("timeFrames", "Time Frames", choices = c('1D', '1H', '30M', '15M', '10M'), selected = c('1D', '1H', '30M', '15M', '10M'), multiple = TRUE),
+                              selectizeInput("timeFrames", "Time Frames", choices = c('1D', '1H', '30M', '15M', '10M', '5M'), selected = c('1D', '1H', '30M', '15M', '10M', '5M'), multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
                               sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-2.5,-0.5), step= 0.01),
@@ -23,7 +23,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               sliderInput("bullSell",   "Bull Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearBuy",    "Bear Buy:",    min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearSell",   "Bear Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("proffit",    "Proffit:",     min = -1, max =   5, value = c(-1,5), step= 0.01)
+                              sliderInput("profit",     "Profit:",      min = -1, max =   5, value = c(-1,5), step= 0.01)
                             ),
                             mainPanel(
                               tableOutput("values"),
@@ -98,7 +98,6 @@ server <- shinyServer(function(input, output, session)
     if(length(symbolTimeFrame) == 2)
     {
       timeFrame = symbolTimeFrame[2]
-      #TODO what to do if timeFrame != symbolTimeFrame[2]?
     }
 
     if(timeFrame %in% c("weekly", "daily"))
@@ -219,7 +218,7 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$bearSell   >= input$bearSell[1]   & dataTable$bearSell   <= input$bearSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
     dataTable <- dataTable[(dataTable$bullBuy    >= input$bullBuy[1]    & dataTable$bullBuy    <= input$bullBuy[2])    | (is.na(dataTable$bullBuy)  & is.na(dataTable$bullSell))]
     dataTable <- dataTable[(dataTable$bullSell   >= input$bullSell[1]   & dataTable$bullSell   <= input$bullSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
-    dataTable <- dataTable[(dataTable$proffit_pp >= input$proffit[1]    & dataTable$proffit_pp <= input$proffit[2])    | is.na(dataTable$proffit_pp)]
+    dataTable <- dataTable[(dataTable$profit_pp  >= input$profit[1]     & dataTable$profit_pp  <= input$profit[2])     | is.na(dataTable$profit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$name))))
       dataTable <- dataTable[dataTable$name %in% input$filterSymbol]
@@ -235,18 +234,18 @@ server <- shinyServer(function(input, output, session)
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
     {
-      grid.arrange(showPlot(tv, c("smaPeriod", "proffit_pp")),
-                   showPlot(tv, c("lowerBand", "proffit_pp")),
-                   showPlot(tv, c("upperBand", "proffit_pp")),
-                   showPlot(tv, c("downChange", "proffit_pp")),
-                   showPlot(tv, c("upChange", "proffit_pp")),
-                   showPlot(tv, c("lowLimit", "proffit_pp")),
-                   showPlot(tv, c("stopGain", "proffit_pp")),
-                   showPlot(tv, c("stopLoss", "proffit_pp")),
-                   showPlot(tv, c("bullBuy", "proffit_pp")),
-                   showPlot(tv, c("bullSell", "proffit_pp")),
-                   showPlot(tv, c("bearSell", "proffit_pp")),
-                   showPlot(tv, c("bearBuy", "proffit_pp")),
+      grid.arrange(showPlot(tv, c("smaPeriod", "profit_pp")),
+                   showPlot(tv, c("lowerBand", "profit_pp")),
+                   showPlot(tv, c("upperBand", "profit_pp")),
+                   showPlot(tv, c("downChange", "profit_pp")),
+                   showPlot(tv, c("upChange", "profit_pp")),
+                   showPlot(tv, c("lowLimit", "profit_pp")),
+                   showPlot(tv, c("stopGain", "profit_pp")),
+                   showPlot(tv, c("stopLoss", "profit_pp")),
+                   showPlot(tv, c("bullBuy", "profit_pp")),
+                   showPlot(tv, c("bullSell", "profit_pp")),
+                   showPlot(tv, c("bearSell", "profit_pp")),
+                   showPlot(tv, c("bearBuy", "profit_pp")),
                    nrow=4, ncol=3)
 
     }

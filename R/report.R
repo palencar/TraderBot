@@ -23,7 +23,7 @@ mergeBacktest <- function(path = "result")
   dataTable <- rbindlist(oper, fill = TRUE)
 
   if(nrow(dataTable) > 0)
-    dataTable$mProffit <- as.numeric(dataTable$proffit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
+    dataTable$mProfit <- as.numeric(dataTable$profit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
 
   return(dataTable)
 }
@@ -50,17 +50,17 @@ showReport <- function(dataTable, path = "result")
   for(symbolName in symbols)
   {
     obj        <- dataTable[which(dataTable$name == symbolName)]
-    proffit    <- mean(obj$proffit_pp)
-    minProffit <- min(obj$proffit_pp)
-    maxProffit <- max(obj$proffit_pp)
-    variance   <- var(obj$proffit_pp)
-    skewness   <- skewness(obj$proffit_pp)
-    count      <- length(unique(obj$proffit_pp[obj$name == symbolName]))
-    df         <- data.frame(symbolName, proffit, minProffit, maxProffit, variance, skewness, count)
+    profit     <- mean(obj$profit_pp)
+    minProfit  <- min(obj$profit_pp)
+    maxProfit  <- max(obj$profit_pp)
+    variance   <- var(obj$profit_pp)
+    skewness   <- skewness(obj$profit_pp)
+    count      <- length(unique(obj$profit_pp[obj$name == symbolName]))
+    df         <- data.frame(symbolName, profit, minProfit, maxProfit, variance, skewness, count)
     dff        <- rbind(dff, df)
   }
 
-  dff <- dff[order(dff$proffit),]
+  dff <- dff[order(dff$profit),]
 
   return(dff)
 }

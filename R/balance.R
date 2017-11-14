@@ -1,7 +1,7 @@
 source("R/dbInterface.R")
 
 #' @export
-showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
+showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getPrices = FALSE)
 {
   cTotal <- 0
   oTotal <- 0
@@ -10,6 +10,16 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
   if(is.null(symbols))
   {
     symbols <- getWallet(showClosed)
+  }
+
+  if(getPrices)
+  {
+    prices <- NULL
+    for(symbol in symbols)
+    {
+      obj <- Cl(tail(f.get.google.intraday(symbol, 3600, "1h"), 1))
+      prices <- rbind(prices, data.frame(row.names = symbol, Time=index(obj), Price=as.numeric(obj)))
+    }
   }
 
   for(symbol in symbols)
@@ -22,30 +32,41 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE)
 
       if(showOpen && is.na(p$closeVal))
       {
+        if(getPrices)
+          lp <- data.frame(datetime=prices[symbol, "Time"], close=prices[symbol, "Price"])
+        else
+          lp <- lastPrice(symbol)
+
+        open <- as.Date(p$start)
+        last <- lp$datetime
         price <- p$openVal * p$size
         size <- p$size
-        value <- lastPrice(symbol) * size
-        proffit <- value - price
+        value <- as.numeric(lp$close) * size
+        profit <- value - price
         state <- "open"
-        oTotal <- oTotal + proffit
+        oTotal <- oTotal + profit
       }
 
       if(showClosed && !is.na(p$closeVal))
       {
+        open <- as.Date(p$start)
+        last <- as.Date(p$end)
         price <- p$openVal * p$size
         size <- p$size
         value <- p$closeVal * size
-        proffit <- value - price
+        profit <- value - price
         state <- "closed"
-        cTotal <- cTotal + proffit
+        cTotal <- cTotal + profit
       }
 
       if(!is.null(state))
       {
-        df <- rbind(df, data.frame(symbol, state, size, price, value, proffit, proffit_p=round((proffit/price)*100, digits=2)))
+        df <- rbind(df, data.frame(symbol, open, last, state, size, price, value, profit, profit_p=round((profit/price)*100, digits=2)))
       }
     }
   }
+
+  df <- df[ order(df$last, df$open), ]
 
   print(df)
 
