@@ -5,9 +5,11 @@ mMergeBacktest <- memoise(mergeBacktest)
 
 predictBest <- function(df = mMergeBacktest(), colName)
 {
-  df <- df %>% group_by_at(vars(one_of(colName))) %>% summarize(profit_pp=mean(profit_pp)) %>% data.frame()
+  df <- df[, c('profit_pp', colName), with=FALSE]
+  df <- df[,list(profit_pp=mean(profit_pp)), by=colName]
+
   p <- loess(formula(paste0("profit_pp ~ ", colName)), df)
-  df[which.max(predict(p)), colName]
+  df[which.max(predict(p)), colName, with=FALSE]
 }
 
 getParameters <- function(timeFrame, operation="trade", fileName = "tradeParameters.csv")

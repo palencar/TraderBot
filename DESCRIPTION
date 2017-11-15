@@ -16,7 +16,6 @@ Depends:
     xts,
     foreach,
     shiny,
-    dplyr,
     moments,
     config,
     htmltools,
