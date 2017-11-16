@@ -104,6 +104,9 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
         lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
+        if(lastIdx < Sys.Date())
+          next
+
         if(is.null(lastSession) || lastIdx > lastSession)
           lastSession <- lastIdx
 
