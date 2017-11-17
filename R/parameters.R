@@ -45,10 +45,13 @@ btParameters <- function(timeFrame)
     colnames(df) <- names
     df[1, parNames] <- c(300, -1, 1, 4, -4, 0.4, 3, 0.4, 0.4, 0.4, 0.4, 0.4)
     df[2, parNames] <- c(400, -2, 2, 5, -5, 0.6, 4, 0.6, 0.6, 0.6, 0.6, 0.6)
+    dF <- as.data.table(df)
   }
-
-  dF <- data.frame(lapply(parNames, function(x) {predictBest(df=df, colName=x)}))
-  colnames(dF) <- parNames
+  else
+  {
+    dF <- data.frame(lapply(parNames, function(x) {predictBest(df=df, colName=x)}))
+    colnames(dF) <- parNames
+  }
 
   randPar <- function(min, max, meanValue, stdDev)
   {
