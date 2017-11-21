@@ -1,4 +1,3 @@
-source("R/polyReg.R")
 source("R/linReg.R")
 source("R/dbInterface.R")
 source("R/orders.R")
@@ -8,7 +7,7 @@ source("R/filters.R")
 
 #' @export
 chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("poly_r", "positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
+                         Posit=NULL, indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
 {
   for(i in 1:length(Symbols))
   {
@@ -48,11 +47,6 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
       dir.create(path, showWarnings=FALSE, recursive = TRUE)
       png(filename = imageName, width=xres, height=yres)
     }
-
-    if("poly_r" %in% indicators)
-      polyRegs <- getPolyRegs(SymbolName, endDate=ed)
-    else
-      polyRegs <- NULL
 
     if("smaSD" %in% indicators)
       smasd <- smaSD(Symbol, smaPeriod)
@@ -105,7 +99,7 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
     }
 
     datePeriod <- sprintf("%s::%s", st, ed)
-    taIndicators <- paste(c(polyRegs, smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
+    taIndicators <- paste(c(smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
 
     chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)
 

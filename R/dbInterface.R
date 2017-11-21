@@ -341,6 +341,25 @@ getPositions <- function(symbol = NULL)
   return(positions)
 }
 
+#' @export
+addAlerts <- function(symbol, datetime, alert, price, timeframe)
+{
+  alerts <- data.frame(symbol, timeframe, datetime, alert, price)
+
+  query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price) VALUES",
+                 paste(sprintf("('%s', '%s', '%s', '%s', %s)", alerts$symbol, alerts$timeframe, alerts$date, alerts$alert, alerts$price), collapse=', '))
+
+  getQuery(query)
+}
+
+#' @export
+getAlerts <- function(n = 50)
+{
+  alerts <- getQuery("select * from alerts order by datetime desc")
+
+  return(head(alerts[!duplicated(alerts[,c('symbol','alert')]),], n))
+}
+
 getWallet <- function(showClosed = FALSE)
 {
   fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
@@ -559,7 +578,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 
     queryStr <- paste("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES ",
                       paste(sprintf("('%s', '%s', %f, %f, %f, %f, %s)",
-                      symbol, index(obj), as.double(obj$day_open), as.double(obj$day_high), as.double(obj$day_low), as.double(obj$day_close), as.double(obj$volume)), collapse=', '))
+                      symbol, index(obj), as.double(Op(obj)), as.double(Hi(obj)), as.double(Lo(obj)), as.double(Cl(obj)), as.double(Vo(obj))), collapse=', '))
 
     getQuery(queryStr)
 

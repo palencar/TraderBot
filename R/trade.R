@@ -1,24 +1,6 @@
 library("memoise")
 
 
-fAlertR <- function(symbol, tradeDate)
-{
-  tryCatch({
-      filterObjectsSets(symbol, tradeDate)
-    }, warning = function(war) {
-      print(sprintf("filterObjectsSets: %s %s", symbol, tradeDate))
-      print(war)
-      return(NULL)
-    }, error = function(err) {
-      print(sprintf("filterObjectsSets: %s %s", symbol, tradeDate))
-      print(err)
-      return(NULL)
-    }, finally={
-  })
-}
-
-mAlertR <- memoise(fAlertR)
-
 fAlertL <- function(symbol, tradeDate, lriTreshold, lriPeriod)
 {
   tryCatch({
@@ -176,13 +158,13 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
 
   if(memoised)
   {
-    #alertR <- mAlertR(symbol, tradeDate)
+    fData <- filterDataM(symbol, tradeDate)
     alertL <- mAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
     meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
   }
   else
   {
-    #alertR <- fAlertR(symbol, tradeDate)
+    fData <- filterData(symbol, tradeDate)
     alertL <- fAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
     meanVol <- filterVolume(symbol, tradeDate, volume = minVol)
   }
@@ -195,7 +177,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   obj <- fullObj[sprintf("/%s", tradeDate)]
   seq <- fullSeq[sprintf("/%s", tradeDate)]
 
-  if(length(seq) <= parameters$smaPeriod + 500)
+  if(is.null(fData) || length(seq) <= parameters$smaPeriod + 500)
     return(NULL)
 
   sma <- SMA(seq, parameters$smaPeriod)

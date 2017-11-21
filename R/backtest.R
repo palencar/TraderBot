@@ -23,10 +23,11 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   }
 
   empty <- TRUE
-  n <- 1
+  n <- 0
 
   for(symbol in AllSymbols)
   tryCatch({
+  linearRegressionIndicator(symbol, base::get(symbol))
   indexes <- index(base::get(symbol))
   while(n < minSamples)
   {
@@ -42,10 +43,7 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
 
     n <- n + 1
 
-    if((n %% 10) == 0)
-    {
-      print(paste0(Sys.time(), " Sample: ", n))
-    }
+    print(paste0(Sys.time(), " Sample: ", n))
 
     if(length(timeIndex) == 0)
     {
@@ -53,12 +51,9 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
       next
     }
 
-    for(i in length(timeIndex):1)
+    for(i in 1:length(timeIndex))
     {
       tradeDate <- timeIndex[i]
-
-      if(is.null(filterDataM(symbol, tradeDate)))
-        next
 
       tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations, memoised = TRUE)
 
@@ -80,12 +75,10 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
         price <- tradeDecision$price
         decision <- tradeDecision$decision
 
-        logLine <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
-
         pars <- tradeDecision$parameters
 
         i <- length(operations)
-        operations[[i+1]] <- logLine
+        operations[[i+1]] <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
       }
     }
 
@@ -134,5 +127,5 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
     }
   }
   }, error = function(e)
-      print(paste0("Symbol ", symbol, " caused the error: ", Sys.Date(), " ", e)))
+      print(paste0("Symbol ", symbol, " ", e)))
 }

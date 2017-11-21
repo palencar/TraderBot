@@ -3,25 +3,6 @@ library("config")
 library("htmltools")
 
 #' @export
-addAlerts <- function(symbol, datetime, alert, price, timeframe)
-{
-  alerts <- data.frame(symbol, timeframe, datetime, alert, price)
-
-  query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price) VALUES",
-                 paste(sprintf("('%s', '%s', '%s', '%s', %s)", alerts$symbol, alerts$timeframe, alerts$date, alerts$alert, alerts$price), collapse=', '))
-
-  getQuery(query)
-}
-
-#' @export
-getAlerts <- function(n = 50)
-{
-  alerts <- getQuery("select * from alerts order by datetime desc")
-
-  return(head(alerts[!duplicated(alerts[,c('symbol','alert')]),], n))
-}
-
-#' @export
 chartAlerts <- function(alerts = NULL, parameters)
 {
   if(is.null(alerts) || nrow(alerts) == 0)

@@ -43,14 +43,13 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     if(length(timeIndex) == 0)
       next
 
+    linearRegressionIndicator(symbol, base::get(symbol))
+
     operations <- list()
 
-    for(i in length(timeIndex):1)
+    for(i in 1:length(timeIndex))
     {
       tradeDate <- timeIndex[i]
-
-      if(is.null(filterData(symbol, tradeDate)))
-        next
 
       tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations)
 
@@ -115,5 +114,8 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   print("Total:")
   print(finalResults$summary)
 
-  return(sort(unique(finalResults$total$name)))
+  if(!is.null(finalResults$total))
+    return(sort(unique(finalResults$total$name)))
+
+  return(NULL)
 }

@@ -17,7 +17,7 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, get
     prices <- NULL
     for(symbol in symbols)
     {
-      obj <- Cl(tail(f.get.google.intraday(symbol, 3600, "1h"), 1))
+      obj <- Cl(tail(f.get.google.intraday(symbol, 60, "5d"), 1))
       prices <- rbind(prices, data.frame(row.names = symbol, Time=index(obj), Price=as.numeric(obj)))
     }
   }

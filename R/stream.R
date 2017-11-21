@@ -14,11 +14,13 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
 
   print(timeIndex)
 
-  for(i in length(timeIndex):1)
+  price <- meanPrice(symbol)
+
+  linearRegressionIndicator(symbol, base::get(symbol))
+
+  for(i in 1:length(timeIndex))
   {
     tradeDate <- timeIndex[i]
-
-    price <- meanPrice(symbol)
 
     tradeDecision <- trade(symbol, tradeDate, parameters = parameters, price = price)
 
@@ -31,9 +33,9 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
 
     if(tradeDecision$decision != "hold")
     {
-      price <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
+      tradePrice <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
 
-      logLine <- paste(symbol, tradeDate, tradeDecision$decision, price, collapse = " ")
+      logLine <- paste(symbol, tradeDate, tradeDecision$decision, tradePrice, collapse = " ")
 
       writeResult(symbol, logLine, "../stream")
 
@@ -41,7 +43,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
       date  <- tradeDate
       alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
 
-      addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, tradeDecision$decision, price, timeFrame)
+      addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, tradeDecision$decision, tradePrice, timeFrame)
     }
   }
 
