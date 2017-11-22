@@ -74,7 +74,7 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
   alert <- NULL
   cacheName <- sprintf("datacache/lricache_%s_%1.2f.csv", SymbolName, threshold)
 
-  key <- as.character(tradeDate)
+  key <- paste0(SymbolName, " ", as.character(tradeDate))
 
   envObj <- sprintf("%s_%1.2f_%d", SymbolName, threshold, n)
   if(is.null(lricache.l[[envObj]]))
@@ -124,54 +124,14 @@ filterLRI <- function(SymbolName, tradeDate, threshold=0, n=30)
     return(alert)
   }
 
-  rdif <- c()
-
-  lastIndex <- 1
-  for(i in 1:len)
-  {
-    nextIndex <- lastIndex + r$lengths[i]
-    rdif[i] <- 0
-
-    if(r$values[i] == 1)
-    {
-      high <- as.double(lri[nextIndex])
-      low  <- as.double(lri[lastIndex])
-      rdif[i] <- (high-low)/low
-    }
-    else if(r$values[i] == -1)
-    {
-      high <- as.double(lri[lastIndex])
-      low  <- as.double(lri[nextIndex])
-      rdif[i] <- (low-high)/high
-    }
-
-    lastIndex <- nextIndex
-  }
-
-  sdev <- sd(rdif)
-  lastSignal <- "none"
-
-  for(i in 2:len)
-  {
-    if(r$values[i] == 1 && (rdif[i-1] <= (-sdev*threshold)))
-    {
-      lastSignal <- "up"
-    }
-
-    if(r$values[i] == -1 && (rdif[i-1] >= (sdev*threshold)))
-    {
-      lastSignal <- "down"
-    }
-  }
-
   alert <- "none"
 
-  if(r$values[len] == 1 && (rdif[len-1] <= (-sdev*threshold) || lastSignal == "up"))
+  if(r$values[len] == 1 && r$lengths[len] == 1)
   {
     alert <- "up"
   }
 
-  if(r$values[len] == -1 && (rdif[len-1] >= (sdev*threshold) || lastSignal == "down"))
+  if(r$values[len] == -1 && r$lengths[len] == 1)
   {
     alert <- "down"
   }
