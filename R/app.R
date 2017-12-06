@@ -96,18 +96,12 @@ server <- shinyServer(function(input, output, session)
     symbolTimeFrame <- unlist(strsplit(symbol, "[.]"))
 
     if(length(symbolTimeFrame) == 2)
-    {
       timeFrame = symbolTimeFrame[2]
-    }
 
     if(timeFrame %in% c("weekly", "daily"))
-    {
-      symbol <- getSymbolsDaily(symbol, FALSE)
-    }
+      symbol <- getSymbolsDaily(symbol, adjust = c("split", "dividend"))
     else
-    {
-      symbol <- getSymbolsIntraday(symbolTimeFrame[1], timeFrame)
-    }
+      symbol <- getSymbolsIntraday(symbolTimeFrame[1], timeFrame, adjust = c("split", "dividend"))
 
     if(!is.null(symbol))
       chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate, timeFrame = timeFrame)

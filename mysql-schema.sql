@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
 --
--- Host: traderbot.############.#########.rds.amazonaws.com    Database: traderbot
+-- Host: #########    Database: traderbot
 -- ------------------------------------------------------
 -- Server version	5.6.35-log
 
@@ -29,6 +29,21 @@ CREATE TABLE `alerts` (
   `alert` varchar(4) DEFAULT NULL,
   `price` double DEFAULT NULL,
   UNIQUE KEY `intradayindex` (`symbol`,`timeframe`,`datetime`,`alert`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dividends`
+--
+
+DROP TABLE IF EXISTS `dividends`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `dividends` (
+  `symbol` varchar(12) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `dividend` double DEFAULT NULL,
+  UNIQUE KEY `dividendindex` (`symbol`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -69,6 +84,21 @@ CREATE TABLE `operations` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `splits`
+--
+
+DROP TABLE IF EXISTS `splits`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `splits` (
+  `symbol` varchar(12) DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `split` double DEFAULT NULL,
+  UNIQUE KEY `splitindex` (`symbol`,`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `stockprices`
 --
 
@@ -90,6 +120,19 @@ CREATE TABLE `stockprices` (
   UNIQUE KEY `stockindex` (`symbol`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `symbols`
+--
+
+DROP TABLE IF EXISTS `symbols`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `symbols` (
+  `symbol` varchar(12) DEFAULT NULL,
+  UNIQUE KEY `symbol` (`symbol`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -100,4 +143,4 @@ CREATE TABLE `stockprices` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-10-24 17:29:02
+-- Dump completed on 2017-11-27 18:05:42

@@ -13,9 +13,9 @@ chartAlerts <- function(alerts = NULL, parameters)
     alert <- alerts[i,]
 
     if(alert$timeframe == "1D")
-      symbol <- getSymbolsDaily(alert$symbol)
+      symbol <- getSymbolsDaily(alert$symbol, adjust = c("split", "dividend"))
     else
-      symbol <- getSymbolsIntraday(alert$symbol, alert$timeframe, updateLast = FALSE)
+      symbol <- getSymbolsIntraday(alert$symbol, alert$timeframe, adjust = c("split", "dividend"), updateLast = FALSE)
 
     print(sprintf("Chart [%s] [%s] [%s]: %s", alert$symbol, alert$timeframe, alert$date, alert$alert))
 

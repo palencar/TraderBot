@@ -4,7 +4,7 @@
 
 ## Ubuntu Dependencies
 ```
-apt-get install -y r-base r-base-dev sqlite3 libxml2-dev libmysqlclient-dev libssl-dev libssh2-1-dev libcurl4-openssl-dev
+apt-get install -y r-base r-base-dev sqlite3 libxml2-dev libmysqlclient-dev libmariadbclient-dev libssl-dev libssh2-1-dev libcurl4-openssl-dev
 ```
 
 ## Clone repository

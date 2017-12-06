@@ -5,7 +5,7 @@ source("R/result.R")
 source("R/parameters.R")
 
 #' @export
-computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replaceFile = FALSE)
+computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replaceFile = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -13,119 +13,122 @@ computeBacktest <- function(Symbols, minSamples = 1024, timeFrame = "1D", replac
   config <- config::get()
   assign("config", config, .GlobalEnv)
 
-  if(timeFrame == "1D")
-  {
-    AllSymbols <- getSymbolsDaily(symbolNames = Symbols)
-  }
-  else
-  {
-    AllSymbols <- getSymbolsIntraday(Symbols, timeFrame)
-  }
-
-  empty <- TRUE
-  n <- 0
-
-  for(symbol in AllSymbols)
+  for(symbol in Symbols)
   tryCatch({
-  linearRegressionIndicator(symbol, base::get(symbol))
+  adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
+
+  if(timeFrame == "1D")
+    symbol <- getSymbolsDaily(symbol, adjust = NULL)
+  else
+    symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = NULL)
+
+  if(is.null(symbol))
+    next
+
   indexes <- index(base::get(symbol))
-  while(n < minSamples)
+
+  parList <- list()
+  operations <- list()
+
+  for(i in 1:minSamples)
   {
-    operations <- list()
+    parList[[i]] <- getParameters(timeFrame, "backtest")
+    operations[[i]] <- list()
+  }
 
-    parameters <- getParameters(timeFrame, "backtest")
+  startIdx <- min(rbindlist(parList)$smaPeriod)+500
+  endIdx  <- length(indexes)
 
-    print(parameters)
+  if(startIdx > endIdx)
+    next
 
-    pars <- NULL
+  for(i in startIdx:endIdx)
+  {
+    forgetCache()
 
-    timeIndex <- tail(indexes, length(indexes) - parameters$smaPeriod)
-
-    n <- n + 1
-
-    print(paste0(Sys.time(), " Sample: ", n))
-
-    if(length(timeIndex) == 0)
+    if(any(as.Date(indexes[[i]]) >= adjustDates))
     {
-      n <- minSamples
-      next
+      print(paste0("Adjusting ", as.Date(indexes[[i]])))
+
+      adjustDates <- adjustDates[adjustDates > as.Date(indexes[[i]])]
+      adjustLimit <- min(adjustDates-1, max(indexes))
+
+      if(timeFrame == "1D")
+        getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
+      else
+        getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
+
+      linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
     }
 
-    for(i in 1:length(timeIndex))
-    {
-      tradeDate <- timeIndex[i]
+    print(paste0(Sys.time(), " : ", symbol, " : ", indexes[[i]]))
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations, memoised = TRUE)
+    j <- 0
+
+    for(parameters in parList)
+    {
+      j <- j + 1
+
+      if(i <= parameters$smaPeriod)
+        next
+
+      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, operations = operations[[j]], memoised = TRUE)
 
       if(is.null(tradeDecision))
         next
 
-      alerts <- new.env(hash=T, parent=emptyenv())
-
       if(tradeDecision$decision != "hold")
       {
-        alert <- paste(symbol, tradeDate, tradeDecision$decision, formatC(tradeDecision$price, digits=2,format="f"), tradeDecision$reason)
-
-        if(is.null(alerts[[alert]]))
-        {
-          print(alert)
-          alerts[[alert]] <- TRUE
-        }
+        alert <- paste(symbol, indexes[i], tradeDecision$decision, formatC(tradeDecision$price, digits=2, format="f"), tradeDecision$reason)
+        print(alert)
 
         price <- tradeDecision$price
         decision <- tradeDecision$decision
 
-        pars <- tradeDecision$parameters
-
-        i <- length(operations)
-        operations[[i+1]] <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
+        len <- length(operations[[j]])
+        operations[[j]][[len+1]] <- data.frame(symbol, tradeDate=indexes[i], decision, price, stringsAsFactors = FALSE)
       }
     }
+  }
 
-    outputOp <- sprintf("result/%s%s.rds", symbol, ifelse(timeFrame == "1D", ".1D", ""))
+  outputOp <- sprintf("result/%s%s.rds", symbol, ifelse(timeFrame == "1D", ".1D", ""))
 
-    parList <- list()
-    resList <- list()
-    opList  <- list()
+  opFile <- NULL
+  if(file.exists(outputOp) && length(operations) > 0)
+  {
+    if(replaceFile)
+      file.remove(outputOp)
+    else
+      opFile <- readRDS(outputOp)
+  }
 
-    lastDay <- max(timeIndex)
-    result <- singleResultM(rbindlist(operations), lastDay)
+  i <- 0
 
-    i <- 0
+  opList  <- list()
+
+  for(parameters in parList)
+  {
+    i <- i + 1
+
+    lastDay <- last(indexes)
+    result <- singleResult(rbindlist(operations[[i]]), lastDay)
 
     if(!is.null(result$output))
     {
-      i <- i + 1
-      parList[[i]] <- pars
-      resList[[i]] <- result$total
-      opList[[i]]  <- cbind(pars, rbind(result$closedDF, result$openDF))
+      opList[[i]]  <- cbind(parList[[i]], rbind(result$closedDF, result$openDF))
       print(opList[[i]])
-    }
 
-    if(i > 0)
-    {
-      if(replaceFile)
-      {
-        if(file.exists(outputOp))
-          file.remove(outputOp)
-        replaceFile <- FALSE
-      }
-
-      opFile <- NULL
-      if(file.exists(outputOp))
-      {
-        opFile <- readRDS(outputOp)
-      }
-
-      opFile$parameters <- rbind(opFile$parameters, rbindlist(parList))
-      opFile$results    <- rbind(opFile$results, rbindlist(resList))
+      opFile$parameters <- rbind(opFile$parameters, parameters)
+      opFile$results    <- rbind(opFile$results, result$total)
       opFile$operations <- rbind(opFile$operations, rbindlist(opList))
-
-      saveRDS(opFile, outputOp)
-
-      print(rbindlist(opList))
     }
   }
+
+  if(!is.null(opFile))
+    saveRDS(opFile, outputOp)
+
+  print(rbindlist(opList))
+
   }, error = function(e)
       print(paste0("Symbol ", symbol, " ", e)))
 }

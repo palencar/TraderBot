@@ -29,18 +29,30 @@ linearRegression <- function (Symbol)
   return(list(regression=yr, diffReg=diffReg, diffVal=diffVal, sigma=sigma, coef=r$coefficients["x"]))
 }
 
-linearRegressionIndicator <- function (SymbolName, Symbol, n=30)
+linearRegressionIndicator <- function (SymbolName, Symbol, n=30, refresh = FALSE, cache = "file")
 {
   dir.create("datacache", showWarnings=FALSE)
 
   fileName <- sprintf("datacache/%s_%d_lri.rds", SymbolName, n)
-
-  fileExists <- file.exists(fileName)
+  memoryName <- sprintf("%s_%d_lri", SymbolName, n)
 
   lriFile <- NULL
-  if(fileExists)
+
+  if(exists(memoryName) && refresh == FALSE)
+    lriFile <- base::get(memoryName)
+
+  if(is.null(lriFile) && cache == "file")
   {
-    lriFile <- readRDS(file=fileName)
+    if(file.exists(fileName))
+    {
+      if(refresh)
+      {
+        file.remove(fileName)
+        lriFile <- NULL
+      }
+      else
+        lriFile <- readRDS(file=fileName)
+    }
   }
 
   lastN <- (nrow(Symbol)-n)
@@ -80,7 +92,10 @@ linearRegressionIndicator <- function (SymbolName, Symbol, n=30)
     lriFile <- lriFile[!duplicated(index(lriFile), fromLast = TRUE),]
     lriFile <- na.omit(lriFile)
 
-    saveRDS(lriFile, file=fileName)
+    if(cache == "file")
+      saveRDS(lriFile, file=fileName)
+    if(cache == "memory")
+      assign(memoryName, lriFile, envir = .GlobalEnv)
   }
 
   return(lriFile)

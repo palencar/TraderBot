@@ -1,24 +1,6 @@
 library("memoise")
 
 
-fAlertL <- function(symbol, tradeDate, lriTreshold, lriPeriod)
-{
-  tryCatch({
-      filterLRI(symbol, tradeDate, lriTreshold, lriPeriod)
-    }, warning = function(war) {
-      print(sprintf("filterLRI: %s %s", symbol, tradeDate))
-      print(war)
-      return(NULL)
-    }, error = function(err) {
-      print(sprintf("filterLRI: %s %s", symbol, tradeDate))
-      print(err)
-      return(NULL)
-    }, finally={
-  })
-}
-
-mAlertL <- memoise(fAlertL)
-
 fMaxChange <- function(symbol, period, lastValue)
 {
   objPeriod <- base::get(symbol)[period]
@@ -39,8 +21,6 @@ fMaxChange <- function(symbol, period, lastValue)
   }
   return(maxChange)
 }
-
-mMaxChange <- memoise(fMaxChange)
 
 fMinChange <- function(symbol, period, lastValue)
 {
@@ -63,12 +43,8 @@ fMinChange <- function(symbol, period, lastValue)
   return(minChange)
 }
 
-mMinChange <- memoise(fMinChange)
-
-fBullBear <-function(symbol, tradeDate, period, context = 500)
+fBullBear <-function(seq, period, context = 500)
 {
-  obj <- base::get(symbol)[paste0("/", tradeDate)]
-  seq <- xts(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), index(obj))
   sma <- tail(SMA(seq, period), context + 1)
 
   rl <- rle(sign(diff(as.vector(sma))))
@@ -84,19 +60,17 @@ fBullBear <-function(symbol, tradeDate, period, context = 500)
   return(retValue)
 }
 
-mBullBear <- memoise(fBullBear)
-
-fPreventMinMax <- function(symbol, period, tradeDate)
+fPreventMinMax <- function(symbol, period)
 {
   cantBuy <- NULL
   cantSell <- NULL
 
-  obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
-  objPeriod <- obj[period]
+  obj <- base::get(symbol)[period]
+  tradeDate <- index(xts::last(obj))
 
   lowYear <- tail(Lo(obj), 250) #rougthly 1 year (on daily timeframe)
   minYear <- index(lowYear[which.min(lowYear)])
-  if(nrow(objPeriod[paste0(minYear, "::", tradeDate)]) <= 7)
+  if(nrow(obj[paste0(minYear, "::", tradeDate)]) <= 7)
   {
     str <- sprintf("DO NOT BUY: %s | [%s] Min Year [%s]", symbol, tradeDate, minYear)
     cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -109,17 +83,17 @@ fPreventMinMax <- function(symbol, period, tradeDate)
     cantBuy <- c(cantBuy[cantBuy != str], str)
   }
 
-  low2Year <- tail(Lo(obj), 500)  #rougthly 2 years (on daily timeframe)
+  low2Year <- tail(Lo(obj), 500)
   min2Year <- index(low2Year[which.min(low2Year)])
-  if(nrow(objPeriod[paste0(min2Year, "::", tradeDate)]) <= 14)
+  if(nrow(obj[paste0(min2Year, "::", tradeDate)]) <= 14)
   {
     str <- sprintf("DO NOT BUY: %s | [%s] Min 2 Year [%s]", symbol, tradeDate, min2Year)
     cantBuy <- c(cantBuy[cantBuy != str], str)
   }
 
-  highYear <- tail(Hi(obj), 250)  #rougthly 1 year (on daily timeframe)
+  highYear <- tail(Hi(obj), 250)
   maxYear <- index(highYear[which.max(highYear)])
-  if(nrow(objPeriod[paste0(maxYear, "::", tradeDate)]) <= 7)
+  if(nrow(obj[paste0(maxYear, "::", tradeDate)]) <= 7)
   {
     str <- sprintf("DO NOT SELL: %s | [%s] Max Year [%s]", symbol, tradeDate, maxYear)
     cantSell <- c(cantSell[cantSell != str], str)
@@ -141,49 +115,55 @@ fPreventMinMax <- function(symbol, period, tradeDate)
   return(retValue)
 }
 
-mPreventMinMax <- memoise(fPreventMinMax)
+fGetVolatility <- function(symbol, period)
+{
+  obj <- base::get(symbol)[period]
+  mean(na.omit(volatility(obj)))
+}
 
-trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price = NULL, minVol = 0, lriTreshold = 0, lriPeriod = 30, verbose = FALSE, memoised = FALSE)
+mMaxChange <- memoise(fMaxChange)
+mMinChange <- memoise(fMinChange)
+mBullBear <- memoise(fBullBear)
+mPreventMinMax <- memoise(fPreventMinMax)
+mFilterBadData <- memoise(filterBadData)
+mGetVolatility <- memoise(fGetVolatility)
+
+forgetCache <- function()
+{
+  forget(mMaxChange)
+  forget(mMinChange)
+  forget(mBullBear)
+  forget(mPreventMinMax)
+  forget(mFilterBadData)
+  forget(singleResultM)
+}
+
+trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price = NULL, verbose = FALSE, memoised = FALSE)
 {
   if(is.null(parameters))
     return(NULL)
 
   canBuy <- TRUE
   canSell <- TRUE
-  alertR <- NULL
-  alertL <- NULL
-
-  period <- tail(index(base::get(symbol)[paste0("/", tradeDate)]), 500)
-  period <- paste0(first(period), "::", last(period))
 
   if(memoised)
-  {
-    fData <- filterDataM(symbol, tradeDate)
-    alertL <- mAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
-    meanVol <- filterVolumeM(symbol, tradeDate, volume = minVol)
-  }
+    fData <- mFilterBadData(symbol, tradeDate)
   else
-  {
-    fData <- filterData(symbol, tradeDate)
-    alertL <- fAlertL(symbol, tradeDate, lriTreshold, lriPeriod)
-    meanVol <- filterVolume(symbol, tradeDate, volume = minVol)
-  }
+    fData <- filterBadData(symbol, tradeDate)
 
-  fullObj <- base::get(symbol)
-  fullSeq <- xts(as.double((Hi(fullObj)+Lo(fullObj)+Cl(fullObj))/3), index(fullObj))
+  alertL <- filterLRI(symbol, tradeDate, 30)
 
-  objPeriod <- fullObj[period]
+  obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
+  seq <- xts(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), index(obj))
 
-  obj <- fullObj[sprintf("/%s", tradeDate)]
-  seq <- fullSeq[sprintf("/%s", tradeDate)]
-
-  if(is.null(fData) || length(seq) <= parameters$smaPeriod + 500)
+  if(is.null(fData) || length(seq) < parameters$smaPeriod + 500)
     return(NULL)
 
+  period <- tail(index(obj), 500)
+  period <- paste0(first(period), "::", last(period))
+
   sma <- SMA(seq, parameters$smaPeriod)
-
   dif <- as.double(na.omit(tail(seq-sma, 500)))
-
   sdp <- (last(seq)-last(sma))/sd(dif)
 
   #sm <- smaSDdata(obj, 500, parameters$smaPeriod)
@@ -200,34 +180,28 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   cantBuy <- NULL
   cantSell <- NULL
 
-  if(is.null(meanVol))
-  {
-    str <- sprintf("DO NOT BUY: %s | [%s] Mean volume below [%d]", symbol, period, minVol)
-    cantBuy <- c(cantBuy[cantBuy != str], str)
-    canBuy <- FALSE
-  }
-
-  volatility <- mean(na.omit(volatility(obj)))
-  if(volatility >= 0.70)
-  {
-    str <- sprintf("DO NOT BUY: %s | [%s] Mean volatility too high [%.2f]", symbol, period, volatility)
-    cantBuy <- c(cantBuy[cantBuy != str], str)
-    canBuy <- FALSE
-  }
-
   lastValue <- as.numeric(last(Cl(obj)))
 
   if(memoised)
   {
     maxChange <- mMaxChange(symbol, period, lastValue)
     minChange <- mMinChange(symbol, period, lastValue)
-    pMinMax <- mPreventMinMax(symbol, period, tradeDate)
+    pMinMax <- mPreventMinMax(symbol, period)
+    gVolatility <- mGetVolatility(symbol, period)
   }
   else
   {
     maxChange <- fMaxChange(symbol, period, lastValue)
     minChange <- fMinChange(symbol, period, lastValue)
-    pMinMax <- fPreventMinMax(symbol, period, tradeDate)
+    pMinMax <- fPreventMinMax(symbol, period)
+    gVolatility <- fGetVolatility(symbol, period)
+  }
+
+  if(gVolatility >= 0.70)
+  {
+    str <- sprintf("DO NOT BUY: %s | [%s] Mean volatility too high [%.2f]", symbol, period, gVolatility)
+    cantBuy <- c(cantBuy[cantBuy != str], str)
+    canBuy <- FALSE
   }
 
   if(pMinMax$canBuy == FALSE)
@@ -243,7 +217,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   maxValue <- as.numeric(high[which.max(high)])
   maxDate <- index(high[which.max(high)])
 
-  lowAfter <- Lo(obj)[sprintf("%s/%s", maxDate, tradeDate)]
+  lowAfter <- Lo(obj)[sprintf("%s/", maxDate)]
   minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
 
   if(!is.na(parameters$lowLimit) && (minAfter / maxValue) < parameters$lowLimit)
@@ -260,10 +234,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
     canBuy <- FALSE
   }
 
-  if(memoised)
-    mBullBear <- mBullBear(symbol, tradeDate, parameters$smaPeriod)
-  else
-    mBullBear <-fBullBear(symbol, tradeDate, parameters$smaPeriod)
+  mBullBear <-fBullBear(seq, parameters$smaPeriod)
 
   bull  <- mBullBear$bull
   bear  <- mBullBear$bear
@@ -321,27 +292,6 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
     str <- sprintf("DO NOT SELL: %s | [%s] Min Change : [%f]", symbol, period, minChange)
     cantSell <- c(cantSell[cantSell != str], str)
     canSell <- FALSE
-  }
-
-  if(!is.null(alertR) && alertR != FALSE) #valor valido
-  {
-    if(alertR == "r_up" && (is.null(lower) || sdp < lower)) #reversao "para cima" e abaixo da banda inferior
-    {
-      if(canBuy)
-      {
-        decision <- "buy"
-        reason <- sprintf("alertR == r_up && sdp < %1.1f -> buy", lower)
-      }
-    }
-
-    if(alertR == "r_down" && (is.null(upper) || sdp > upper)) #reversao "para baixo" e acima da banda superior
-    {
-      if(canSell)
-      {
-        decision <- "sell"
-        reason <- sprintf("alertR == r_dow && sdp > %1.1f -> sell", upper)
-      }
-    }
   }
 
   if(!is.null(alertL) && alertL != FALSE) #valor valido
@@ -422,11 +372,6 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   tradeDecision$canBuy <- canBuy
   tradeDecision$canSell <- canSell
   tradeDecision$price <- as.numeric(last(seq))
-  pars        <- data.frame(parameters$smaPeriod, parameters$upperBand, parameters$lowerBand, parameters$upChange, parameters$downChange, parameters$lowLimit,
-                            parameters$stopGain, parameters$stopLoss, parameters$bullBuy, parameters$bullSell, parameters$bearSell, parameters$bearBuy)
-  names(pars) <- c("smaPeriod", "upperBand", "lowerBand", "upChange", "downChange", "lowLimit",
-                   "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")
-  tradeDecision$parameters <- pars
 
   return(tradeDecision)
 }

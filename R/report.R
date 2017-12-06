@@ -14,6 +14,10 @@ mergeBacktest <- function(path = "result")
   {
     name   <- paste(path, file, sep = "/")
     obj    <- readRDS(name)
+
+    if(is.null(obj))
+      next
+
     symbol <- unlist(strsplit(file, "[._]"))[1]
     timeframe <- unlist(strsplit(file, "[._]"))[2]
     oper[[i]] <- data.frame(symbol, timeframe, obj$operations)

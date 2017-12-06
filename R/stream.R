@@ -58,6 +58,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
   tradeAlerts <- NULL
   alertSymbols <- NULL
   lastSession <- NULL
+  getAdjust <- TRUE
   startTime <- Sys.time()
 
   indexes <- new.env(hash=T, parent=emptyenv())
@@ -78,8 +79,13 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
     for(symbolName in Symbols)
     {
+      adjustDates <- sort(unique(c(index(getDividends.db(symbolName)), index(getSplits.db(symbolName)))))
+
       if(updateData)
       {
+        if(getAdjust)
+          updateAdjust(symbolName)
+
         updateIntraday(symbolName)
 
         if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
@@ -93,16 +99,17 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
         parameters <- getParameters(timeFrame, "trade")
 
         if(timeFrame == "1D")
-        {
-          symbol <- getSymbolsDaily(symbolName)
-        }
+          symbol <- getSymbolsDaily(symbolName, adjust = c("split", "dividend"))
         else
-        {
-          symbol <- getSymbolsIntraday(symbolName, timeFrame, updateLast = TRUE)
-        }
+          symbol <- getSymbolsIntraday(symbolName, timeFrame, adjust = c("split", "dividend"), updateLast = TRUE)
 
         if(is.null(symbol) || is.null(filterBadData(symbol)))
           next
+
+        lastLri <- index(xts::last(linearRegressionIndicator(symbol, base::get(symbol))))
+
+        if(length(lastLri) > 0 && any(adjustDates > as.Date(lastLri)))
+          linearRegressionIndicator(symbol, base::get(symbol), refresh = TRUE)
 
         lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
@@ -183,6 +190,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
         Sys.sleep(3600 - (minDiff * 60))
       }
     }
+
+    getAdjust <- FALSE
   }
 }
-

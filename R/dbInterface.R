@@ -5,13 +5,17 @@ library("RMySQL")
 library("DBI")
 library("config")
 
-getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
+#' @export
+getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
 {
+  if(is.null(Symbols))
+    Symbols <- getSymbolNames()
+
   db.fields = c("date", "day_open", "day_high", "day_low", "day_close", "volume")
 
   if(FilterToday)
   {
-    query <- sprintf("select distinct(symbol) from stockprices where symbol in ('%s')", paste(Symbols, collapse = "','"))
+    query <- sprintf("select distinct(symbol) from symbols where symbol in ('%s')", paste(Symbols, collapse = "','"))
 
     fr <- getQuery(query)
 
@@ -43,9 +47,17 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 
     fr <- getQuery(query)
     fr <- xts(as.matrix(fr[, -1]), order.by = as.Date(fr[,1], origin = "1970-01-01"), updated = Sys.time())
+
+    if(!is.null(timeLimit))
+      fr <- fr[as.Date(index(fr)) <= as.Date(timeLimit)]
+
     if(nrow(fr) > 0)
     {
       colnames(fr) <- paste(symbol, c("Open", "High", "Low", "Close", "Volume"), sep = ".")
+
+      if(!is.null(adjust))
+        fr <- adjustOHLC.daily(fr, adjust = adjust, symbol.name = symbol)
+
       assign(symbol, fr, env)
       loaded <- c(loaded, symbol)
     }
@@ -55,7 +67,7 @@ getSymbolsDB <- function (Symbols, FilterToday=FALSE, FilterAge=NULL, env = .Glo
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "1H", updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -99,6 +111,9 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", updateCache = FALSE, u
       updateFile <- TRUE
     }
 
+    if(!is.null(timeLimit))
+      obj <- obj[as.Date(index(obj)) <= as.Date(timeLimit)]
+
     if(is.null(nrow(obj)) || nrow(obj) == 0)
       next
 
@@ -135,6 +150,9 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", updateCache = FALSE, u
 
     name <- paste0(symbol, ".", timeFrame)
 
+    if(!is.null(adjust))
+      obj <- adjustOHLC.intraday(obj, adjust = adjust, symbol.name = symbol)
+
     assign(name, obj, env)
 
     symbolList <- c(symbolList, name)
@@ -146,23 +164,9 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", updateCache = FALSE, u
 #' @export
 getSymbolNames <- function()
 {
-  fr <- getQuery("SELECT distinct(symbol) FROM stockprices UNION SELECT distinct(symbol) FROM intraday")
+  fr <- getQuery("SELECT distinct(symbol) FROM symbols")
 
   return(fr$symbol)
-}
-
-#' @export
-getSymbolsDaily <- function(symbolNames = NULL, minAge = NULL)
-{
-  if(is.null(symbolNames))
-    symbolNames <- getSymbolNames()
-
-  if(is.null(symbolNames) || length(symbolNames) == 0)
-    return(NULL)
-
-  symbolNamesObj <- getSymbolsDB(symbolNames, FilterAge=minAge)
-
-  return (symbolNamesObj)
 }
 
 updateProbe <- function(Symbols, date)
@@ -452,14 +456,12 @@ saveSymbolsDaily <- function(symbols, mode = 'google')
 
   symbols <- sub("^([^.]*).*", "\\1", symbols)
 
-  print(symbols)
-
-  for(i in symbols)
+  for(symbol in symbols)
   {
     if(mode == 'google')
-      name <- sprintf("BVMF:%s", i) #Bovespa
+      name <- sprintf("BVMF:%s", symbol) #Bovespa
     if(mode == 'yahoo')
-      name <- sprintf("%s.SA", i)   #Bovespa
+      name <- sprintf("%s.SA", symbol)   #Bovespa
 
     print(name)
 
@@ -478,41 +480,65 @@ saveSymbolsDaily <- function(symbols, mode = 'google')
     if(state == F)
       next
 
-    table <- as.data.frame(base::get(name))
-    dates <- index(base::get(name))
-    if(mode == 'google')
-    {
-      name <- sprintf("BVMF:%s", i)
-    }
-    if(mode == 'yahoo')
-    {
-      name <- sprintf("%s.SA", i)
-    }
+    obj <- na.omit(base::get(name))
 
-    for(j in index(table))
-    {
-      row <- table[j,]
-      names(row)[1]<-paste("day_open")
-      names(row)[2]<-paste("day_high")
-      names(row)[3]<-paste("day_low")
-      names(row)[4]<-paste("day_close")
-      names(row)[5]<-paste("volume")
-      row["date"] <- dates[j]
-      row["symbol"] <- name
-      row[6] <- NULL
+    queryStr <- paste("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES ",
+                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %s)",
+                                    symbol, index(obj), as.double(Op(obj)), as.double(Hi(obj)), as.double(Lo(obj)), as.double(Cl(obj)), as.double(Vo(obj))), collapse=', '))
+    getQuery(queryStr)
 
-      if(is.na(row[1]) || is.na(row[2]) || is.na(row[3]) || is.na(row[4]) || is.na(row[5]))
-      {
-        warning(print(paste(row)))
-        next
-      }
-
-      queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %f, %f, %f, %f, %g)",
-                          i, dates[j], as.double(row[1]), as.double(row[2]), as.double(row[3]), as.double(row[4]),
-                          as.double(row[5]))
-      getQuery(queryStr)
-    }
+    getQuery(sprintf("REPLACE INTO symbols (symbol) VALUES ('%s')", symbol))
   }
+}
+
+#' @export
+updateAdjust <- function(symbol, adjust = c("split", "dividend"))
+{
+  symbol.name <- paste0(symbol, ".SA")
+
+  tryCatch(
+  {
+    if("dividend" %in% adjust)
+    {
+      div <- getDividends(symbol.name, from = "1949-01-01")
+      if(is.xts(div) && nrow(div) > 0)
+      {
+        queryStr <- paste("REPLACE INTO dividends (symbol, date, dividend) VALUES ",
+                          paste(sprintf("('%s', '%s', %f)", symbol, index(div), as.numeric(div)), collapse = ", "))
+        getQuery(queryStr)
+      }
+    }
+
+    if("split" %in% adjust)
+    {
+      splits <- getSplits(symbol.name, from = "1949-01-01")
+      if(is.xts(splits) && nrow(splits) > 0)
+      {
+        queryStr <- paste("REPLACE INTO splits (symbol, date, split) VALUES ",
+                          paste(sprintf("('%s', '%s', %f)", symbol, index(splits), as.numeric(splits)), collapse = ", "))
+        getQuery(queryStr)
+      }
+    }
+  },
+  error = function(err)
+  {
+    print(symbol)
+    print(err)
+  })
+}
+
+#' @export
+getDividends.db <- function(symbol)
+{
+  df <- getQuery(sprintf("select * from dividends where symbol = '%s'", symbol))
+  xts(df$dividend, order.by = as.Date(df$date))
+}
+
+#' @export
+getSplits.db <- function(symbol)
+{
+  df <- getQuery(sprintf("select * from splits where symbol = '%s'", symbol))
+  xts(df$split, order.by = as.Date(df$date))
 }
 
 #' @export
@@ -524,6 +550,8 @@ saveSymbolsIntraday <- function(symbols)
 
     if(!is.null(df))
       insertIntraday(symbol, df)
+
+    getQuery(sprintf("REPLACE INTO symbols (symbol) VALUES ('%s')", symbol))
   }
 }
 

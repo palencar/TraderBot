@@ -126,7 +126,7 @@ chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 #' @export
 chartList <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
 {
-  symbols <- getSymbolsDaily(symbols)
+  symbols <- getSymbolsDaily(symbols, adjust = c("split", "dividend"))
 
   if(daily)
   {

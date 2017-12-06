@@ -40,9 +40,8 @@ btParameters <- function(timeFrame)
 
   if(nrow(df) <= 10)
   {
-    names <- colnames(df)
-    df <- data.frame(matrix(rep(0, ncol(df)*2), nrow=2))
-    colnames(df) <- names
+    df <- data.frame(matrix(rep(0, 12*2), nrow=2))
+    colnames(df) <- parNames
     df[1, parNames] <- c(300, -1, 1, 4, -4, 0.4, 3, 0.4, 0.4, 0.4, 0.4, 0.4)
     df[2, parNames] <- c(400, -2, 2, 5, -5, 0.6, 4, 0.6, 0.6, 0.6, 0.6, 0.6)
     dF <- as.data.table(df)

@@ -23,6 +23,8 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
   for(symbol in AllSymbols)
   {
+    adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
+
     if(timeFrame == "1D")
       symbol <- getSymbolsDaily(symbolNames = symbol)
     else
@@ -43,13 +45,26 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     if(length(timeIndex) == 0)
       next
 
-    linearRegressionIndicator(symbol, base::get(symbol))
-
     operations <- list()
 
     for(i in 1:length(timeIndex))
     {
       tradeDate <- timeIndex[i]
+
+      if(any(as.Date(timeIndex[[i]]) >= adjustDates))
+      {
+        print(paste0("Adjusting ", as.Date(timeIndex[[i]])))
+
+        adjustDates <- adjustDates[adjustDates > as.Date(timeIndex[[i]])]
+        adjustLimit <- min(adjustDates-1, max(timeIndex))
+
+        if(timeFrame == "1D")
+          getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
+        else
+          getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
+
+        linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
+      }
 
       tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations)
 

@@ -6,6 +6,12 @@ CREATE TABLE `alerts` (
 ,  `price` double DEFAULT NULL
 ,  UNIQUE (`symbol`,`timeframe`,`datetime`,`alert`)
 );
+CREATE TABLE `dividends` (
+  `symbol` varchar(12) DEFAULT NULL
+,  `date` date DEFAULT NULL
+,  `dividend` double DEFAULT NULL
+,  UNIQUE (`symbol`,`date`)
+);
 CREATE TABLE `intraday` (
   `symbol` varchar(12) DEFAULT NULL
 ,  `datetime` datetime DEFAULT NULL
@@ -24,19 +30,11 @@ CREATE TABLE `operations` (
 ,  `price` float DEFAULT NULL
 ,  `cost` float DEFAULT NULL
 );
-CREATE TABLE `stockinfo` (
-  `symbol` varchar(12) NOT NULL DEFAULT ''
-,  `name` varchar(64) NOT NULL DEFAULT ''
-,  `exchange` varchar(16) NOT NULL DEFAULT ''
-,  `capitalisation` float DEFAULT NULL
-,  `low_52weeks` float DEFAULT NULL
-,  `high_52weeks` float DEFAULT NULL
-,  `earnings` float DEFAULT NULL
-,  `dividend` float DEFAULT NULL
-,  `p_e_ratio` float DEFAULT NULL
-,  `avg_volume` integer DEFAULT NULL
-,  `active` integer DEFAULT '1'
-,  PRIMARY KEY (`symbol`)
+CREATE TABLE `splits` (
+  `symbol` varchar(12) DEFAULT NULL
+,  `date` date DEFAULT NULL
+,  `split` double DEFAULT NULL
+,  UNIQUE (`symbol`,`date`)
 );
 CREATE TABLE `stockprices` (
   `symbol` varchar(12) DEFAULT NULL
@@ -51,4 +49,8 @@ CREATE TABLE `stockprices` (
 ,  `ask` float DEFAULT NULL
 ,  `volume` integer DEFAULT NULL
 ,  UNIQUE (`symbol`,`date`)
+);
+CREATE TABLE `symbols` (
+  `symbol` varchar(12) DEFAULT NULL
+,  UNIQUE (`symbol`)
 );
