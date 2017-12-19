@@ -1,4 +1,22 @@
 
+adjustOperations <- function(symbolName, op)
+{
+  symbolName <- unlist(strsplit(symbolName, "[.]"))[1]
+
+  df <- xts(data.frame(Open=op, High=op, Low=op, Close=op), order.by = index(op))
+  names(df) <- c("Open", "High", "Low", "Close")
+
+  if(inherits(index(op), "POSIXct"))
+    df <- adjustOHLC.intraday(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
+  if(inherits(index(op), "Date"))
+    df <- adjustOHLC.daily(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
+
+  df <- Cl(df)
+  names(df) <- "price"
+
+  df
+}
+
 adjustOHLC.daily <- function(x, adjust=c("split","dividend"), use.Adjusted=FALSE,
                              ratio=NULL, symbol.name=deparse(substitute(x)))
 {

@@ -528,18 +528,18 @@ updateAdjust <- function(symbol, adjust = c("split", "dividend"))
 }
 
 #' @export
-getDividends.db <- function(symbol)
+getDividends.db <- memoise(function(symbol)
 {
   df <- getQuery(sprintf("select * from dividends where symbol = '%s'", symbol))
   xts(df$dividend, order.by = as.Date(df$date))
-}
+}, ~timeout(600))
 
 #' @export
-getSplits.db <- function(symbol)
+getSplits.db <- memoise(function(symbol)
 {
   df <- getQuery(sprintf("select * from splits where symbol = '%s'", symbol))
   xts(df$split, order.by = as.Date(df$date))
-}
+}, ~timeout(600))
 
 #' @export
 saveSymbolsIntraday <- function(symbols)

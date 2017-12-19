@@ -4,7 +4,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv")
+computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv", chartAlerts = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -53,7 +53,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
       if(any(as.Date(timeIndex[[i]]) >= adjustDates))
       {
-        print(paste0("Adjusting ", as.Date(timeIndex[[i]])))
+        print(paste0("Adjusting ", symbol, " ", as.Date(timeIndex[[i]])))
 
         adjustDates <- adjustDates[adjustDates > as.Date(timeIndex[[i]])]
         adjustLimit <- min(adjustDates-1, max(timeIndex))
@@ -92,10 +92,21 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         operations[[i+1]] <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
 
         addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
+
+        if(chartAlerts)
+          chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, decision, sep="-"), xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
       }
+
+      if(chartAlerts && length(operations) > 0 && (i == length(timeIndex)))
+        chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, tradeDecision$decision, sep="-"), xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
     }
 
-    result <- singleResult(rbindlist(operations), max(timeIndex))
+    opDf <- rbindlist(operations)
+
+    if(nrow(opDf) > 0)
+      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
+
+    result <- singleResult(opDf, max(timeIndex))
 
     if(length(result) > 0)
     {

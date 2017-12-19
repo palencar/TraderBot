@@ -42,8 +42,8 @@ writeResult <- function(symbol, result, parameters = NULL)
 
 singleResult <- function(lines, lastDay = NULL)
 {
-  closedDF <- NULL
-  openDF <- NULL
+  closedDF <- list()
+  openDF <- list()
 
   positions <- NULL
   closePosition <- FALSE
@@ -51,19 +51,20 @@ singleResult <- function(lines, lastDay = NULL)
   if(nrow(lines) == 0)
     return(NULL)
 
+  symbolName <- as.character(lines$symbol[1])
+
   for(n in order(lines$tradeDate))
   {
-    if(lines[n,"decision"] == "sell")
+    if(lines$decision[n] == "sell")
     {
       if(is.null(positions) == FALSE)
       {
         for(i in 1:nrow(positions))
         {
-          sell_price <- as.integer(lines[n,"price"]*100)
-          buy_price <- as.integer(positions[i,"price"]*100)
-
-          newrow <- data.frame("closed", lines[n,"symbol"], buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lines[n,"tradeDate"])
-          closedDF <- rbind(closedDF, newrow)
+          sell_price <- as.integer(lines$price[n]*100)
+          buy_price <- as.integer(positions$price[i]*100)
+          len <- length(closedDF)
+          closedDF[[len+1]] <- data.frame("closed", symbolName, buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions$openDate[i], lines$tradeDate[n])
         }
         positions <- NULL
         openDate <- NULL
@@ -71,13 +72,13 @@ singleResult <- function(lines, lastDay = NULL)
       }
     }
 
-    if(lines[n,"decision"] == "buy")
+    if(lines$decision[n] == "buy")
     {
-      openDate <- lines[n,"tradeDate"]
+      openDate <- lines$tradeDate[n]
       names(openDate) <- c("openDate")
-      price <- lines[n,"price"]
+      price <- as.numeric(lines$price[n])
 
-      positions <- rbind.data.frame(positions, data.frame(openDate, price))
+      positions <- rbind.data.frame(positions, data.table(openDate, price))
     }
   }
 
@@ -85,27 +86,30 @@ singleResult <- function(lines, lastDay = NULL)
   {
     if(is.null(lastDay))
     {
-      lastDay <- last(index(base::get(as.character(unique(lines[,"symbol"])))))
+      lastDay <- last(index(base::get(symbolName)))
     }
 
     for(i in 1:nrow(positions))
     {
-      sell_price <- as.numeric(Cl(tail(base::get(as.character(unique(lines[i,"symbol"]))), 1)) * 100)
-      buy_price <- as.integer(positions[i,"price"]*100)
-
-      newrow <- data.frame("open", as.character(unique(lines[i,"symbol"])), buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions[i,"openDate"], lastDay)
-      openDF <- rbind(openDF, newrow)
+      sell_price <- as.numeric(Cl(tail(base::get(symbolName), 1)) * 100)
+      buy_price <- as.integer(positions$price[i]*100)
+      len <- length(openDF)
+      openDF[[len+1]] <- data.frame("open", symbolName, buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions$openDate[i], lastDay)
     }
 
     positions <- NULL
   }
+
+  closedDF <- rbindlist(closedDF)
+  openDF <- rbindlist(openDF)
+
   closePosition <- FALSE
 
   colNames <- c("state", "name", "buy_price", "sell_price", "profit", "profit_pp", "open", "last")
 
   result <- list()
 
-  if(!is.null(closedDF))
+  if(nrow(closedDF) > 0)
   {
     colnames(closedDF) <- colNames
     closedDF <- closedDF[order(closedDF$profit_pp),]
@@ -119,7 +123,7 @@ singleResult <- function(lines, lastDay = NULL)
     result$closedMeanPrice <- sum(closedDF$buy_price)/(nrow(closedDF)*100)
   }
 
-  if(!is.null(openDF))
+  if(nrow(openDF) > 0)
   {
     colnames(openDF) <- colNames
     openDF <- openDF[order(openDF$profit_pp),]

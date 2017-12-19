@@ -326,10 +326,15 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   pr <- price
   if(is.null(pr) && length(operations) > 0)
   {
+    opDf <- rbindlist(operations)
+
+    if(nrow(opDf) > 0)
+      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
+
     if(memoised)
-      result <- singleResultM(rbindlist(operations), tradeDate)
+      result <- singleResultM(opDf, tradeDate)
     else
-      result <- singleResult(rbindlist(operations), tradeDate)
+      result <- singleResult(opDf, tradeDate)
 
     pr <- result$openMeanPrice
   }
@@ -371,7 +376,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   tradeDecision$reason <- reason
   tradeDecision$canBuy <- canBuy
   tradeDecision$canSell <- canSell
-  tradeDecision$price <- as.numeric(last(seq))
+  tradeDecision$price <- round(as.numeric(last(seq)), digits = 2)
 
   return(tradeDecision)
 }

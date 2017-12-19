@@ -48,7 +48,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
 
     if(any(as.Date(indexes[[i]]) >= adjustDates))
     {
-      print(paste0("Adjusting ", as.Date(indexes[[i]])))
+      print(paste0("Adjusting ", symbol, " ", as.Date(indexes[[i]])))
 
       adjustDates <- adjustDates[adjustDates > as.Date(indexes[[i]])]
       adjustLimit <- min(adjustDates-1, max(indexes))
@@ -111,7 +111,12 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
     i <- i + 1
 
     lastDay <- last(indexes)
-    result <- singleResult(rbindlist(operations[[i]]), lastDay)
+    opDf <- rbindlist(operations[[i]])
+
+    if(nrow(opDf) > 0)
+      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
+
+    result <- singleResult(opDf, lastDay)
 
     if(!is.null(result$output))
     {
