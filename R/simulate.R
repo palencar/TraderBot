@@ -26,7 +26,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
 
     if(timeFrame == "1D")
-      symbol <- getSymbolsDaily(symbolNames = symbol)
+      symbol <- getSymbolsDaily(symbol)
     else
       symbol <- getSymbolsIntraday(symbol, timeFrame)
 
@@ -94,11 +94,11 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
 
         if(chartAlerts)
-          chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, decision, sep="-"), xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
+          chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
       }
 
       if(chartAlerts && length(operations) > 0 && (i == length(timeIndex)))
-        chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, tradeDecision$decision, sep="-"), xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
+        chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, tradeDecision$decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
     }
 
     opDf <- rbindlist(operations)

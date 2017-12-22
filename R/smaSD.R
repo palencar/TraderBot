@@ -3,7 +3,7 @@ smaSD <- function(symbol, n=500, nma=500)
   smasd <- smaSDdata(symbol, n, nma)
 
   if(is.null(smasd))
-    NULL
+    return(NULL)
 
   assign("smasd", smasd[, c('up', 'mavg', 'dn')], .GlobalEnv)
   "addTA(smasd, on=1, col=c(8,2,8))"
@@ -11,9 +11,9 @@ smaSD <- function(symbol, n=500, nma=500)
 
 smaSDdata <- function(symbol, n=500, nma = 500)
 {
-  if(nrow(symbol) <= (n + nma))
+  if(nrow(symbol) < (n + nma))
   {
-    warning(sprintf("smaSD: length: %d <= (%d + %d)", length(seq), n, nma))
+    warning(sprintf("smaSD: length: %d < (%d + %d)", nrow(symbol), n, nma))
     return(NULL)
   }
 

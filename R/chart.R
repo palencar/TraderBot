@@ -7,7 +7,7 @@ source("R/filters.R")
 
 #' @export
 chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         Posit=NULL, indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
+                         mode="operation", indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
 {
   for(i in 1:length(Symbols))
   {
@@ -59,9 +59,7 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
       vol <- NULL
 
     if(timeFrame == "weekly")
-    {
       Symbol <- to.weekly(Symbol)
-    }
 
     if("lri" %in% indicators)
       lri <- getLinRegIndicators(SymbolName, Symbol, 30)
@@ -74,29 +72,14 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
       lriOrders <- NULL
 
     if("positions" %in% indicators)
-    {
-      if(is.null(Posit) == TRUE)
-      {
-        posit <- getOrders(SymbolName)
-      }
-      else
-      {
-        posit <- Posit
-      }
-    }
+      posit <- getOrders(SymbolName, endDate, mode)
     else
-    {
       posit <- NULL
-    }
 
     if("meanPrice" %in% indicators)
-    {
       mePrice <- getMeanPrice(Symbol, SymbolName)
-    }
     else
-    {
       mePrice <- NULL
-    }
 
     datePeriod <- sprintf("%s::%s", st, ed)
     taIndicators <- paste(c(smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
@@ -104,37 +87,9 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
     chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)
 
     if(dev == "png")
-    {
       dev.off()
-    }
 
     list <- ls(pattern=sprintf(".*%s.*", SymbolName))
     rm(list = list[list != SymbolName], envir =  .GlobalEnv)
-  }
-}
-
-#' @export
-chartWallet <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
-{
-  symbols <- getWallet()
-  if(length(symbols) > 0)
-  {
-    chartList(symbols, daily = daily, weekly = weekly, dev = dev)
-  }
-}
-
-#' @export
-chartList <- function(symbols = NULL, daily = TRUE, weekly = FALSE, dev = "")
-{
-  symbols <- getSymbolsDaily(symbols, adjust = c("split", "dividend"))
-
-  if(daily)
-  {
-    chartDaily(symbols, dev = dev)
-  }
-
-  if(weekly)
-  {
-    chartWeekly(symbols, dev = dev)
   }
 }

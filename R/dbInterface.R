@@ -263,11 +263,30 @@ loadLocalCSV <- function(symbol)
   return(getQuery(queryStr)[,1])
 }
 
-getPositions <- function(symbol = NULL)
+getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode = "operation")
 {
-  queryStr <- sprintf("SELECT * from operations where symbol = '%s' order by date", symbol)
+  if(mode == "operation")
+    fr <- getQuery(sprintf("SELECT * from operations where symbol = '%s' order by date", symbol))
+  if(mode == "simulation")
+  {
+    qryStr <- paste0(sprintf("SELECT * from alerts where symbol = '%s'", symbol),
+                     ifelse(!is.null(timeFrame), sprintf(" and timeframe = '%s'", timeFrame), ""),
+                     ifelse(!is.null(endDate), sprintf(" and datetime <= '%s'", as.character(endDate)), ""),
+                     " order by datetime")
+    fr <- getQuery(qryStr)
 
-  fr <- getQuery(queryStr)
+    fr$date <- as.character(fr$datetime)
+    fr$type <- ifelse(fr$alert == "buy", "C", "V")
+
+    if(nrow(fr) > 0)
+    {
+      fr$size <- 100
+      rl <- rle(fr$type)
+      if(rl$values[1] == "V")
+        fr <- tail(fr, nrow(fr)-rl$lengths[1])
+    }
+  }
+
   if(nrow(fr) == 0)
   {
     return(NULL)
@@ -308,7 +327,10 @@ getPositions <- function(symbol = NULL)
       if(date != fr[i,]$date || price != fr[i,]$price)
       {
         j <- 1
-        vSize <- fr[i,]$size
+        if(mode == "simulation")
+          vSize <- acSize
+        else
+          vSize <- fr[i,]$size
         while(j <= length(positions) && j < i && acSize > 0)
         {
           position <- positions[[j]]
@@ -364,6 +386,7 @@ getAlerts <- function(n = 50)
   return(head(alerts[!duplicated(alerts[,c('symbol','alert')]),], n))
 }
 
+#' @export
 getWallet <- function(showClosed = FALSE)
 {
   fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
