@@ -6,21 +6,14 @@ source("R/smaSD.R")
 source("R/filters.R")
 
 #' @export
-chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, endDate=NULL, xres=1900, yres=720, dev="", path="charts", suffix=NULL,
+chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time(), xres=1900, yres=720, dev="", path="charts", suffix=NULL,
                          mode="operation", indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
 {
   for(i in 1:length(Symbols))
   {
     SymbolName <- Symbols[i]
 
-    if(!is.null(endDate))
-      ed <- endDate
-    else if(is.null(dateLimit))
-      ed <- Sys.time()
-    else
-      ed <- dateLimit
-
-    Symbol <- base::get(SymbolName)[sprintf("::%s", ed)]
+    Symbol <- base::get(SymbolName)[sprintf("::%s", endDate)]
 
     if(!is.null(startDate))
       st <- startDate
@@ -81,7 +74,7 @@ chartSymbols <- function(Symbols, period=730, dateLimit=NULL, startDate=NULL, en
     else
       mePrice <- NULL
 
-    datePeriod <- sprintf("%s::%s", st, ed)
+    datePeriod <- sprintf("%s::%s", st, endDate)
     taIndicators <- paste(c(smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
 
     chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)

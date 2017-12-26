@@ -53,6 +53,9 @@ singleResult <- function(lines, lastDay = NULL)
 
   symbolName <- as.character(lines$symbol[1])
 
+  op = rbind(xts(lines$price, order.by = lines$tradeDate), Cl(xts::last(base::get(symbolName))))
+  lines$price <- adjustOperations(symbolName, op)[lines$tradeDate]
+
   for(n in order(lines$tradeDate))
   {
     if(lines$decision[n] == "sell")

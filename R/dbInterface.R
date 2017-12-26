@@ -56,7 +56,7 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
       colnames(fr) <- paste(symbol, c("Open", "High", "Low", "Close", "Volume"), sep = ".")
 
       if(!is.null(adjust))
-        fr <- adjustOHLC.daily(fr, adjust = adjust, symbol.name = symbol)
+        fr <- adjustOHLC.db(fr, adjust = adjust, symbol.name = symbol)
 
       assign(symbol, fr, env)
       loaded <- c(loaded, symbol)
@@ -151,7 +151,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
     name <- paste0(symbol, ".", timeFrame)
 
     if(!is.null(adjust))
-      obj <- adjustOHLC.intraday(obj, adjust = adjust, symbol.name = symbol)
+      obj <- adjustOHLC.db(obj, adjust = adjust, symbol.name = symbol)
 
     assign(name, obj, env)
 

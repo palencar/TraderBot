@@ -13,12 +13,17 @@ fMaxChange <- function(symbol, period, lastValue)
   obj <- objPeriod[sprintf("%s/", maxDate)]
   obj <- xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
 
-  lr <- linearRegression(obj)
-  maxChange <- as.numeric((lr$coef*365)/lastValue)
-  if(is.na(maxChange) || nrow(obj) < 30)
+  maxChange <- 0
+
+  if(nrow(obj) >= 30)
   {
-    maxChange <- 0
+    lr <- linearRegression(obj)
+    maxChange <- as.numeric((lr$coef*365)/lastValue)
+
+    if(is.na(maxChange))
+      maxChange <- 0
   }
+
   return(maxChange)
 }
 
@@ -34,12 +39,17 @@ fMinChange <- function(symbol, period, lastValue)
   obj <- objPeriod[sprintf("%s/", minDate)]
   obj <- xts((Hi(obj)+Lo(obj)+Cl(obj))/3)
 
-  lr <- linearRegression(obj)
-  minChange <- as.numeric((lr$coef*365)/lastValue)
-  if(is.na(minChange) || nrow(obj) < 30)
+  minChange <- 0
+
+  if(nrow(obj) >= 30)
   {
-    minChange <- 0
+    lr <- linearRegression(obj)
+    minChange <- as.numeric((lr$coef*365)/lastValue)
+
+    if(is.na(minChange))
+      minChange <- 0
   }
+
   return(minChange)
 }
 
@@ -327,9 +337,6 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   if(is.null(pr) && length(operations) > 0)
   {
     opDf <- rbindlist(operations)
-
-    if(nrow(opDf) > 0)
-      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
 
     if(memoised)
       result <- singleResultM(opDf, tradeDate)

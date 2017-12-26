@@ -35,21 +35,21 @@ getOrders <- function(name, endDate = NULL, mode = "operation", adjusted = TRUE)
     if(nrow(symbol[period]) == 0)
       next
 
-    firstVal <- reg$openVal
-
     firstReg <- head(symbol[period], n=1)
     lastReg <- tail(symbol[period], n=1)
 
-    xNew = xts(rep(NA, length(index(symbol[period]))), index(symbol[period]))
-    xNew[time(firstReg)] <- firstVal
+    idx  <- unique(c(index(firstReg), index(lastReg)))
+    xNew <- xts(rep(NA, length(idx)), order.by = idx)
+    xNew[time(lastReg)] <- ifelse(is.na(reg$closeVal) == FALSE, reg$closeVal, as.double(Cl(lastReg)))
+    xNew[time(firstReg)] <- reg$openVal
+    xNew <- rbind(xNew, Cl(symbol[index(symbol) > index(lastReg) & index(symbol) <= endDate]))
 
-    if(is.na(reg$closeVal) == FALSE)
-      xNew[time(lastReg)] <- reg$closeVal
-    else
-      xNew[time(lastReg)] <- as.double(Cl(lastReg))
-
-    if(adjusted)
+    if(adjusted && nrow(xNew) > 1)
       xNew <- adjustOperations(unlist(strsplit(name, "[.]"))[1], xNew)
+
+    xt <- xts(rep(NA, length(index(symbol[period]))), order.by = index(symbol[period]))
+    xt[idx] <- xNew[idx]
+    xNew <- xt
 
     if(as.double(xNew[time(firstReg)]) < as.double(xNew[time(lastReg)]))
       col <- ifelse(mode == "operation", 3, 4)

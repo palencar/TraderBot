@@ -6,10 +6,7 @@ adjustOperations <- function(symbolName, op)
   df <- xts(data.frame(Open=op, High=op, Low=op, Close=op), order.by = index(op))
   names(df) <- c("Open", "High", "Low", "Close")
 
-  if(inherits(index(op), "POSIXct"))
-    df <- adjustOHLC.intraday(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
-  if(inherits(index(op), "Date"))
-    df <- adjustOHLC.daily(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
+  df <- adjustOHLC.db(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
 
   df <- Cl(df)
   names(df) <- "price"
@@ -17,46 +14,7 @@ adjustOperations <- function(symbolName, op)
   df
 }
 
-adjustOHLC.daily <- function(x, adjust=c("split","dividend"), use.Adjusted=FALSE,
-                             ratio=NULL, symbol.name=deparse(substitute(x)))
-{
-  if(is.null(ratio)) {
-    if(use.Adjusted) {
-      # infer from Yahoo! Adjusted column
-      if(!has.Ad(x))
-        stop("no Adjusted column in 'x'")
-      ratio <- Ad(x)/Cl(x)
-    } else {
-      # use actual split and/or dividend data
-      div <- getDividends.db(symbol.name)[paste0("/", last(index(x)))]
-      splits <- getSplits.db(symbol.name)[paste0("/", last(index(x)))]
-      # un-adjust dividends for splits (Yahoo already adjusts div for splits)
-      # do not use split.adjust=FALSE in getDividends call, which would
-      # download the split data twice.
-      if(is.xts(splits) && is.xts(div) && nrow(splits) > 0 && nrow(div) > 0)
-        div <- div * 1/adjRatios(splits=base::merge(splits, index(div)))[,1]
-      # calculate adjustment ratios using unadjusted dividends
-      ratios <- adjRatios(splits, div, Cl(x))
-      if(length(adjust)==1 && adjust == "split") {
-        ratio <- ratios[,1]
-      } else if(length(adjust)==1 && adjust == "dividend") {
-        ratio <- ratios[,2]
-      } else ratio <- ratios[,1] * ratios[,2]
-    }
-  }
-  Adjusted <- Cl(x) * ratio
-  structure(
-    cbind((ratio * (Op(x)-Cl(x)) + Adjusted),
-          (ratio * (Hi(x)-Cl(x)) + Adjusted),
-          (ratio * (Lo(x)-Cl(x)) + Adjusted),
-          Adjusted,
-          if(has.Vo(x)) Vo(x) else NULL,
-          if(has.Ad(x)) Ad(x) else NULL
-    ),
-    .Dimnames=list(NULL, colnames(x)))
-}
-
-adjustOHLC.intraday <- function (x, adjust = c("split", "dividend"), use.Adjusted = FALSE,
+adjustOHLC.db <- function (x, adjust = c("split", "dividend"), use.Adjusted = FALSE,
                                  ratio = NULL, symbol.name = deparse(substitute(x)))
 {
   if (is.null(ratio)) {
@@ -70,8 +28,8 @@ adjustOHLC.intraday <- function (x, adjust = c("split", "dividend"), use.Adjuste
       splits <- getSplits.db(symbol.name)[paste0("/", last(index(x)))]
       if (is.xts(splits) && is.xts(div) && nrow(splits) >
           0 && nrow(div) > 0)
-        div <- div * 1/adjRatios.intraday(splits = base::merge(splits, index(div)))[, 1]
-      ratios <- adjRatios.intraday(splits, div, Cl(x))
+        div <- div * 1/adjRatios.db(splits = base::merge(splits, index(div)))[, 1]
+      ratios <- adjRatios.db(splits, div, Cl(x))
       if (length(adjust) == 1 && adjust == "split") {
         ratio <- ratios[, 1]
       }
@@ -93,7 +51,7 @@ adjustOHLC.intraday <- function (x, adjust = c("split", "dividend"), use.Adjuste
     .Dimnames = list(NULL, colnames(x)))
 }
 
-adjRatios.intraday <- function (splits, dividends, close)
+adjRatios.db <- function (splits, dividends, close)
 {
   if (!missing(dividends) &&
       missing(close))

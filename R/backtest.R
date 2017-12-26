@@ -113,9 +113,6 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
     lastDay <- last(indexes)
     opDf <- rbindlist(operations[[i]])
 
-    if(nrow(opDf) > 0)
-      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
-
     result <- singleResult(opDf, lastDay)
 
     if(!is.null(result$output))

@@ -33,14 +33,13 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     if(is.null(symbol) || is.null(filterBadData(symbol)))
       next
 
-    indexes <- index(base::get(symbol))
-    timeIndex <- tail(indexes, length(indexes) - 500)
+    symbolIdx <- base::get(symbol)
+    symbolIdx <- tail(symbolIdx, nrow(symbolIdx) - 500)
 
-    if(!is.null(startDate))
-      timeIndex <- timeIndex[which(timeIndex >= startDate)]
+    if(nrow(symbolIdx) == 0)
+      next
 
-    if(!is.null(endDate))
-      timeIndex <- timeIndex[which(timeIndex <= endDate)]
+    timeIndex <- index(symbolIdx[paste0(startDate, "/", endDate)])
 
     if(length(timeIndex) == 0)
       next
@@ -102,9 +101,6 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     }
 
     opDf <- rbindlist(operations)
-
-    if(nrow(opDf) > 0)
-      opDf$price <- as.numeric(adjustOperations(symbol, xts(data.frame(price=opDf$price), order.by = opDf$tradeDate)))
 
     result <- singleResult(opDf, max(timeIndex))
 

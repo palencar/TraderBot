@@ -5,15 +5,12 @@ library("xts")
 linearRegression <- function (Symbol)
 {
   if(is.HLC(Symbol))
-  {
     y <- as.double((Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
-  }
   else
-  {
     y <- as.double(Symbol[,1])
-  }
 
   x <- index(Symbol)
+  xi <- 1:nrow(Symbol)
 
   r <- RcppEigen::fastLm(y~x)
 
