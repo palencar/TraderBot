@@ -47,7 +47,7 @@ CREATE TABLE `stockprices` (
 ,  `day_change` double DEFAULT NULL
 ,  `bid` float DEFAULT NULL
 ,  `ask` float DEFAULT NULL
-,  `volume` integer DEFAULT NULL
+,  `volume` integer NOT NULL DEFAULT '0'
 ,  UNIQUE (`symbol`,`date`)
 );
 CREATE TABLE `symbols` (

@@ -61,7 +61,7 @@ CREATE TABLE `intraday` (
   `high` double DEFAULT NULL,
   `low` double DEFAULT NULL,
   `close` double DEFAULT NULL,
-  `volume` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `volume` bigint(12) unsigned NOT NULL DEFAULT '0',
   UNIQUE KEY `intradayindex` (`symbol`,`datetime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -116,7 +116,7 @@ CREATE TABLE `stockprices` (
   `day_change` double DEFAULT NULL,
   `bid` float DEFAULT NULL,
   `ask` float DEFAULT NULL,
-  `volume` int(11) DEFAULT NULL,
+  `volume` bigint(12) unsigned NOT NULL DEFAULT '0',
   UNIQUE KEY `stockindex` (`symbol`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -143,4 +143,4 @@ CREATE TABLE `symbols` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-11-27 18:05:42
+-- Dump completed on 2017-12-27 20:10:42

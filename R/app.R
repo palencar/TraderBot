@@ -3,14 +3,71 @@ source("R/chart.R")
 
 mMergeBacktest <- memoise(mergeBacktest, ~timeout(600))
 
+timeFrameChoices <- c("1D", "1H", "30M", "15M", "10M", "5M")
+
 ui <- shinyUI(navbarPage("TraderBot",
+
+                   tabPanel("Wallet",
+                            sidebarPanel(
+                              headerPanel("Options"),
+
+                              selectInput(inputId = "walletTimeFrame",
+                                          label = "Time frame",
+                                          choices = timeFrameChoices,
+                                          selected = "1D"),
+
+                              dateRangeInput(inputId = "walletDateRange", label = "Date range",
+                                             start = (Sys.Date() - 730), end = Sys.Date())
+                            ),
+
+                            mainPanel(
+                              uiOutput("wallet")
+                            )
+                   ),
+
+                   tabPanel("Charts",
+                            sidebarPanel(
+                              headerPanel("Options"),
+
+                              selectizeInput(
+                                'symbolNames', 'Symbols', choices = NULL, multiple = TRUE
+                              ),
+
+                              selectInput(inputId = "chartsTimeFrame",
+                                          label = "Time frame",
+                                          choices = timeFrameChoices,
+                                          selected = "1D"),
+
+                              dateRangeInput(inputId = "chartsDateRange", label = "Date range",
+                                             start = (Sys.Date() - 730), end = Sys.Date())
+                            ),
+
+                            mainPanel(
+                              uiOutput("charts")
+                            )
+                   ),
+
+                   tabPanel("Alerts",
+                            sidebarPanel(
+                              headerPanel("Options"),
+
+                              numericInput("numAlerts", "Alerts to view:", 5, min = 0, max = 30),
+
+                              numericInput("numIntervals", "Intervals:", 730)
+                            ),
+
+                            mainPanel(
+                              uiOutput("alerts")
+                            )
+                   ),
+
                    tabPanel("Backtest",
                             sidebarPanel(
                               headerPanel("Filters"),
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
                               selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
-                              selectizeInput("timeFrames", "Time Frames", choices = c('1D', '1H', '30M', '15M', '10M', '5M'), selected = c('1D', '1H', '30M', '15M', '10M', '5M'), multiple = TRUE),
+                              selectizeInput("timeFrames", "Time Frames", choices = timeFrameChoices, selected = timeFrameChoices, multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
                               sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-2.5,-0.5), step= 0.01),
@@ -30,101 +87,39 @@ ui <- shinyUI(navbarPage("TraderBot",
 
                               plotOutput("parameters", height = "1600px"),
                               dataTableOutput("dataTable"))
-                   ),
-
-                   tabPanel("Alerts",
-                            sidebarPanel(
-                              headerPanel("Options"),
-
-                              numericInput("numAlerts", "Number of alerts to view:", 5, min = 0, max = 30),
-
-                              selectInput(inputId = "alertsTimeFrame",
-                                          label = "Time frame",
-                                          choices = c("1D" = "daily",
-                                                      "1W" = "weekly",
-                                                      "1M" = "1M",
-                                                      "5M" = "5M",
-                                                      "10M" = "10M",
-                                                      "15M" = "15M",
-                                                      "30M" = "30M",
-                                                      "1H" = "1H"),
-                                          selected = "1D"),
-
-                              dateRangeInput(inputId = "alertsDateRange", label = "Date range",
-                                             start = (Sys.Date() - 730), end = Sys.Date())
-                            ),
-
-                            mainPanel(
-                              uiOutput("alerts")
-                            )
-                   ),
-
-                   tabPanel("Charts",
-                            sidebarPanel(
-                              headerPanel("Options"),
-
-                              selectizeInput(
-                                'symbolNames', 'Symbols', choices = NULL, multiple = TRUE
-                              ),
-
-                              selectInput(inputId = "chartsTimeFrame",
-                                          label = "Time frame",
-                                          choices = c("1D" = "daily",
-                                                      "1W" = "weekly",
-                                                      "1M" = "1M",
-                                                      "5M" = "5M",
-                                                      "10M" = "10M",
-                                                      "15M" = "15M",
-                                                      "30M" = "30M",
-                                                      "1H" = "1H"),
-                                          selected = "1D"),
-
-                              dateRangeInput(inputId = "chartsDateRange", label = "Date range",
-                                             start = (Sys.Date() - 730), end = Sys.Date())
-                            ),
-
-                            mainPanel(
-                              uiOutput("charts")
-                            )
                    )
 ))
 
 server <- shinyServer(function(input, output, session)
 {
-  make_chart <- function(symbol, startDate, endDate, timeFrame)
+  make_chart <- function(symbol, intervals = 730, startDate = NULL, endDate = Sys.time(), timeFrame)
   {
-    symbolTimeFrame <- unlist(strsplit(symbol, "[.]"))
-
-    if(length(symbolTimeFrame) == 2)
-      timeFrame = symbolTimeFrame[2]
-
-    if(timeFrame %in% c("weekly", "daily"))
+    if(timeFrame == "1D")
       symbol <- getSymbolsDaily(symbol, adjust = c("split", "dividend"))
     else
-      symbol <- getSymbolsIntraday(symbolTimeFrame[1], timeFrame, adjust = c("split", "dividend"))
+      symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = c("split", "dividend"))
 
     if(!is.null(symbol))
-      chartSymbols(Symbols=symbol, startDate = startDate, endDate = endDate, timeFrame = timeFrame)
+      chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame)
   }
 
   observe({
     alerts <- getAlerts(input$numAlerts)
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
-
-    backtestSymbols <- input$filterSymbol
-    chartSymbols <- input$symbolNames
+    wallet <- getWallet()
+    numWallet <- length(wallet)
 
     updateSelectizeInput(session, "filterSymbol",
                          label = "Symbols",
                          choices = as.vector(unique(mMergeBacktest()$name)),
-                         selected = backtestSymbols
+                         selected = input$filterSymbol
                          )
 
     updateSelectizeInput(session, "symbolNames",
                          label = "Symbols",
                          choices = getSymbolNames(),
-                         selected = chartSymbols
+                         selected = input$symbolNames
                          )
 
     if(numAlerts > 0)
@@ -133,11 +128,22 @@ server <- shinyServer(function(input, output, session)
       {
         local({
           my_i <- i
-          startDate <- input$alertsDateRange[1]
-          endDate   <- input$alertsDateRange[2]
 
-          plotname <- paste("alerts", my_i, sep="")
-          output[[plotname]] <- renderPlot({ make_chart(symbols[[my_i]], startDate, endDate, input$alertsTimeFrame) })
+          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(symbols[[my_i]], intervals = input$numIntervals, timeFrame = alerts[my_i, "timeframe"]) })
+        })
+      }
+    }
+
+    if(numWallet > 0)
+    {
+      for(i in 1:numWallet)
+      {
+        local({
+          my_i <- i
+          startDate <- input$walletDateRange[1]
+          endDate   <- input$walletDateRange[2]
+
+          output[[paste0("wallet", my_i)]] <- renderPlot({ make_chart(wallet[[my_i]], startDate = startDate, endDate = endDate, timeFrame = input$walletTimeFrame) })
         })
       }
     }
@@ -155,7 +161,7 @@ server <- shinyServer(function(input, output, session)
           endDate   <- input$chartsDateRange[2]
 
           plotname <- paste("charts", my_i, sep="")
-          output[[plotname]] <- renderPlot({ make_chart(my_symbol, startDate, endDate, input$chartsTimeFrame) })
+          output[[plotname]] <- renderPlot({ make_chart(my_symbol, startDate = startDate, endDate = endDate, timeFrame = input$chartsTimeFrame) })
         })
       }
     }
@@ -175,6 +181,19 @@ server <- shinyServer(function(input, output, session)
     {
       plot_output_list <- lapply(1:length(input$symbolNames), function(i) {
         plotname <- paste("charts", i, sep="")
+        plotOutput(plotname)
+      })
+
+      do.call(tagList, plot_output_list)
+    }
+  })
+
+  output$wallet <- renderUI({
+    wallet <- getWallet()
+    if(length(wallet) > 0)
+    {
+      plot_output_list <- lapply(1:length(wallet), function(i) {
+        plotname <- paste("wallet", i, sep="")
         plotOutput(plotname)
       })
 
