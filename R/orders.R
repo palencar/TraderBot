@@ -1,7 +1,7 @@
 source("R/dbInterface.R")
 
 
-getOrders <- function(name, endDate = NULL, mode = "operation", adjusted = TRUE)
+getOrders <- function(name, endDate = Sys.time(), mode = "operation", adjusted = TRUE)
 {
   timeFrame <- NULL
   if(mode == "simulation")
@@ -11,7 +11,7 @@ getOrders <- function(name, endDate = NULL, mode = "operation", adjusted = TRUE)
       timeFrame <- "1D"
   }
 
-  pos <- getPositions(unlist(strsplit(name, "[.]"))[1], timeFrame, endDate, mode = mode)
+  pos <- getPositions(unlist(strsplit(name, "[.]"))[1], timeFrame, as.Date(endDate), mode = mode)
 
   symbol <- base::get(name)
 
@@ -42,7 +42,7 @@ getOrders <- function(name, endDate = NULL, mode = "operation", adjusted = TRUE)
     xNew <- xts(rep(NA, length(idx)), order.by = idx)
     xNew[time(lastReg)] <- ifelse(is.na(reg$closeVal) == FALSE, reg$closeVal, as.double(Cl(lastReg)))
     xNew[time(firstReg)] <- reg$openVal
-    xNew <- rbind(xNew, Cl(symbol[index(symbol) > index(lastReg) & index(symbol) <= endDate]))
+    xNew <- rbind(xNew, Cl(symbol[index(symbol) > index(lastReg) & as.Date(index(symbol)) <= as.Date(endDate)]))
 
     if(adjusted && nrow(xNew) > 1)
       xNew <- adjustOperations(unlist(strsplit(name, "[.]"))[1], xNew)

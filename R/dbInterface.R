@@ -524,9 +524,15 @@ updateAdjust <- function(symbol, adjust = c("split", "dividend"))
     if("dividend" %in% adjust)
     {
       div <- getDividends(symbol.name, from = "1949-01-01")
+
+      lastDiv <- as.Date(getQuery(sprintf("SELECT MAX(date) from dividends where symbol = '%s'", symbol))[,1])
+
+      if(!is.na(lastDiv) && is.xts(div))
+        div <- div[index(div) > lastDiv]
+
       if(is.xts(div) && nrow(div) > 0)
       {
-        queryStr <- paste("REPLACE INTO dividends (symbol, date, dividend) VALUES ",
+        queryStr <- paste("INSERT INTO dividends (symbol, date, dividend) VALUES ",
                           paste(sprintf("('%s', '%s', %f)", symbol, index(div), as.numeric(div)), collapse = ", "))
         getQuery(queryStr)
       }
@@ -535,9 +541,15 @@ updateAdjust <- function(symbol, adjust = c("split", "dividend"))
     if("split" %in% adjust)
     {
       splits <- getSplits(symbol.name, from = "1949-01-01")
+
+      lastSplit <- as.Date(getQuery(sprintf("SELECT MAX(date) from splits where symbol = '%s'", symbol))[,1])
+
+      if(!is.na(lastSplit) && is.xts(splits))
+        splits <- splits[index(splits) > lastSplit]
+
       if(is.xts(splits) && nrow(splits) > 0)
       {
-        queryStr <- paste("REPLACE INTO splits (symbol, date, split) VALUES ",
+        queryStr <- paste("INSERT INTO splits (symbol, date, split) VALUES ",
                           paste(sprintf("('%s', '%s', %f)", symbol, index(splits), as.numeric(splits)), collapse = ", "))
         getQuery(queryStr)
       }

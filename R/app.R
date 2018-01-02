@@ -92,7 +92,7 @@ ui <- shinyUI(navbarPage("TraderBot",
 
 server <- shinyServer(function(input, output, session)
 {
-  make_chart <- function(symbol, intervals = 730, startDate = NULL, endDate = Sys.time(), timeFrame)
+  make_chart <- function(symbol, intervals = 730, startDate = NULL, endDate = Sys.time(), timeFrame, mode = "operation")
   {
     if(timeFrame == "1D")
       symbol <- getSymbolsDaily(symbol, adjust = c("split", "dividend"))
@@ -100,7 +100,7 @@ server <- shinyServer(function(input, output, session)
       symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = c("split", "dividend"))
 
     if(!is.null(symbol))
-      chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame)
+      chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame, mode = mode)
   }
 
   observe({
@@ -129,7 +129,7 @@ server <- shinyServer(function(input, output, session)
         local({
           my_i <- i
 
-          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(symbols[[my_i]], intervals = input$numIntervals, timeFrame = alerts[my_i, "timeframe"]) })
+          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(symbols[[my_i]], intervals = input$numIntervals, timeFrame = alerts[my_i, "timeframe"], mode = "simulation") })
         })
       }
     }
