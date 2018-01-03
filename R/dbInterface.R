@@ -454,6 +454,21 @@ getQuery <- function(queryStr = "")
   return(fr)
 }
 
+getOperations <- function(decreasing = FALSE)
+{
+  if(decreasing)
+    getQuery("select * from operations order by date desc")
+  else
+    getQuery("select * from operations")
+}
+
+insertOperations <- function(symbol, date, type, size, price, cost)
+{
+  queryStr <- paste("INSERT INTO operations (symbol, date, type, size, price, cost) VALUES ",
+                    sprintf("('%s', '%s', '%s', %d, %f, %f)", symbol, date, type, size, price, cost))
+  getQuery(queryStr)
+}
+
 insertIntraday <- function(symbol, data, from = NULL)
 {
   if(nrow(data) == 0)

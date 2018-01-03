@@ -18,6 +18,12 @@ mergeBacktest <- function(path = "result")
     if(is.null(obj))
       next
 
+    if(!"POSIXct" %in% class(obj$operations$open))
+    {
+      obj$operations$open <- as.POSIXct(obj$operations$open)
+      obj$operations$last <- as.POSIXct(obj$operations$last)
+    }
+
     symbol <- unlist(strsplit(file, "[._]"))[1]
     timeframe <- unlist(strsplit(file, "[._]"))[2]
     oper[[i]] <- data.frame(symbol, timeframe, obj$operations)

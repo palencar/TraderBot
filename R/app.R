@@ -1,6 +1,7 @@
 source("R/report.R")
 source("R/chart.R")
 
+
 mMergeBacktest <- memoise(mergeBacktest, ~timeout(600))
 
 timeFrameChoices <- c("1D", "1H", "30M", "15M", "10M", "5M")
@@ -22,6 +23,25 @@ ui <- shinyUI(navbarPage("TraderBot",
 
                             mainPanel(
                               uiOutput("wallet")
+                            )
+                   ),
+
+                   tabPanel("Operations",
+                            sidebarPanel(
+                              titlePanel("Insert operation"),
+                              div(
+                                id = "form",
+                                selectizeInput('opSymbol', 'Symbols', choices = NULL, multiple = TRUE),
+                                dateInput("opDate", "Date"),
+                                selectInput("opType", "Operation type", c("",  "C", "V")),
+                                textInput("opSize", "Size", value = "100"),
+                                textInput("opPrice", "Price", ""),
+                                textInput("opCost", "Cost", ""),
+                                actionButton("opSubmit", "Submit", class = "btn-primary")
+                                )),
+
+                            mainPanel(
+                              uiOutput("operations")
                             )
                    ),
 
@@ -92,6 +112,8 @@ ui <- shinyUI(navbarPage("TraderBot",
 
 server <- shinyServer(function(input, output, session)
 {
+  values <- reactiveValues(operations = getOperations(decreasing = TRUE))
+
   make_chart <- function(symbol, intervals = 730, startDate = NULL, endDate = Sys.time(), timeFrame, mode = "operation")
   {
     if(timeFrame == "1D")
@@ -103,12 +125,28 @@ server <- shinyServer(function(input, output, session)
       chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame, mode = mode)
   }
 
+  observeEvent(input$opSubmit, {
+
+    size   <- as.integer(input$opSize)
+    price  <- as.numeric(input$opPrice)
+    cost   <- as.numeric(input$opCost)
+
+    if(is.character(input$opSymbol) && !is.na(size) && !is.na(price) && !is.na(cost) && nchar(input$opType) > 0)
+      insertOperations(input$opSymbol, as.Date(input$opDate), input$opType, as.integer(input$opSize), as.numeric(input$opPrice), as.numeric(input$opCost))
+    else
+      print("invalid input")
+
+    values$operations <- getOperations(decreasing = TRUE)
+  })
+
   observe({
     alerts <- getAlerts(input$numAlerts)
     symbols <- unique(as.vector(alerts$symbol))
     numAlerts <- min(length(symbols), input$numAlerts)
     wallet <- getWallet()
     numWallet <- length(wallet)
+    balance <- getBalance()
+    balance$open <- as.character.Date(balance$open)
 
     updateSelectizeInput(session, "filterSymbol",
                          label = "Symbols",
@@ -121,6 +159,12 @@ server <- shinyServer(function(input, output, session)
                          choices = getSymbolNames(),
                          selected = input$symbolNames
                          )
+
+    updateSelectizeInput(session, "opSymbol",
+                         label = "Symbols",
+                         choices = getSymbolNames(),
+                         selected = input$symbolNames
+    )
 
     if(numAlerts > 0)
     {
@@ -143,6 +187,7 @@ server <- shinyServer(function(input, output, session)
           startDate <- input$walletDateRange[1]
           endDate   <- input$walletDateRange[2]
 
+          output[[paste0("balance", my_i)]] <- renderTable({balance[balance$symbol == wallet[my_i], ]})
           output[[paste0("wallet", my_i)]] <- renderPlot({ make_chart(wallet[[my_i]], startDate = startDate, endDate = endDate, timeFrame = input$walletTimeFrame) })
         })
       }
@@ -168,23 +213,23 @@ server <- shinyServer(function(input, output, session)
   })
 
   output$alerts <- renderUI({
-    plot_output_list <- lapply(1:input$numAlerts, function(i) {
+    outputList <- lapply(1:input$numAlerts, function(i) {
       plotname <- paste("alerts", i, sep="")
       plotOutput(plotname)
     })
 
-    do.call(tagList, plot_output_list)
+    do.call(tagList, outputList)
   })
 
   output$charts <- renderUI({
     if(length(input$symbolNames) > 0)
     {
-      plot_output_list <- lapply(1:length(input$symbolNames), function(i) {
+      outputList <- lapply(1:length(input$symbolNames), function(i) {
         plotname <- paste("charts", i, sep="")
         plotOutput(plotname)
       })
 
-      do.call(tagList, plot_output_list)
+      do.call(tagList, outputList)
     }
   })
 
@@ -192,13 +237,16 @@ server <- shinyServer(function(input, output, session)
     wallet <- getWallet()
     if(length(wallet) > 0)
     {
-      plot_output_list <- lapply(1:length(wallet), function(i) {
-        plotname <- paste("wallet", i, sep="")
-        plotOutput(plotname)
+      outputList <- lapply(1:length(wallet), function(i) {
+        tagList(tags$hr(), tableOutput(paste0("balance", i)), plotOutput(paste0("wallet", i)))
       })
 
-      do.call(tagList, plot_output_list)
+      do.call(tagList, outputList)
     }
+  })
+
+  output$operations <- renderTable({
+    values$operations
   })
 
   tableValues <- reactive({

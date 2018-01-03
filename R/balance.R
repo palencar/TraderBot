@@ -1,7 +1,8 @@
 source("R/dbInterface.R")
 
+
 #' @export
-showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getPrices = FALSE)
+getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getPrices = FALSE)
 {
   cTotal <- 0
   oTotal <- 0
@@ -66,9 +67,18 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, get
     }
   }
 
-  df <- df[ order(df$last, df$open), ]
+  df[order(df$last, df$open), ]
+}
+
+#' @export
+showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = TRUE, getPrices = FALSE)
+{
+  df <- getBalance(symbols, showOpen, showClosed, getPrices)
 
   print(df)
+
+  oTotal <- sum(df[df$state == "open", "profit"])
+  cTotal <- sum(df[df$state == "closed", "profit"])
 
   if(showOpen && showClosed)
   {
