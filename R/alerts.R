@@ -28,6 +28,21 @@ chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
   }
 }
 
+getAlertsResults <- function(alerts)
+{
+  pr <- alerts$price
+  lp <- Cl(rbindlist(lapply(alerts$symbol, function(x) {df <- lastPrice(x); df} )))
+
+  alerts$date       <- as.character(alerts$date)
+  alerts$alert      <- as.vector(alerts$alert)
+  alerts$price      <- round(pr, digits = 2)
+  alerts$lastprice  <- round(lp, digits = 2)
+  alerts$profit     <- round(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 2)
+  alerts$profit_perc<- round(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr)*100, digits = 3)
+
+  na.omit(alerts)
+}
+
 sendAlert <- function(alerts)
 {
   config <- config::get()
@@ -37,17 +52,7 @@ sendAlert <- function(alerts)
   datetime <- Sys.time()
   symbols <- as.vector(alerts$symbol)
 
-  pr <- alerts$price
-  lp <- unlist(lapply(symbols, function(x) {df <- lastPrice(x); df$close} ))
-
-  alerts$date       <- as.character(alerts$date)
-  alerts$alert      <- as.vector(alerts$alert)
-  alerts$price      <- round(pr, digits = 2)
-  alerts$lastprice  <- round(lp, digits = 2)
-  alerts$profit    <- formatC(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 3, format = "f")
-  alerts$profit_pp <- formatC(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr), digits = 3, format = "f")
-
-  alerts <- na.omit(alerts)
+  alerts <- getAlertsResults(alerts)
 
   report <- tagList(tags$h3("TraderBot Alert:"),
                     tags$html(tags$head(),
@@ -57,7 +62,7 @@ sendAlert <- function(alerts)
                                               tags$p(
                                                 tagList(
                                                   tags$a(href=paste0(config$alert$baseurl, x['symbol'], ".", x['timeframe'], ".png"),
-                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Profit: ", x['profit_pp'], "%")
+                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Profit %: ", x['profit_perc'])
                                                   )))
                                               }))
                     ))
@@ -77,7 +82,7 @@ sendAlert <- function(alerts)
 
   if(config$alert$type == "mail")
   {
-    for(symbol in symbols)
+    for(symbol in alerts$symbol)
       imgAttachmets <- sprintf("-a charts/%s.png", symbol)
 
     sysCmd <- c(sysCmd, sprintf(paste0("mutt -e \"set content_type=text/html\" %s -s \"Trader Bot Alert\" < ", htmlOutput), config$alert$target))

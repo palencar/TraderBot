@@ -1,5 +1,6 @@
 source("R/report.R")
 source("R/chart.R")
+source("R/dbInterface.R")
 
 
 mMergeBacktest <- memoise(mergeBacktest, ~timeout(600))
@@ -140,9 +141,11 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
-    alerts <- getAlerts(input$numAlerts)
-    symbols <- unique(as.vector(alerts$symbol))
-    numAlerts <- min(length(symbols), input$numAlerts)
+    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts)), key=c("symbol","timeframe","alert"))
+    symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], input$numAlerts)
+    alerts <- alerts[symbDf]
+
+    numAlerts <- nrow(symbDf)
     wallet <- getWallet()
     numWallet <- length(wallet)
     balance <- getBalance()
@@ -173,7 +176,8 @@ server <- shinyServer(function(input, output, session)
         local({
           my_i <- i
 
-          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(symbols[[my_i]], intervals = input$numIntervals, timeFrame = alerts[my_i, "timeframe"], mode = "simulation") })
+          output[[paste0("alertsResults", my_i)]] <- renderTable({ alerts[symbDf[my_i]] })
+          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[symbDf[my_i]]$symbol), intervals = input$numIntervals, timeFrame = unique(alerts[symbDf[my_i]]$timeframe), mode = "simulation") })
         })
       }
     }
@@ -214,8 +218,7 @@ server <- shinyServer(function(input, output, session)
 
   output$alerts <- renderUI({
     outputList <- lapply(1:input$numAlerts, function(i) {
-      plotname <- paste("alerts", i, sep="")
-      plotOutput(plotname)
+      tagList(tags$hr(), tableOutput(paste0("alertsResults", i)), plotOutput(paste0("alerts", i)))
     })
 
     do.call(tagList, outputList)

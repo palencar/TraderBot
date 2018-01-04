@@ -252,9 +252,10 @@ lastTradingSession <- function()
 
 lastPrice <- function(symbol)
 {
-  queryStr <- sprintf("select datetime,close from intraday where symbol = '%s' order by datetime desc limit 1", symbol)
-
-  return(getQuery(queryStr))
+  fr <- getQuery(sprintf("select datetime,close from intraday where symbol = '%s' order by datetime desc limit 1", symbol))
+  if(nrow(fr) == 0)
+    fr <- getQuery(sprintf("select date as datetime,day_close as close from stockprices where symbol = '%s' order by date desc limit 1", symbol))
+  return(fr)
 }
 
 loadLocalCSV <- function(symbol)
@@ -381,15 +382,16 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 #' @export
 getAlerts <- function(n = 50)
 {
-  alerts <- getQuery("select * from alerts order by datetime desc")
+  alerts <- data.table(getQuery("select * from alerts order by datetime desc"), key=c("symbol","timeframe","alert"))
+  symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], n)
 
-  return(head(alerts[!duplicated(alerts[,c('symbol','alert')]),], n))
+  return(alerts[symbDf])
 }
 
 #' @export
 getWallet <- function(showClosed = FALSE)
 {
-  fr <- getQuery("select distinct(symbol) from operations") # where closeVal is null
+  fr <- getQuery("select distinct(symbol) from operations")
 
   symbols <- c()
 
@@ -462,6 +464,7 @@ getOperations <- function(decreasing = FALSE)
     getQuery("select * from operations")
 }
 
+#' @export
 insertOperations <- function(symbol, date, type, size, price, cost)
 {
   queryStr <- paste("INSERT INTO operations (symbol, date, type, size, price, cost) VALUES ",
@@ -581,14 +584,14 @@ updateAdjust <- function(symbol, adjust = c("split", "dividend"))
 getDividends.db <- memoise(function(symbol)
 {
   df <- getQuery(sprintf("select * from dividends where symbol = '%s'", symbol))
-  xts(df$dividend, order.by = as.Date(df$date))
+  xts(df$dividend, order.by = as.Date(df$date, origin = "1970-01-01"))
 }, ~timeout(600))
 
 #' @export
 getSplits.db <- memoise(function(symbol)
 {
   df <- getQuery(sprintf("select * from splits where symbol = '%s'", symbol))
-  xts(df$split, order.by = as.Date(df$date))
+  xts(df$split, order.by = as.Date(df$date, origin = "1970-01-01"))
 }, ~timeout(600))
 
 #' @export
@@ -665,7 +668,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 }
 
 #' @export
-updateIntraday <- function(symbols = NULL)
+updateIntraday <- function(symbols = NULL, period="1d")
 {
   if(is.null(symbols))
   {
@@ -688,7 +691,7 @@ updateIntraday <- function(symbols = NULL)
       lastIdx <- format(lastIdx, usetz = FALSE)
     }
 
-    df <- f.get.google.intraday(symbol, 60, "1d")
+    df <- f.get.google.intraday(symbol, 60, period)
 
     if(any(df$Volume == 0))
       warning(paste("Zero volume:", symbol, "[", index(df[df$Volume == 0, ]), "]", collapse=" "))

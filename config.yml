@@ -1,7 +1,11 @@
 default:
-  #engine:   "sqlite"
+  #SQLITE
+  engine:   "sqlite"
+  database: "db.sqlite"
+  #MYSQL
+  #engine:   "mysql"
   #host:     "db_hostname"
-  #database: "db.sqlite"
+  #database: "db_name"
   #user:     "db_username"
   #password: "db_password"
 
@@ -46,7 +50,12 @@ default:
   alert:
     type:         "none"
     target:       ""
-
+    #type:         "email"
+    #target:       "user@domain"
+    #type:         "s3"
+    #target:       "s3_bucket_name"
+    #baseurl:      "s3_bucket_url"
+    
 aws:
   engine:   "mysql"
   host:     "db_hostname"
@@ -56,3 +65,4 @@ aws:
   alert:
     type:         "s3"
     target:       "s3_bucket_name"
+    baseurl:      "s3_bucket_url"

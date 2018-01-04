@@ -18,7 +18,12 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
     prices <- NULL
     for(symbol in symbols)
     {
-      obj <- Cl(tail(f.get.google.intraday(symbol, 60, "5d"), 1))
+      upd <- tail(f.get.google.intraday(symbol, 60, "5d"), 1)
+      obj <- xts(NA, order.by = Sys.time())
+
+      if(nrow(upd) == 1)
+        obj <- Cl(upd)
+
       prices <- rbind(prices, data.frame(row.names = symbol, Time=index(obj), Price=as.numeric(obj)))
     }
   }
@@ -62,16 +67,19 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
 
       if(!is.null(state))
       {
-        df <- rbind(df, data.frame(symbol, open, last, state, size, price, value, profit, profit_p=round((profit/price)*100, digits=2)))
+        df <- rbind(df, data.frame(symbol, open, last, state, size, price, value, profit, profit_perc=round((profit/price)*100, digits=2)))
       }
     }
   }
+
+  if(is.null(df))
+    return(NULL)
 
   df[order(df$last, df$open), ]
 }
 
 #' @export
-showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = TRUE, getPrices = FALSE)
+showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getPrices = FALSE)
 {
   df <- getBalance(symbols, showOpen, showClosed, getPrices)
 
