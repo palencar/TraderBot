@@ -72,7 +72,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                             sidebarPanel(
                               headerPanel("Options"),
 
-                              numericInput("numAlerts", "Alerts to view:", 5, min = 0, max = 30),
+                              numericInput("numAlerts", "Alerts:", 5, min = 0, max = 30),
 
                               numericInput("numIntervals", "Intervals:", 730)
                             ),

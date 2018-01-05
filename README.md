@@ -123,6 +123,8 @@ A simple *Shiny* App showing charts of the wallet symbols, alerts triggered, etc
 ```R
 runShinyApp()
 ```
+![screenshot_20180105_133451](https://user-images.githubusercontent.com/2640600/34618368-520e7478-f21d-11e7-89f4-2909a3acbbc5.png)
+
 
 # Shell Scripts
 There are some shell scripts calling various module functions on sh directory.
