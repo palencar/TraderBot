@@ -75,29 +75,37 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
   if(is.null(df))
     return(NULL)
 
-  df[order(df$last, df$open), ]
+  df <- as.data.table(df[order(df$last, df$open), ])
+  df[, adj.price :={
+    op <- rbind(xts(price/size, order.by = as.POSIXct(as.Date(open))), xts(as.numeric(value/size), order.by = as.POSIXct(last)))
+    round(as.numeric(adjustOperations(as.character(symbol), op)[as.POSIXct(open)])*size, digits = 2)
+  } , by=symbol]
+  df$adj.profit <- df$value-df$adj.price
+  df$adj.profit_perc <- round((df$adj.profit*100)/df$adj.price, 2)
+  df
 }
 
 #' @export
 showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getPrices = FALSE)
 {
-  df <- getBalance(symbols, showOpen, showClosed, getPrices)
+  df <- as.data.frame(getBalance(symbols, showOpen, showClosed, getPrices))
 
   print(df)
 
-  oTotal <- sum(df[df$state == "open", "profit"])
-  cTotal <- sum(df[df$state == "closed", "profit"])
+  print("Total:")
 
-  if(showOpen && showClosed)
-  {
-    print(paste("Closed:", cTotal, "Open:", oTotal, "Total:", cTotal+oTotal))
-  }
-  else if(showOpen)
-  {
-    print(paste("Open:", oTotal))
-  }
-  else if(showClosed)
-  {
-    print(paste("Closed:", cTotal))
-  }
+  Open <- sum(df[df$state == "open", "profit"])
+  Closed <- sum(df[df$state == "closed", "profit"])
+  Adj.Open <- sum(df[df$state == "open", "adj.profit"])
+  Adj.Closed <- sum(df[df$state == "closed", "adj.profit"])
+
+  total <- NULL
+
+  if(showClosed)
+    total <- cbind(Closed, Adj.Closed)
+
+  if(showOpen)
+    total <- cbind(total, Open, Adj.Open)
+
+  print(total)
 }

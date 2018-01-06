@@ -158,9 +158,11 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
       alerts <- getAlerts()
       alerts <- alerts[as.Date(alerts$datetime) >= Sys.Date() - 1, ]
 
-      chartAlerts(alerts, parameters)
-
-      sendAlert(alerts)
+      if(nrow(alerts) > 0)
+      {
+        chartAlerts(alerts, parameters)
+        sendAlert(alerts)
+      }
     }
 
     if(openMarket == FALSE || dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))

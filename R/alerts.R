@@ -30,15 +30,24 @@ chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
 
 getAlertsResults <- function(alerts)
 {
-  pr <- alerts$price
-  lp <- Cl(rbindlist(lapply(alerts$symbol, function(x) {df <- lastPrice(x); df} )))
+  if(nrow(alerts) == 0)
+    return(NULL)
 
-  alerts$date       <- as.character(alerts$date)
+  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=symbol]
+  alerts <- alerts[,transform(.SD, adj.price={
+    op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
+    round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)
+  }) , by=symbol]
+
+  pr <- alerts$price
+  lp <- alerts$last.close
+  adj.pr <- alerts$adj.price
+
   alerts$alert      <- as.vector(alerts$alert)
-  alerts$price      <- round(pr, digits = 2)
-  alerts$lastprice  <- round(lp, digits = 2)
   alerts$profit     <- round(ifelse(as.vector(alerts$alert) == "buy", lp-pr, -(lp-pr)), digits = 2)
-  alerts$profit_perc<- round(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr)*100, digits = 3)
+  alerts$profit_perc<- round(ifelse(as.vector(alerts$alert) == "buy", (lp-pr)/pr, -(lp-pr)/pr)*100, digits = 2)
+  alerts$adj.profit     <- round(ifelse(as.vector(alerts$alert) == "buy", lp-adj.pr, -(lp-adj.pr)), digits = 2)
+  alerts$adj.profit_perc<- round(ifelse(as.vector(alerts$alert) == "buy", (lp-adj.pr)/adj.pr, -(lp-adj.pr)/adj.pr)*100, digits = 2)
 
   na.omit(alerts)
 }
@@ -62,7 +71,7 @@ sendAlert <- function(alerts)
                                               tags$p(
                                                 tagList(
                                                   tags$a(href=paste0(config$alert$baseurl, x['symbol'], ".", x['timeframe'], ".png"),
-                                                         paste(x['symbol'], x['timeframe'], "[", x['date'], "] Signal:", x['alert'], "Price: ", x['price'], " Last: ", x['lastprice'], "Profit %: ", x['profit_perc'])
+                                                         paste(x['symbol'], x['timeframe'], "[", x['datetime'], "] Signal:", x['alert'], "Price: ", x['price'], "Adj. Price: ", x['adj.price'], " Last: ", x['last.close'], "Profit %: ", x['profit_perc'], "Profit (Adj) %: ", x['adj.profit_perc'])
                                                   )))
                                               }))
                     ))
