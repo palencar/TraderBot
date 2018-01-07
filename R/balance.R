@@ -107,5 +107,6 @@ showBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, get
   if(showOpen)
     total <- cbind(total, Open, Adj.Open)
 
-  print(total)
+  if(nrow(total) > 0)
+    print(total)
 }

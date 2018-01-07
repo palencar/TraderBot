@@ -3,7 +3,7 @@ adjustOperations <- function(symbolName, op)
 {
   symbolName <- unlist(strsplit(symbolName, "[.]"))[1]
 
-  df <- xts(data.frame(Open=op, High=op, Low=op, Close=op), order.by = index(op))
+  df <- xts(data.frame(Open=op, High=op, Low=op, Close=op, row.names = NULL), order.by = index(op))
   names(df) <- c("Open", "High", "Low", "Close")
 
   df <- adjustOHLC.db(df, symbol.name = symbolName, adjust = c('split', 'dividend'))
@@ -24,10 +24,15 @@ adjustOHLC.db <- function (x, adjust = c("split", "dividend"), use.Adjusted = FA
       ratio <- Ad(x)/Cl(x)
     }
     else {
-      div <- getDividends.db(symbol.name)[paste0("/", last(index(x)))]
-      splits <- getSplits.db(symbol.name)[paste0("/", last(index(x)))]
-      if (is.xts(splits) && is.xts(div) && nrow(splits) >
-          0 && nrow(div) > 0)
+      div <- getDividends.db(symbol.name)
+      if(nrow(div) > 0)
+        div <- div[paste0("/", last(index(x)))]
+
+      splits <- getSplits.db(symbol.name)
+      if(nrow(splits) > 0)
+        splits <- splits[paste0("/", last(index(x)))]
+
+      if (is.xts(splits) && is.xts(div) && nrow(splits) > 0 && nrow(div) > 0)
         div <- div * 1/adjRatios.db(splits = base::merge(splits, index(div)))[, 1]
       ratios <- adjRatios.db(splits, div, Cl(x))
       if (length(adjust) == 1 && adjust == "split") {
