@@ -19,7 +19,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                                           selected = "1D"),
 
                               dateRangeInput(inputId = "walletDateRange", label = "Date range",
-                                             start = (Sys.Date() - 730), end = Sys.Date())
+                                             start = (Sys.Date() - 730), end = NULL)
                             ),
 
                             mainPanel(
@@ -60,7 +60,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                                           selected = "1D"),
 
                               dateRangeInput(inputId = "chartsDateRange", label = "Date range",
-                                             start = (Sys.Date() - 730), end = Sys.Date())
+                                             start = (Sys.Date() - 730), end = NULL)
                             ),
 
                             mainPanel(

@@ -33,11 +33,12 @@ getAlertsResults <- function(alerts)
   if(nrow(alerts) == 0)
     return(NULL)
 
-  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=symbol]
+  alerts <- data.table(alerts[order(datetime)], key=c("symbol", "timeframe"))
+  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]
   alerts <- alerts[,transform(.SD, adj.price={
     op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
     round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)
-  }) , by=symbol]
+  }) , by=key(alerts)]
 
   pr <- alerts$price
   lp <- alerts$last.close

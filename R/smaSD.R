@@ -13,7 +13,7 @@ smaSDdata <- function(symbol, n=500, nma = 500)
 {
   if(nrow(symbol) < (n + nma))
   {
-    warning(sprintf("smaSD: length: %d < (%d + %d)", nrow(symbol), n, nma))
+    print(sprintf("smaSD: length: %d < (%d + %d)", nrow(symbol), n, nma))
     return(NULL)
   }
 

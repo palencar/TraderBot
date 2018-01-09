@@ -75,19 +75,25 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
 
     if(nrow(obj) < 10)
     {
-      warning(print(sprintf("NROW: %d", nrow(obj))))
+      print(sprintf("NROW: %d", nrow(obj)))
       next
     }
 
     if(anyNA(obj))
     {
-      warning(print(sprintf("NA: %s", which(is.na(obj)))))
+      print(sprintf("NA: %s", which(is.na(obj))))
       next
     }
 
-    if(max(abs(na.omit(diff(volatility(obj))))) > 5)
+    vol <- na.omit(diff(na.omit(volatility(obj))))
+    if(nrow(vol) == 0)
     {
-      warning(print(sprintf("Probable adjust in %s: %s", symbol, paste(index(obj[which(na.omit(abs(diff(volatility(obj)))) > 5)]), collapse = " "))))
+      print("insufficient data")
+      next
+    }
+    if(max(abs(vol)) > 5)
+    {
+      print(sprintf("Probable adjust in %s: %s", symbol, paste(index(obj[which(na.omit(abs(diff(volatility(obj)))) > 5)]), collapse = " ")))
       next
     }
 
