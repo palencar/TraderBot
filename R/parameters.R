@@ -38,7 +38,7 @@ btParameters <- function(timeFrame)
 
   parNames <- c("smaPeriod", "lowerBand", "upperBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")
 
-  if(nrow(df) <= 10)
+  if(nrow(df) <= 20)
   {
     df <- data.frame(matrix(rep(0, 12*2), nrow=2))
     colnames(df) <- parNames
@@ -55,6 +55,9 @@ btParameters <- function(timeFrame)
   randPar <- function(min, max, meanValue, stdDev)
   {
     val <- rnorm(1, meanValue, stdDev)
+
+    if(is.null(meanValue) || is.na(meanValue) || meanValue > max || meanValue < min)
+      meanValue <- (min+max)/2
 
     while(val < min || val > max)
       val <- rnorm(1, meanValue, stdDev)

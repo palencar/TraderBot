@@ -383,9 +383,9 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 getAlerts <- function(n = 50)
 {
   alerts <- data.table(getQuery("select * from alerts order by datetime desc"), key=c("symbol","timeframe","alert"))
-  symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], n)
+  symbDf <- alerts[order(-datetime)][!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")]
 
-  return(alerts[symbDf])
+  return(alerts[head(symbDf[!duplicated(symbDf),], n)])
 }
 
 #' @export
@@ -611,6 +611,7 @@ saveSymbolsIntraday <- function(symbols)
 #' @export
 updateDaily <- function(symbolNames = getSymbolNames())
 {
+  symbolList <- NULL
   quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
 
   for(i in 1:length(symbolNames))
@@ -625,12 +626,17 @@ updateDaily <- function(symbolNames = getSymbolNames())
                         symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Close"], quotes[i, "Volume"])
 
     getQuery(queryStr)
+
+    symbolList <- c(symbolList, symbol)
   }
+
+  return(symbolList)
 }
 
 #' @export
 updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys.Date())
 {
+  symbolList <- NULL
   env = new.env()
 
   for(symbol in symbols)
@@ -664,12 +670,18 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
     getQuery(queryStr)
 
     base::rm(list = symbol1M, envir = env)
+
+    symbolList <- c(symbolList, symbol)
   }
+
+  return(symbolList)
 }
 
 #' @export
 updateIntraday <- function(symbols = NULL, period="1d")
 {
+  symbolList <- NULL
+
   if(is.null(symbols))
   {
     symbols <- getSymbolNames()
@@ -697,8 +709,13 @@ updateIntraday <- function(symbols = NULL, period="1d")
       warning(paste("Zero volume:", symbol, "[", index(df[df$Volume == 0, ]), "]", collapse=" "))
 
     if(!is.null(df))
+    {
       insertIntraday(symbol, df, lastIdx)
+      symbolList <- c(symbolList, symbol)
+    }
   }
+
+  return(symbolList)
 }
 
 #

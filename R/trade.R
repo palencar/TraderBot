@@ -1,10 +1,8 @@
 library("memoise")
 
 
-fMaxChange <- function(symbol, period, lastValue)
+fMaxChange <- function(objPeriod, lastValue)
 {
-  objPeriod <- base::get(symbol)[period]
-
   high <- Hi(objPeriod)
 
   maxValue <- as.numeric(high[which.max(high)])
@@ -27,10 +25,8 @@ fMaxChange <- function(symbol, period, lastValue)
   return(maxChange)
 }
 
-fMinChange <- function(symbol, period, lastValue)
+fMinChange <- function(objPeriod, lastValue)
 {
-  objPeriod <- base::get(symbol)[period]
-
   low <- Lo(objPeriod)
 
   minValue <- as.numeric(low[which.min(low)])
@@ -70,12 +66,11 @@ fBullBear <-function(seq, period, context = 500)
   return(retValue)
 }
 
-fPreventMinMax <- function(symbol, period)
+fPreventMinMax <- function(obj, symbol)
 {
   cantBuy <- NULL
   cantSell <- NULL
 
-  obj <- base::get(symbol)[period]
   tradeDate <- index(xts::last(obj))
 
   lowYear <- tail(Lo(obj), 250) #rougthly 1 year (on daily timeframe)
@@ -125,25 +120,10 @@ fPreventMinMax <- function(symbol, period)
   return(retValue)
 }
 
-fGetVolatility <- function(symbol, period)
-{
-  obj <- base::get(symbol)[period]
-  mean(na.omit(volatility(obj)))
-}
-
-mMaxChange <- memoise(fMaxChange)
-mMinChange <- memoise(fMinChange)
-mBullBear <- memoise(fBullBear)
-mPreventMinMax <- memoise(fPreventMinMax)
 mFilterBadData <- memoise(filterBadData)
-mGetVolatility <- memoise(fGetVolatility)
 
 forgetCache <- function()
 {
-  forget(mMaxChange)
-  forget(mMinChange)
-  forget(mBullBear)
-  forget(mPreventMinMax)
   forget(mFilterBadData)
   forget(singleResultM)
 }
@@ -192,20 +172,12 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
 
   lastValue <- as.numeric(last(Cl(obj)))
 
-  if(memoised)
-  {
-    maxChange <- mMaxChange(symbol, period, lastValue)
-    minChange <- mMinChange(symbol, period, lastValue)
-    pMinMax <- mPreventMinMax(symbol, period)
-    gVolatility <- mGetVolatility(symbol, period)
-  }
-  else
-  {
-    maxChange <- fMaxChange(symbol, period, lastValue)
-    minChange <- fMinChange(symbol, period, lastValue)
-    pMinMax <- fPreventMinMax(symbol, period)
-    gVolatility <- fGetVolatility(symbol, period)
-  }
+  objPeriod <- obj[period]
+
+  maxChange <- fMaxChange(objPeriod, lastValue)
+  minChange <- fMinChange(objPeriod, lastValue)
+  pMinMax <- fPreventMinMax(objPeriod, symbol)
+  gVolatility <- mean(na.omit(volatility(objPeriod)))
 
   if(gVolatility >= 0.70)
   {

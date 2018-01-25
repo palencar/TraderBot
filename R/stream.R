@@ -83,15 +83,15 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
       if(updateData)
       {
-        if(getAdjust)
-          updateAdjust(symbolName)
-
-        updateIntraday(symbolName)
+        symbolId <- updateIntraday(symbolName)
 
         if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
-          updateDailyFromIntraday(symbolName)
+          symbolDl <- updateDailyFromIntraday(symbolName)
         else
-          updateDaily(symbolName)
+          symbolDl <- updateDaily(symbolName)
+
+        if(getAdjust && (!is.null(symbolId) || !is.null(symbolDl)))
+          updateAdjust(symbolName)
       }
 
       for(timeFrame in timeFrames)

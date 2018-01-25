@@ -32,7 +32,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               titlePanel("Insert operation"),
                               div(
                                 id = "form",
-                                selectizeInput('opSymbol', 'Symbols', choices = NULL, multiple = TRUE),
+                                selectizeInput('opSymbol', 'Symbols', choices = NULL, multiple = FALSE),
                                 dateInput("opDate", "Date"),
                                 selectInput("opType", "Operation type", c("",  "C", "V")),
                                 textInput("opSize", "Size", value = "100"),
