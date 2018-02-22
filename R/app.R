@@ -32,7 +32,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               titlePanel("Insert operation"),
                               div(
                                 id = "form",
-                                selectizeInput('opSymbol', 'Symbols', choices = NULL, multiple = FALSE),
+                                selectizeInput('opSymbol', 'Symbols', choices = NULL, selected = NULL, multiple = FALSE),
                                 dateInput("opDate", "Date"),
                                 selectInput("opType", "Operation type", c("",  "C", "V")),
                                 textInput("opSize", "Size", value = "100"),
@@ -73,6 +73,8 @@ ui <- shinyUI(navbarPage("TraderBot",
                               headerPanel("Options"),
 
                               numericInput("numAlerts", "Alerts:", 5, min = 0, max = 30),
+
+                              selectizeInput('typeAlerts', 'Type', choices = c("buy", "sell"), selected = c("buy", "sell"), multiple = TRUE),
 
                               numericInput("numIntervals", "Intervals:", 730)
                             ),
@@ -141,7 +143,7 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
-    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts)), key=c("symbol","timeframe","alert"))
+    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts, input$typeAlerts)), key=c("symbol","timeframe","alert"))
     symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], input$numAlerts)
     alerts <- alerts[symbDf]
 
@@ -166,8 +168,12 @@ server <- shinyServer(function(input, output, session)
     updateSelectizeInput(session, "opSymbol",
                          label = "Symbols",
                          choices = getSymbolNames(),
-                         selected = input$symbolNames
-    )
+                         selected = NULL,
+                         options = list(
+                           placeholder = 'Please select an option below',
+                           onInitialize = I('function() { this.setValue(""); }')
+                         )
+                         )
 
     if(numAlerts > 0)
     {

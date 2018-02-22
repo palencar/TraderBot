@@ -82,7 +82,7 @@ fPreventMinMax <- function(obj, symbol)
   }
 
   if(length(Lo(obj)[tradeDate]) == 1 &&
-     (as.numeric(lowYear[which.min(lowYear)]) * 1.05) > as.numeric(Lo(obj)[tradeDate]))
+     (as.numeric(lowYear[which.min(lowYear)]) * 1.01) > as.numeric(Lo(obj)[tradeDate]))
   {
     str <- sprintf("DO NOT BUY: %s | [%s] [%s] near minimal [%s]", symbol, tradeDate, as.numeric(Lo(obj)[tradeDate]), as.numeric(lowYear[which.min(lowYear)]))
     cantBuy <- c(cantBuy[cantBuy != str], str)
@@ -105,7 +105,7 @@ fPreventMinMax <- function(obj, symbol)
   }
 
   if(length(Hi(obj)[tradeDate]) == 1 &&
-     (as.numeric(highYear[which.max(highYear)]) * 0.95) < as.numeric(Hi(obj)[tradeDate]))
+     (as.numeric(highYear[which.max(highYear)]) * 0.99) < as.numeric(Hi(obj)[tradeDate]))
   {
     str <- sprintf("DO NOT SELL: %s | [%s] [%s] near maximal [%s]", symbol, tradeDate, as.numeric(Hi(obj)[tradeDate]), as.numeric(highYear[which.max(highYear)]))
     cantSell <- c(cantSell[cantSell != str], str)
@@ -310,10 +310,13 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   {
     opDf <- rbindlist(operations)
 
-    if(memoised)
-      result <- singleResultM(opDf, tradeDate)
-    else
-      result <- singleResult(opDf, tradeDate)
+    if(last(opDf$decision) == "buy")
+    {
+      if(memoised)
+        result <- singleResultM(opDf, tradeDate)
+      else
+        result <- singleResult(opDf, tradeDate)
+    }
 
     pr <- result$openMeanPrice
   }

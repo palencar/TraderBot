@@ -345,7 +345,7 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
 
             if(fr[j,]$size >= vSize)
             {
-              acSize <- acSize - fr[i,]$size
+              acSize <- acSize - fr[j,]$size
               break
             }
             else
@@ -380,9 +380,11 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 }
 
 #' @export
-getAlerts <- function(n = 50)
+getAlerts <- function(n = 50, types = c("buy", "sell"))
 {
   alerts <- data.table(getQuery("select * from alerts order by datetime desc"), key=c("symbol","timeframe","alert"))
+  if(!is.null(types))
+    alerts <- alerts[alerts$alert %in% types,]
   symbDf <- alerts[order(-datetime)][!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")]
 
   return(alerts[head(symbDf[!duplicated(symbDf),], n)])
@@ -728,7 +730,7 @@ f.get.google.intraday <- function(symbol, freq, period) {
   full.url <- paste(base.url, options.url, sep = '')
 
   data <- tryCatch({
-    read.csv(full.url, header = FALSE, skip = 7, stringsAsFactors = FALSE)
+    na.omit(read.csv(full.url, header = FALSE, skip = 7, stringsAsFactors = FALSE))
   }, error = function(err)
   {
     #print(err)
