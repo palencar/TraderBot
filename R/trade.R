@@ -316,9 +316,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
         result <- singleResultM(opDf, tradeDate)
       else
         result <- singleResult(opDf, tradeDate)
-    }
 
-    pr <- result$openMeanPrice
+      pr <- result$openMeanPrice
+    }
   }
 
   if(!is.null(pr))
