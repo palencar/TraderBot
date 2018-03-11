@@ -48,7 +48,16 @@ linearRegressionIndicator <- function (SymbolName, Symbol, n=30, refresh = FALSE
         lriFile <- NULL
       }
       else
+      {
         lriFile <- readRDS(file=fileName)
+
+        dif <- na.omit(lriFile-(Hi(Symbol)+Lo(Symbol)+Cl(Symbol))/3)
+        if(nrow(dif) == 0 || abs(mean(dif)) > 0.1)
+        {
+          file.remove(fileName)
+          lriFile <- NULL
+        }
+      }
     }
   }
 

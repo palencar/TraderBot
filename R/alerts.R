@@ -19,7 +19,7 @@ chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
 
     print(sprintf("Chart [%s] [%s] [%s]: %s", alert$symbol, alert$timeframe, alert$date, alert$alert))
 
-    if(!is.null(alert))
+    if(!is.null(alert) && !is.null(symbol))
     {
       chartSymbols(symbol, dev="png", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400), mode = mode)
     }

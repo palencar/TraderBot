@@ -6,7 +6,7 @@ library("DBI")
 library("config")
 
 #' @export
-getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToday=FALSE, FilterAge=NULL, env = .GlobalEnv)
+getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToday=FALSE, FilterAge=NULL, filterVol = TRUE, env = .GlobalEnv)
 {
   if(is.null(Symbols))
     Symbols <- getSymbolNames()
@@ -58,6 +58,9 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
       if(!is.null(adjust))
         fr <- adjustOHLC.db(fr, adjust = adjust, symbol.name = symbol)
 
+      if(filterVol && is.null(filterVolatility(fr, symbol)))
+        next
+
       assign(symbol, fr, env)
       loaded <- c(loaded, symbol)
     }
@@ -67,7 +70,7 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, filterVol = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -152,6 +155,9 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
 
     if(!is.null(adjust))
       obj <- adjustOHLC.db(obj, adjust = adjust, symbol.name = symbol)
+
+    if(filterVol && is.null(filterVolatility(obj, symbol)))
+      next
 
     assign(name, obj, env)
 
@@ -385,7 +391,7 @@ getAlerts <- function(n = 50, types = c("buy", "sell"))
   alerts <- data.table(getQuery("select * from alerts order by datetime desc"), key=c("symbol","timeframe","alert"))
   if(!is.null(types))
     alerts <- alerts[alerts$alert %in% types,]
-  symbDf <- alerts[order(-datetime)][!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")]
+  symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][,c("symbol","timeframe")]), c("symbol","timeframe","alert")]
 
   return(alerts[head(symbDf[!duplicated(symbDf),], n)])
 }

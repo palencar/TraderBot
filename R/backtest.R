@@ -96,9 +96,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   opFile <- NULL
   if(file.exists(outputOp) && length(operations) > 0)
   {
-    if(replaceFile)
-      file.remove(outputOp)
-    else
+    if(!replaceFile)
       opFile <- readRDS(outputOp)
   }
 

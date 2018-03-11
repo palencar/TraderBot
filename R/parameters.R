@@ -5,6 +5,7 @@ mMergeBacktest <- memoise(mergeBacktest)
 
 predictBest <- function(df = mMergeBacktest(), colName)
 {
+  df <- df[df$profit_pp < max(1, 1+2*mean(df$profit_pp)),] #prune elements
   df <- df[, c('profit_pp', colName), with=FALSE]
   df <- df[,list(profit_pp=mean(profit_pp)), by=colName]
 
@@ -33,7 +34,7 @@ tdParameters <- function(timeFrame, fileName)
 btParameters <- function(timeFrame)
 {
   df <- mMergeBacktest()
-  df <- df[df$timeframe == timeFrame & df$state == 'closed' & df$stopLoss < 1, ]
+  df <- df[df$timeframe == timeFrame & df$stopLoss < 1, ]
   df <- df[sample(nrow(df), as.integer(0.2 * nrow(df)), TRUE),]
 
   parNames <- c("smaPeriod", "lowerBand", "upperBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")

@@ -14,11 +14,11 @@ default:
       min:  100
       max:  800
     upper_band:
-      min:  0.8
+      min:  1
       max:  2.5
     lower_band:
       min:  -2.5
-      max:  -0.8
+      max:  -1
     up_change:
       min:  0
       max:  8
@@ -30,22 +30,22 @@ default:
       max: 0.8
     stop_loss:
       min: 0
-      max: 0.5
+      max: 0.8
     stop_gain:
       min: 1.05
-      max: 2
+      max: 5
     bear_sell:
       min:  0
-      max:  0.8
+      max:  1
     bear_buy:
-      min:  0.2
-      max:  1.0
+      min:  0
+      max:  1
     bull_sell:
-      min:  0.2
+      min:  0
       max:  1.0
     bull_buy:
       min:  0
-      max:  0.8
+      max:  1
 
   alert:
     type:         "none"
@@ -55,7 +55,7 @@ default:
     #type:         "s3"
     #target:       "s3_bucket_name"
     #baseurl:      "s3_bucket_url"
-    
+
 aws:
   engine:   "mysql"
   host:     "db_hostname"
