@@ -649,7 +649,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 
   for(symbol in symbols)
   {
-    symbol1M = getSymbolsIntraday(symbol, "1M", filterPeriod = FALSE, env = env)
+    symbol1M = getSymbolsIntraday(symbol, "1M", filterPeriod = FALSE, filterVol = FALSE, env = env)
 
     if(is.null(symbol1M) || !exists(symbol1M, envir = env))
       next

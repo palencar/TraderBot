@@ -26,9 +26,9 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
 
     if(timeFrame == "1D")
-      symbol <- getSymbolsDaily(symbol)
+      symbol <- getSymbolsDaily(symbol, filterVol = FALSE)
     else
-      symbol <- getSymbolsIntraday(symbol, timeFrame)
+      symbol <- getSymbolsIntraday(symbol, timeFrame, filterVol = FALSE)
 
     if(is.null(symbol) || is.null(filterBadData(symbol)))
       next

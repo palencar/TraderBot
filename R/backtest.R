@@ -18,9 +18,9 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
 
   if(timeFrame == "1D")
-    symbol <- getSymbolsDaily(symbol, adjust = NULL)
+    symbol <- getSymbolsDaily(symbol, adjust = NULL, filterVol = FALSE)
   else
-    symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = NULL)
+    symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = NULL, filterVol = FALSE)
 
   if(is.null(symbol))
     next
@@ -54,9 +54,12 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
       adjustLimit <- min(adjustDates-1, max(indexes))
 
       if(timeFrame == "1D")
-        getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
+        get.symbol <- getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
       else
-        getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
+        get.symbol <- getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
+
+      if(is.null(get.symbol))
+        stop("Failed to fetch data")
 
       linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
     }
