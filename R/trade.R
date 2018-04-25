@@ -325,7 +325,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
   {
     if(!is.na(parameters$stopGain) && (pr * parameters$stopGain) <= lastValue) #Stop gain
     {
-      if(canSell)
+      if(alertL == "down" && canSell)
       {
         decision <- "sell"
         reason <- sprintf("Stop Gain %.2f * %2.f <= %.2f -> sell", parameters$stopGain, pr, lastValue)
@@ -334,7 +334,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, price
 
     if(!is.na(parameters$stopLoss) && (pr * parameters$stopLoss) >= lastValue) #Stop loss
     {
-      if(canSell)
+      if(alertL == "up" && canSell)
       {
         decision <- "sell"
         reason <- sprintf("Stop Loss %.2f * %.2f >= %.2f -> sell", parameters$stopLoss, pr, lastValue)

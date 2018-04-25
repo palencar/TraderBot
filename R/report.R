@@ -33,7 +33,7 @@ mergeBacktest <- function(path = "result")
   dataTable <- rbindlist(oper, fill = TRUE)
 
   if(nrow(dataTable) > 0)
-    dataTable$mProfit <- as.numeric(dataTable$profit_pp)/(as.numeric(difftime(dataTable$last, dataTable$open), units = "days")/30)
+    dataTable$dProfit <- as.numeric(dataTable$profit_pp)/as.numeric(difftime(dataTable$last, dataTable$open), units = "days")
 
   return(dataTable)
 }
@@ -41,12 +41,13 @@ mergeBacktest <- function(path = "result")
 showPlot <- function(dataTable, xy)
 {
   df <- data.frame(dataTable)
-  df <- df[c(xy, 'timeframe')]
+  df$class <- as.factor(paste0(df$state, df$timeframe))
+  df <- df[c(xy, 'class')]
   df <- unique(df[complete.cases(df),])
 
   if(nrow(df) > 0)
   {
-    ggplot(df, aes_string(x = xy[1], y = xy[2], color='timeframe')) + geom_point(alpha=0.05) + geom_smooth()
+    ggplot(df, aes_string(x = xy[1], y = xy[2], color='class')) + geom_point(alpha=0.05) + geom_smooth() + scale_y_log10()
   }
 }
 

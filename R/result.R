@@ -53,8 +53,8 @@ singleResult <- function(lines, lastDay = NULL)
 
   symbolName <- as.character(lines$symbol[1])
 
-  op = rbind(xts(lines$price, order.by = lines$tradeDate), Cl(xts::last(base::get(symbolName))))
-  lines$price <- adjustOperations(symbolName, op)[lines$tradeDate]
+  op = rbind(xts(lines$price, order.by = lines$tradeDate), Cl(base::get(symbolName)[index(rbind(getSplits.db(symbolName), getDividends.db(symbolName)))]))
+  lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
 
   for(n in order(lines$tradeDate))
   {
@@ -94,6 +94,8 @@ singleResult <- function(lines, lastDay = NULL)
 
     for(i in 1:nrow(positions))
     {
+      if(positions$openDate[i] == lastDay)
+        next
       sell_price <- as.numeric(Cl(tail(base::get(symbolName), 1)) * 100)
       buy_price <- as.integer(positions$price[i]*100)
       len <- length(openDF)

@@ -386,9 +386,14 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 }
 
 #' @export
-getAlerts <- function(n = 50, types = c("buy", "sell"))
+getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"))
 {
-  alerts <- data.table(getQuery("select * from alerts order by datetime desc"), key=c("symbol","timeframe","alert"))
+
+  qryStr <- paste0("select * from alerts",
+                   ifelse(is.null(symbols), " ", paste0(" where symbol in ('", paste0(symbols, collapse = "', '"), "') ")),
+                   "order by datetime desc",
+                   collapse = " ")
+  alerts <- data.table(getQuery(qryStr), key=c("symbol","timeframe","alert"))
   if(!is.null(types))
     alerts <- alerts[alerts$alert %in% types,]
   symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][,c("symbol","timeframe")]), c("symbol","timeframe","alert")]

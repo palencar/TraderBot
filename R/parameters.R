@@ -34,7 +34,7 @@ tdParameters <- function(timeFrame, fileName)
 btParameters <- function(timeFrame)
 {
   df <- mMergeBacktest()
-  df <- df[df$timeframe == timeFrame & df$stopLoss < 1, ]
+  df <- df[df$timeframe == timeFrame & df$stopLoss < 1 & df$state == "closed", ]
   df <- df[sample(nrow(df), as.integer(0.2 * nrow(df)), TRUE),]
 
   parNames <- c("smaPeriod", "lowerBand", "upperBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")

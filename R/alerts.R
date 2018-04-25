@@ -31,7 +31,7 @@ chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
 getAlertsResults <- function(alerts)
 {
   if(nrow(alerts) == 0)
-    return(NULL)
+    return(alerts)
 
   alerts <- data.table(alerts[order(datetime)], key=c("symbol", "timeframe"))
   alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]

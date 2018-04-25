@@ -72,6 +72,10 @@ ui <- shinyUI(navbarPage("TraderBot",
                             sidebarPanel(
                               headerPanel("Options"),
 
+                              selectizeInput(
+                                'symbolAlerts', 'Symbols', choices = NULL, multiple = TRUE
+                              ),
+
                               numericInput("numAlerts", "Alerts:", 5, min = 0, max = 30),
 
                               selectizeInput('typeAlerts', 'Type', choices = c("buy", "sell"), selected = c("buy", "sell"), multiple = TRUE),
@@ -143,7 +147,7 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
-    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts, input$typeAlerts)), key=c("symbol","timeframe","alert"))
+    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts)), key=c("symbol","timeframe","alert"))
     symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], input$numAlerts)
     alerts <- alerts[symbDf]
 
@@ -155,7 +159,7 @@ server <- shinyServer(function(input, output, session)
 
     updateSelectizeInput(session, "filterSymbol",
                          label = "Symbols",
-                         choices = as.vector(unique(mMergeBacktest()$name)),
+                         choices = as.vector(unique(mMergeBacktest()$symbol)),
                          selected = input$filterSymbol
                          )
 
@@ -164,6 +168,12 @@ server <- shinyServer(function(input, output, session)
                          choices = getSymbolNames(),
                          selected = input$symbolNames
                          )
+
+    updateSelectizeInput(session, "symbolAlerts",
+                         label = "Symbols",
+                         choices = getSymbolNames(),
+                         selected = input$symbolAlerts
+    )
 
     updateSelectizeInput(session, "opSymbol",
                          label = "Symbols",
@@ -290,8 +300,8 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$bullSell   >= input$bullSell[1]   & dataTable$bullSell   <= input$bullSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
     dataTable <- dataTable[(dataTable$profit_pp  >= input$profit[1]     & dataTable$profit_pp  <= input$profit[2])     | is.na(dataTable$profit_pp)]
 
-    if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$name))))
-      dataTable <- dataTable[dataTable$name %in% input$filterSymbol]
+    if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
+      dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
 
     dataTable
   })
