@@ -93,6 +93,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               headerPanel("Filters"),
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
+                              selectInput("group", "Group by:", choices = c("State"="state", "Time Frame"="timeframe", "State and Time Frame"="state_timeframe", "None" = "none")),
                               selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
                               selectizeInput("timeFrames", "Time Frames", choices = timeFrameChoices, selected = timeFrameChoices, multiple = TRUE),
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
@@ -147,11 +148,10 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
-    alerts <- data.table(getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts)), key=c("symbol","timeframe","alert"))
-    symbDf <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), c("symbol","timeframe","alert")], input$numAlerts)
-    alerts <- alerts[symbDf]
+    alerts <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts))
+    alerts <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), ][order(-datetime)], input$numAlerts)
 
-    numAlerts <- nrow(symbDf)
+    numAlerts <- nrow(alerts)
     wallet <- getWallet()
     numWallet <- length(wallet)
     balance <- getBalance()
@@ -192,8 +192,8 @@ server <- shinyServer(function(input, output, session)
         local({
           my_i <- i
 
-          output[[paste0("alertsResults", my_i)]] <- renderTable({ alerts[symbDf[my_i]] })
-          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[symbDf[my_i]]$symbol), intervals = input$numIntervals, timeFrame = unique(alerts[symbDf[my_i]]$timeframe), mode = "simulation") })
+          output[[paste0("alertsResults", my_i)]] <- renderTable({ alerts[my_i] })
+          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[my_i]$symbol), intervals = input$numIntervals, timeFrame = unique(alerts[my_i]$timeframe), mode = "simulation") })
         })
       }
     }
@@ -314,18 +314,18 @@ server <- shinyServer(function(input, output, session)
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
     {
-      grid.arrange(showPlot(tv, c("smaPeriod", "profit_pp")),
-                   showPlot(tv, c("lowerBand", "profit_pp")),
-                   showPlot(tv, c("upperBand", "profit_pp")),
-                   showPlot(tv, c("downChange", "profit_pp")),
-                   showPlot(tv, c("upChange", "profit_pp")),
-                   showPlot(tv, c("lowLimit", "profit_pp")),
-                   showPlot(tv, c("stopGain", "profit_pp")),
-                   showPlot(tv, c("stopLoss", "profit_pp")),
-                   showPlot(tv, c("bullBuy", "profit_pp")),
-                   showPlot(tv, c("bullSell", "profit_pp")),
-                   showPlot(tv, c("bearSell", "profit_pp")),
-                   showPlot(tv, c("bearBuy", "profit_pp")),
+      grid.arrange(showPlot(tv, c("smaPeriod", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("lowerBand", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("upperBand", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("downChange", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("upChange", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("lowLimit", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("stopGain", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("stopLoss", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("bullBuy", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("bullSell", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("bearSell", "riskReturnRatio"), input$group),
+                   showPlot(tv, c("bearBuy", "riskReturnRatio"), input$group),
                    nrow=4, ncol=3)
 
     }

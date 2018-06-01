@@ -38,16 +38,24 @@ mergeBacktest <- function(path = "result")
   return(dataTable)
 }
 
-showPlot <- function(dataTable, xy)
+showPlot <- function(dataTable, xy, class = "state_timeframe")
 {
   df <- data.frame(dataTable)
-  df$class <- as.factor(paste0(df$state, df$timeframe))
-  df <- df[c(xy, 'class')]
+  if(class == "state_timeframe")
+    df$state_timeframe <- as.factor(paste0(df$state, df$timeframe))
+  if(class == "none")
+    df <- df[xy]
+  else
+    df <- df[c(xy, class)]
   df <- unique(df[complete.cases(df),])
 
   if(nrow(df) > 0)
   {
-    ggplot(df, aes_string(x = xy[1], y = xy[2], color='class')) + geom_point(alpha=0.05) + geom_smooth() + scale_y_log10()
+    if(class == "none")
+      aesstr <- aes_string(x = xy[1], y = xy[2])
+    else
+      aesstr <- aes_string(x = xy[1], y = xy[2], color=class)
+    ggplot(df, aesstr) + geom_point(alpha=0.05) + geom_smooth() + scale_y_log10()
   }
 }
 

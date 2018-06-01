@@ -53,7 +53,8 @@ singleResult <- function(lines, lastDay = NULL)
 
   symbolName <- as.character(lines$symbol[1])
 
-  op = rbind(xts(lines$price, order.by = lines$tradeDate), Cl(base::get(symbolName)[index(rbind(getSplits.db(symbolName), getDividends.db(symbolName)))]))
+  clObj <- Cl(base::get(symbolName))
+  op = rbind(xts(lines$price, order.by = lines$tradeDate), clObj[index(rbind(getSplits.db(symbolName), getDividends.db(symbolName)))])
   lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
 
   for(n in order(lines$tradeDate))
@@ -89,20 +90,25 @@ singleResult <- function(lines, lastDay = NULL)
   {
     if(is.null(lastDay))
     {
-      lastDay <- last(index(base::get(symbolName)))
+      lastDay <- last(index(clObj))
     }
 
     for(i in 1:nrow(positions))
     {
       if(positions$openDate[i] == lastDay)
         next
-      sell_price <- as.numeric(Cl(tail(base::get(symbolName), 1)) * 100)
+      sell_price <- as.numeric(tail(clObj, 1) * 100)
       buy_price <- as.integer(positions$price[i]*100)
       len <- length(openDF)
       openDF[[len+1]] <- data.frame("open", symbolName, buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions$openDate[i], lastDay)
     }
 
     positions <- NULL
+  }
+
+  maxDrawdown <- function(open, last)
+  {
+    max(1-clObj[paste0(open, "/", last)]/cummax(clObj[paste0(open, "/", last)]))
   }
 
   closedDF <- rbindlist(closedDF)
@@ -117,7 +123,9 @@ singleResult <- function(lines, lastDay = NULL)
   if(nrow(closedDF) > 0)
   {
     colnames(closedDF) <- colNames
-    closedDF <- closedDF[order(closedDF$profit_pp),]
+    closedDF[, maxDrawdown := mapply(maxDrawdown, open, last)]
+    closedDF[, riskReturnRatio := profit_pp/maxDrawdown]
+    closedDF <- closedDF[order(closedDF$riskReturnRatio),]
 
     result$closedDF <- closedDF
     buy     <- sum(closedDF$buy_price)
@@ -131,7 +139,9 @@ singleResult <- function(lines, lastDay = NULL)
   if(nrow(openDF) > 0)
   {
     colnames(openDF) <- colNames
-    openDF <- openDF[order(openDF$profit_pp),]
+    openDF[, maxDrawdown := mapply(maxDrawdown, open, last)]
+    openDF[, riskReturnRatio := profit_pp/maxDrawdown]
+    openDF <- openDF[order(openDF$riskReturnRatio),]
 
     result$openDF <- openDF
     buy     <- sum(openDF$buy_price)

@@ -33,7 +33,8 @@ getAlertsResults <- function(alerts)
   if(nrow(alerts) == 0)
     return(alerts)
 
-  alerts <- data.table(alerts[order(datetime)], key=c("symbol", "timeframe"))
+  alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe"))
+  alerts <- alerts[!duplicated(alerts[,c("symbol","timeframe")])]
   alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]
   alerts <- alerts[,transform(.SD, adj.price={
     op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
@@ -50,7 +51,7 @@ getAlertsResults <- function(alerts)
   alerts$adj.profit     <- round(ifelse(as.vector(alerts$alert) == "buy", lp-adj.pr, -(lp-adj.pr)), digits = 2)
   alerts$adj.profit_perc<- round(ifelse(as.vector(alerts$alert) == "buy", (lp-adj.pr)/adj.pr, -(lp-adj.pr)/adj.pr)*100, digits = 2)
 
-  na.omit(alerts)
+  na.omit(alerts)[order(datetime, decreasing = TRUE)]
 }
 
 sendAlert <- function(alerts)

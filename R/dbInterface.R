@@ -388,7 +388,6 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 #' @export
 getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"))
 {
-
   qryStr <- paste0("select * from alerts",
                    ifelse(is.null(symbols), " ", paste0(" where symbol in ('", paste0(symbols, collapse = "', '"), "') ")),
                    "order by datetime desc",

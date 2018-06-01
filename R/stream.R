@@ -155,7 +155,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
     if(sendAlerts)
     {
-      alerts <- getAlerts()
+      alerts <- getAlerts()[order(-datetime)]
       alerts <- alerts[as.Date(alerts$datetime) >= Sys.Date() - 1, ]
       alerts[!duplicated(alerts[,c("symbol","timeframe", "alert")]), ]
 
