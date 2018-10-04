@@ -93,14 +93,16 @@ ui <- shinyUI(navbarPage("TraderBot",
                               headerPanel("Filters"),
                               checkboxInput('open', 'Open', TRUE),
                               checkboxInput('closed', 'Closed', TRUE),
-                              selectInput("group", "Group by:", choices = c("State"="state", "Time Frame"="timeframe", "State and Time Frame"="state_timeframe", "None" = "none")),
+                              checkboxInput('long', 'Long', TRUE),
+                              checkboxInput('short', 'Short', TRUE),
+                              selectInput("group", "Group by:", choices = c("State"="state", "Type"="type", "Time Frame"="timeframe", "State and Time Frame"="state_timeframe", "None" = "none")),
                               selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
                               selectizeInput("timeFrames", "Time Frames", choices = timeFrameChoices, selected = timeFrameChoices, multiple = TRUE),
-                              sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(300,500), step = 5),
-                              sliderInput("upperBand",  "Upper Band:",  min = -2, max =   4, value = c(0.5,2.5), step= 0.01),
-                              sliderInput("lowerBand",  "Lower Band:",  min = -4, max =   2, value = c(-2.5,-0.5), step= 0.01),
-                              sliderInput("downChange", "Down Change:", min = -8, max =   0, value = c(-8,0), step= 0.01),
-                              sliderInput("upChange",   "Up Change:",   min =  0, max =   8, value = c(0,8), step= 0.01),
+                              sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(0,1000), step = 5),
+                              sliderInput("upperBand",  "Upper Band:",  min = 0, max =   2, value = c(0,2), step= 0.01),
+                              sliderInput("lowerBand",  "Lower Band:",  min = -2, max =   0, value = c(-2,-0), step= 0.01),
+                              sliderInput("downChange", "Down Change:", min = -1, max =   0, value = c(-1,0), step= 0.01),
+                              sliderInput("upChange",   "Up Change:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("lowLimit",   "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("stopGain",   "Stop Gain:",   min =  1, max =   5, value = c(1,5), step= 0.01),
                               sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
@@ -108,7 +110,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               sliderInput("bullSell",   "Bull Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearBuy",    "Bear Buy:",    min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearSell",   "Bear Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("profit",     "Profit:",      min = -1, max =   5, value = c(-1,5), step= 0.01)
+                              sliderInput("profit",     "Profit:",      min = -10, max = 10, value = c(-10,10), step= 0.01)
                             ),
                             mainPanel(
                               tableOutput("values"),
@@ -281,6 +283,15 @@ server <- shinyServer(function(input, output, session)
 
       if(input$closed)
         dataTable <- dataTable[dataTable$state == "closed"]
+    }
+
+    if(xor(input$long, input$short))
+    {
+      if(input$long)
+        dataTable <- dataTable[dataTable$type == "long"]
+
+      if(input$short)
+        dataTable <- dataTable[dataTable$type == "short"]
     }
 
     if(!is.null(input$timeFrames) && !is.na(input$timeFrames))

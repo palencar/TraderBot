@@ -114,7 +114,7 @@ getLinRegIndicators <- function(SymbolName, Symbol, n=c(30))
   for(i in n)
   {
     objName <- sprintf("lri%s.p%d", SymbolName, i)
-    obj <- linearRegressionIndicator(SymbolName, Symbol, n=i)
+    obj <- na.omit(SMA(linearRegressionIndicator(SymbolName, Symbol, n=i), 10))
 
     if(is.null(obj))
       next

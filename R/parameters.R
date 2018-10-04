@@ -31,7 +31,7 @@ tdParameters <- function(timeFrame, fileName)
   pars[timeFrame, ]
 }
 
-btParameters <- function(timeFrame)
+btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
 {
   df <- mMergeBacktest()
   df <- df[ df$smaPeriod  >= config$backtest$sma_period$min  & df$smaPeriod  <= config$backtest$sma_period$max &
@@ -46,7 +46,12 @@ btParameters <- function(timeFrame)
             df$bullSell   >= config$backtest$bull_sell$min   & df$bullSell   <= config$backtest$bull_sell$max &
             df$bearSell   >= config$backtest$bear_sell$min   & df$bearSell   <= config$backtest$bear_sell$max &
             df$bearBuy    >= config$backtest$bear_buy$min    & df$bearBuy    <= config$backtest$bear_buy$max, ]
-  df <- df[df$timeframe == timeFrame, ]
+  if(!is.null(timeFrame))
+    df <- df[df$timeframe == timeFrame, ]
+  if(!is.null(state))
+    df <- df[df$state == state,]
+  if(!is.null(type))
+    df <- df[df$type == type,]
   df <- df[sample(nrow(df), as.integer(0.2 * nrow(df)), TRUE),]
 
   parNames <- c("smaPeriod", "lowerBand", "upperBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")
@@ -78,18 +83,18 @@ btParameters <- function(timeFrame)
     return(as.numeric(formatC(val, digits=2,format="f")))
   }
 
-  smaPeriod = round(randPar(config$backtest$sma_period$min, config$backtest$sma_period$max, dF$smaPeriod, sd(df$smaPeriod)/10))
-  upperBand = randPar(config$backtest$upper_band$min, config$backtest$upper_band$max, dF$upperBand, sd(df$upperBand)/10)
-  lowerBand = randPar(config$backtest$lower_band$min, config$backtest$lower_band$max, dF$lowerBand, sd(df$lowerBand)/10)
-  upChange = randPar(config$backtest$up_change$min, config$backtest$up_change$max, dF$upChange, sd(df$upChange)/10)
-  downChange = randPar(config$backtest$down_change$min, config$backtest$down_change$max, dF$downChange, sd(df$downChange)/10)
-  lowLimit = randPar(config$backtest$low_limit$min, config$backtest$low_limit$max, dF$lowLimit, sd(df$lowLimit)/10)
-  stopLoss = randPar(config$backtest$stop_loss$min, config$backtest$stop_loss$max, dF$stopLoss, sd(df$stopLoss)/10)
-  stopGain = randPar(config$backtest$stop_gain$min, config$backtest$stop_gain$max, dF$stopGain, sd(df$stopGain)/10)
-  bearSell  = randPar(config$backtest$bear_sell$min, config$backtest$bear_sell$max, dF$bearSell, sd(df$bearSell)/10)
-  bearBuy  = randPar(config$backtest$bear_buy$min, config$backtest$bear_buy$max, dF$bearBuy, sd(df$bearBuy)/10)
-  bullBuy  = randPar(config$backtest$bull_buy$min, config$backtest$bull_buy$max, dF$bullBuy, sd(df$bullBuy)/10)
-  bullSell  = randPar(config$backtest$bull_sell$min, config$backtest$bull_sell$max, dF$bullSell, sd(df$bullSell)/10)
+  smaPeriod = round(randPar(config$backtest$sma_period$min, config$backtest$sma_period$max, dF$smaPeriod, sd(df$smaPeriod)))
+  upperBand = randPar(config$backtest$upper_band$min, config$backtest$upper_band$max, dF$upperBand, sd(df$upperBand))
+  lowerBand = randPar(config$backtest$lower_band$min, config$backtest$lower_band$max, dF$lowerBand, sd(df$lowerBand))
+  upChange = randPar(config$backtest$up_change$min, config$backtest$up_change$max, dF$upChange, sd(df$upChange))
+  downChange = randPar(config$backtest$down_change$min, config$backtest$down_change$max, dF$downChange, sd(df$downChange))
+  lowLimit = randPar(config$backtest$low_limit$min, config$backtest$low_limit$max, dF$lowLimit, sd(df$lowLimit))
+  stopLoss = randPar(config$backtest$stop_loss$min, config$backtest$stop_loss$max, dF$stopLoss, sd(df$stopLoss))
+  stopGain = randPar(config$backtest$stop_gain$min, config$backtest$stop_gain$max, dF$stopGain, sd(df$stopGain))
+  bearSell  = randPar(config$backtest$bear_sell$min, config$backtest$bear_sell$max, dF$bearSell, sd(df$bearSell))
+  bearBuy  = randPar(config$backtest$bear_buy$min, config$backtest$bear_buy$max, dF$bearBuy, sd(df$bearBuy))
+  bullBuy  = randPar(config$backtest$bull_buy$min, config$backtest$bull_buy$max, dF$bullBuy, sd(df$bullBuy))
+  bullSell  = randPar(config$backtest$bull_sell$min, config$backtest$bull_sell$max, dF$bullSell, sd(df$bullSell))
 
   data.frame(smaPeriod, upperBand, lowerBand, upChange, downChange, lowLimit, stopLoss, stopGain, bearSell, bearBuy, bullBuy, bullSell)
 }

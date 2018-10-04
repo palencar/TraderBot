@@ -42,6 +42,8 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   if(startIdx > endIdx)
     next
 
+  print(summary(rbindlist(parList)))
+
   for(i in startIdx:endIdx)
   {
     forgetCache()
@@ -115,22 +117,25 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
     opDf <- rbindlist(operations[[i]])
 
     result <- singleResult(opDf, lastDay)
+    totalDF <- rbind(result$closedDF, result$openDF)
 
-    if(!is.null(result$output))
+    if(!is.null(totalDF))
     {
-      opList[[i]]  <- cbind(parList[[i]], rbind(result$closedDF, result$openDF))
-      print(opList[[i]])
+      opList[[i]]  <- cbind(parList[[i]], totalDF[order(open)])
+      #print(opList[[i]])
 
-      opFile$parameters <- rbind(opFile$parameters, parameters)
-      opFile$results    <- rbind(opFile$results, result$total)
-      opFile$operations <- rbind(opFile$operations, rbindlist(opList))
+      #opFile$parameters <- rbind(opFile$parameters, parameters)
+      #opFile$results    <- rbind(opFile$results, result$total)
+      #opFile$operations <- rbind(opFile$operations, rbindlist(opList))
+      #opFile <- rbind(opFile$operations, opList[[i]])
     }
   }
 
-  if(!is.null(opFile))
-    saveRDS(opFile, outputOp)
+  opDF <- rbindlist(opList)
+  if(nrow(opDF) > 0)
+    saveRDS(rbind(opFile, opDF), outputOp)
 
-  print(rbindlist(opList))
+  print(opDF)
 
   }, error = function(e)
       print(paste0("Symbol ", symbol, " ", e)))

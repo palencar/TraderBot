@@ -1,4 +1,5 @@
 library("memoise")
+source("R/adjust.R")
 
 writeResult <- function(symbol, result, parameters = NULL)
 {
@@ -40,138 +41,134 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
 }
 
+mAdjustOperations <- memoise(adjustOperations)
+
 singleResult <- function(lines, lastDay = NULL)
 {
-  closedDF <- list()
-  openDF <- list()
-
-  positions <- NULL
-  closePosition <- FALSE
-
   if(nrow(lines) == 0)
     return(NULL)
 
-  symbolName <- as.character(lines$symbol[1])
+  closedDF <- data.table()
+  openDF <- data.table()
+  positions <- list()
 
+  position <- "none"
+
+  symbolName <- unique(lines$symbol)
   clObj <- Cl(base::get(symbolName))
-  op = rbind(xts(lines$price, order.by = lines$tradeDate), clObj[index(rbind(getSplits.db(symbolName), getDividends.db(symbolName)))])
-  lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
+  symbol <- unlist(strsplit(symbolName, "[.]"))[1]
+
+  if(is.null(lastDay))
+    lastDay <- last(index(clObj))
+
+  clObj <- clObj[paste0("/", lastDay)]
+  op = rbind(xts(lines$price, order.by = lines$tradeDate), last(clObj[as.character(max(index(rbind(getSplits.db(symbol), getDividends.db(symbol)))))]))
+  lines$price <- mAdjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
 
   for(n in order(lines$tradeDate))
   {
-    if(lines$decision[n] == "sell")
+    if(position == "none" || (position == "long" && lines$decision[n] == "buy") || (position == "short" && lines$decision[n] == "sell"))
     {
-      if(is.null(positions) == FALSE)
-      {
-        for(i in 1:nrow(positions))
-        {
-          sell_price <- as.integer(lines$price[n]*100)
-          buy_price <- as.integer(positions$price[i]*100)
-          len <- length(closedDF)
-          closedDF[[len+1]] <- data.frame("closed", symbolName, buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions$openDate[i], lines$tradeDate[n])
-        }
-        positions <- NULL
-        openDate <- NULL
-        closePosition <- TRUE
-      }
+      positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
+                                                     type=ifelse(lines[n]$decision == "buy", "long", "short"),
+                                                     price=as.numeric(lines$price[n]))
+
+      position <- ifelse(lines[n]$decision == "buy", "long", "short")
+
+      next
     }
 
-    if(lines$decision[n] == "buy")
+    if(position == "long" && lines$decision[n] == "sell")
     {
-      openDate <- lines$tradeDate[n]
-      names(openDate) <- c("openDate")
-      price <- as.numeric(lines$price[n])
+      pos <- rbindlist(positions)
 
-      positions <- rbind.data.frame(positions, data.table(openDate, price))
+      buy_price <- pos$price * 100
+      sell_price <- as.integer(lines$price[n] * 100)
+
+      closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
+                                             profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lines$tradeDate[n]))
+
+      positions <- list()
+
+      positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
+                                                     type=ifelse(lines[n]$decision == "buy", "long", "short"),
+                                                     price=as.numeric(lines$price[n]))
+      position <- "short"
+
+      next
+    }
+
+    if(position == "short" && lines$decision[n] == "buy")
+    {
+      pos <- rbindlist(positions)
+
+      buy_price <- as.integer(lines$price[n] * 100)
+      sell_price <- as.integer(pos$price * 100)
+
+      closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
+                                             profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lines$tradeDate[n]))
+
+      positions <- list()
+
+      positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
+                                                     type=ifelse(lines[n]$decision == "buy", "long", "short"),
+                                                     price=as.numeric(lines$price[n]))
+      position <- "long"
+
+      next
     }
   }
 
-  if(is.null(positions) == FALSE)
+  pos <- rbindlist(positions)
+
+  if(position == "long")
   {
-    if(is.null(lastDay))
-    {
-      lastDay <- last(index(clObj))
-    }
+    buy_price <- pos$price * 100
+    sell_price <- as.numeric(tail(clObj, 1) * 100)
 
-    for(i in 1:nrow(positions))
-    {
-      if(positions$openDate[i] == lastDay)
-        next
-      sell_price <- as.numeric(tail(clObj, 1) * 100)
-      buy_price <- as.integer(positions$price[i]*100)
-      len <- length(openDF)
-      openDF[[len+1]] <- data.frame("open", symbolName, buy_price, sell_price, (sell_price - buy_price), ((sell_price - buy_price) / buy_price), positions$openDate[i], lastDay)
-    }
-
-    positions <- NULL
+    openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
+                         profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lastDay)
   }
 
-  maxDrawdown <- function(open, last)
+  if(position == "short")
   {
-    max(1-clObj[paste0(open, "/", last)]/cummax(clObj[paste0(open, "/", last)]))
+    buy_price <- as.numeric(tail(clObj, 1) * 100)
+    sell_price <- as.integer(pos$price * 100)
+
+    openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
+                         profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lastDay)
   }
 
-  closedDF <- rbindlist(closedDF)
-  openDF <- rbindlist(openDF)
-
-  closePosition <- FALSE
-
-  colNames <- c("state", "name", "buy_price", "sell_price", "profit", "profit_pp", "open", "last")
+  maxDrawdown <- function(open, last, type)
+  {
+    if(type == "long")
+      return(max(1-clObj[paste0(open, "/", last)]/cummax(clObj[paste0(open, "/", last)])))
+    if(type == "short")
+      return(max(clObj[paste0(open, "/", last)]/cummin(clObj[paste0(open, "/", last)])-1))
+  }
 
   result <- list()
 
   if(nrow(closedDF) > 0)
   {
-    colnames(closedDF) <- colNames
-    closedDF[, maxDrawdown := mapply(maxDrawdown, open, last)]
+    closedDF[, maxDrawdown := mapply(maxDrawdown, open, last, type)]
     closedDF[, riskReturnRatio := profit_pp/maxDrawdown]
     closedDF <- closedDF[order(closedDF$riskReturnRatio),]
 
     result$closedDF <- closedDF
-    buy     <- sum(closedDF$buy_price)
-    gain    <- sum(closedDF$sell_price-closedDF$buy_price)
-    profit  <- sum(closedDF$sell_price-closedDF$buy_price)/sum(closedDF$buy_price)
-
-    result$totalClosed <- data.frame(buy, gain, profit)
-    result$closedMeanPrice <- sum(closedDF$buy_price)/(nrow(closedDF)*100)
   }
 
   if(nrow(openDF) > 0)
   {
-    colnames(openDF) <- colNames
-    openDF[, maxDrawdown := mapply(maxDrawdown, open, last)]
+    openDF[, maxDrawdown := mapply(maxDrawdown, open, last, type)]
     openDF[, riskReturnRatio := profit_pp/maxDrawdown]
     openDF <- openDF[order(openDF$riskReturnRatio),]
 
     result$openDF <- openDF
-    buy     <- sum(openDF$buy_price)
-    gain    <- sum(openDF$sell_price-openDF$buy_price)
-    profit  <- sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price)
 
-    result$totalOpen <- data.frame(buy, gain, profit)
-    result$openMeanPrice <- sum(openDF$buy_price)/(nrow(openDF)*100)
-  }
-
-  totalDF <- rbind(openDF, closedDF)
-
-  result$output <- NULL
-
-  if(!is.null(totalDF$buy_price))
-  {
-    buy     <- sum(totalDF$buy_price)
-    gain    <- sum(totalDF$sell_price-totalDF$buy_price)
-    profit  <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
-    result$output <- data.frame(buy, gain, profit)
-  }
-
-  result$total <- NULL
-
-  if(sum(totalDF$buy_price) > 0)
-  {
-    capital <- sum(totalDF$buy_price)
-    gain    <- sum(totalDF$sell_price-totalDF$buy_price)
-    profit  <- sum(totalDF$sell_price-totalDF$buy_price)/sum(totalDF$buy_price)
-    result$total <- data.frame(capital, gain, profit)
+    result$openMeanProfit <- ifelse(unique(openDF$type) == "long",
+                                    sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price),
+                                    sum(openDF$sell_price-openDF$buy_price)/sum(openDF$sell_price))
   }
 
   return(result)

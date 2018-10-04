@@ -3,7 +3,7 @@ source("R/result.R")
 source("R/alerts.R")
 source("R/dbInterface.R")
 
-computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
+computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, verbose = verbose)
 {
   alerts <- NULL
 
@@ -14,7 +14,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
 
   print(timeIndex)
 
-  price <- meanPrice(symbol)
+  #price <- meanPrice(symbol) #TODO openMeanProfit
 
   linearRegressionIndicator(symbol, base::get(symbol))
 
@@ -22,7 +22,8 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
   {
     tradeDate <- timeIndex[i]
 
-    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, price = price)
+    #tradeDecision <- trade(symbol, tradeDate, parameters = parameters, price = price, verbose = verbose)
+    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = NULL, verbose = verbose)
 
     if(is.null(tradeDecision))
       next
@@ -51,7 +52,7 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters)
 }
 
 #' @export
-computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M", "10M", "15M", "30M", "1H", "1D"), updateData = TRUE)
+computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M", "10M", "15M", "30M", "1H", "1D"), updateData = TRUE, verbose = FALSE)
 {
   stopdtime <- "18:20:00"
 
@@ -123,7 +124,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
         if(timeFrame == "1D")
         {
-          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters)
+          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters, verbose = verbose)
 
           if(!is.null(alert))
             sendAlerts <- TRUE
@@ -142,7 +143,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
           {
             indexes[[symbol]] <- max(newIdx)
 
-            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters)
+            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters, verbose = verbose)
 
             if(!is.null(alert))
               sendAlerts <- TRUE

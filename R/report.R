@@ -13,20 +13,20 @@ mergeBacktest <- function(path = "result")
   for(file in files)
   {
     name   <- paste(path, file, sep = "/")
-    obj    <- readRDS(name)
+    operations <- readRDS(name)
 
-    if(is.null(obj))
+    if(is.null(operations) || nrow(operations) == 0)
       next
 
-    if(!"POSIXct" %in% class(obj$operations$open))
+    if(!"POSIXct" %in% class(operations$open))
     {
-      obj$operations$open <- as.POSIXct(obj$operations$open)
-      obj$operations$last <- as.POSIXct(obj$operations$last)
+      operations$open <- as.POSIXct(operations$open)
+      operations$last <- as.POSIXct(operations$last)
     }
 
     symbol <- unlist(strsplit(file, "[._]"))[1]
     timeframe <- unlist(strsplit(file, "[._]"))[2]
-    oper[[i]] <- data.frame(symbol, timeframe, obj$operations)
+    oper[[i]] <- data.frame(symbol, timeframe, operations)
     i <- i + 1
   }
 

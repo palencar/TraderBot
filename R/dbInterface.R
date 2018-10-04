@@ -151,6 +151,23 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
       obj <- align.time(obj)
     }
 
+    if(filterPeriod)
+    {
+      if(as.numeric(median(na.omit(diff.xts(index(obj)))), units="mins")
+         >
+         switch(timeFrame,
+                "3M" = 3,
+                "5M" = 5,
+                "10M" = 10,
+                "15M" = 15,
+                "30M" = 30,
+                "1H" = 60)
+         )
+      {
+        next
+      }
+    }
+
     name <- paste0(symbol, ".", timeFrame)
 
     if(!is.null(adjust))
@@ -194,16 +211,17 @@ updateProbe <- function(Symbols, date)
   }
 }
 
-getQuoteDay <- function(SymbolName, Day)
+getQuoteDay <- function(SymbolName, Day, modes = 'yahoo')
 {
   print(sprintf("getQuoteDay [%s][%s]", SymbolName, Day))
-
-  modes <- c('google', 'yahoo')
 
   for(mode in modes)
   {
     if(mode == 'google')
       Symbol <- sprintf("BVMF:%s", unlist(strsplit(SymbolName, "[.]"))[1])
+
+    if(mode == 'yahoo')
+      Symbol <- paste0(SymbolName, ".SA")
 
     try(getSymbols(Symbol, src=mode, from=as.Date(Day), to=as.Date(Day)), silent=TRUE)
     if(exists(Symbol) == FALSE)
@@ -624,22 +642,22 @@ saveSymbolsIntraday <- function(symbols)
 updateDaily <- function(symbolNames = getSymbolNames())
 {
   symbolList <- NULL
-  quotes = getQuote(paste(symbolNames, "SA", sep = "."), what = yahooQuote.EOD)
+  quotes = getQuote(paste(symbolNames, "SA", sep = "."))
 
   for(i in 1:length(symbolNames))
   {
     if(anyNA(as.numeric(quotes[i,])) || quotes[i,"Volume"] == 0)
     {
-      warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Close", "Volume")], collapse = " ")))
+      warning(paste0("Bad Data: ", symbolNames[i], " ", as.Date(quotes[i, c("Trade Time")]), " ", paste(quotes[i, c("Open", "High", "Low", "Last", "Volume")], collapse = " ")))
       next
     }
 
     queryStr <- sprintf("REPLACE INTO stockprices (symbol, date, day_open, day_high, day_low, day_close, volume) VALUES('%s', '%s', %s, %s, %s, %s, %s)",
-                        symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Close"], quotes[i, "Volume"])
+                        symbolNames[i], as.Date(quotes[i, "Trade Time"]), quotes[i, "Open"], quotes[i, "High"], quotes[i, "Low"], quotes[i, "Last"], quotes[i, "Volume"])
 
     getQuery(queryStr)
 
-    symbolList <- c(symbolList, symbol)
+    symbolList <- c(symbolList, symbolNames[i])
   }
 
   return(symbolList)
@@ -690,7 +708,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 }
 
 #' @export
-updateIntraday <- function(symbols = NULL, period="1d")
+updateIntraday <- function(symbols = NULL)
 {
   symbolList <- NULL
 
@@ -715,7 +733,13 @@ updateIntraday <- function(symbols = NULL, period="1d")
       lastIdx <- format(lastIdx, usetz = FALSE)
     }
 
-    df <- f.get.google.intraday(symbol, 60, period)
+    mins <- min(round(as.numeric(difftime(Sys.time(), lastPrice(symbol)$datetime, units = "mins"))), 500)
+    df <- tryCatch(uolIntraday(symbol, mins),
+                   error = function(err)
+                   {
+                     print(err)
+                     return(NULL)
+                   })
 
     if(any(df$Volume == 0))
       warning(paste("Zero volume:", symbol, "[", index(df[df$Volume == 0, ]), "]", collapse=" "))
@@ -728,6 +752,44 @@ updateIntraday <- function(symbols = NULL, period="1d")
   }
 
   return(symbolList)
+}
+
+getAssets <- memoise(function()
+{
+  base = 'http://cotacoes.economia.uol.com.br/ws/asset/stock/list?size=10000'
+  assets <- content(GET(base),type="text")
+  assets <- fromJSON(assets)
+  df <- rbindlist(assets$data)
+
+  df[df$code %in% paste0(getSymbolNames(), ".SA"), c('code', 'idt')]
+})
+
+uolIntraday <- function(symbol, mins = 500)
+{
+  assets <- getAssets()
+  idt <- assets[assets$code == paste0(symbol, ".SA"), ]$idt
+  url <- paste0("http://cotacoes.economia.uol.com.br/ws/asset/", idt, "/intraday?size=", mins, "&callback=uolfinancecallback0&fields=date,price,open,low,high,vol")
+  text <- content(GET(url), type="text", encoding = "UTF-8")
+  text <- sub("uolfinancecallback0\\(", "", text)
+  text <- sub("\\);$","",text)
+  json <- fromJSON(text)
+
+  df <- rbindlist(json$data)
+  if(nrow(df) == 0)
+    return(NULL)
+
+  df$datetime <- as.POSIXct(df$date/1000, origin = "1970-01-01", tz="America/Sao_Paulo")
+  df <- df[order(df$datetime), c('datetime', 'price', 'vol')]
+  df[, c('Open', 'High', 'Low', 'Close')] <- df$price
+
+  if(nrow(df) > 1)
+    df$Volume <- apply(lag(zoo(df$vol), c(-1,0), na.pad = TRUE), 1L, diff)
+  else
+    df$Volume <- df$vol
+
+  df <- na.omit(df[df$Volume > 0])
+
+  xts(df[, c('Open', 'High', 'Low', 'Close', 'Volume')], order.by = df$datetime)
 }
 
 #

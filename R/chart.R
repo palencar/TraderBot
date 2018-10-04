@@ -7,7 +7,7 @@ source("R/filters.R")
 
 #' @export
 chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time(), xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         mode="operation", indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400)
+                         mode="operation", indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400, lriPeriod = 30)
 {
   for(i in 1:length(Symbols))
   {
@@ -55,12 +55,12 @@ chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time()
       Symbol <- to.weekly(Symbol)
 
     if("lri" %in% indicators)
-      lri <- getLinRegIndicators(SymbolName, Symbol, 30)
+      lri <- getLinRegIndicators(SymbolName, Symbol, lriPeriod)
     else
       lri <- NULL
 
     if("lriOrders" %in% indicators)
-      lriOrders <- getLinRegOrders(SymbolName, Symbol, linearRegressionIndicator(SymbolName, Symbol, n=30))
+      lriOrders <- getLinRegOrders(SymbolName, Symbol, na.omit(SMA(linearRegressionIndicator(SymbolName, Symbol, n=lriPeriod), 10)))
     else
       lriOrders <- NULL
 

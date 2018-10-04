@@ -4,7 +4,7 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv", chartAlerts = FALSE)
+computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv", verbose = FALSE, chartAlerts = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -65,7 +65,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
       }
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations, verbose = verbose)
 
       if(is.null(tradeDecision))
         next

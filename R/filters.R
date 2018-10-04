@@ -17,7 +17,16 @@ filterLRI <- function(SymbolName, tradeDate, n=30)
     return(as.character(entry))
   }
 
-  lri <- linearRegressionIndicator(SymbolName, base::get(SymbolName)[sprintf("/%s", tradeDate)], n)
+  obj <- base::get(SymbolName)[sprintf("/%s", tradeDate)]
+
+  if(nrow(obj) <= n)
+  {
+    alert <- "none"
+    lricache[[key]] <- alert
+    return(alert)
+  }
+
+  lri <- na.omit(SMA(linearRegressionIndicator(SymbolName, obj, n), 10))
 
   if(is.null(lri))
   {
@@ -39,12 +48,14 @@ filterLRI <- function(SymbolName, tradeDate, n=30)
 
   alert <- "none"
 
-  if(r$values[len] == 1 && r$lengths[len] == 1)
+  #if(r$values[len] == 1 && r$lengths[len] == 1)
+  if(r$values[len] == 1)
   {
     alert <- "up"
   }
 
-  if(r$values[len] == -1 && r$lengths[len] == 1)
+  #if(r$values[len] == -1 && r$lengths[len] == 1)
+  if(r$values[len] == -1)
   {
     alert <- "down"
   }
@@ -59,6 +70,12 @@ filterVolatility <- function(obj, symbol)
   if(nrow(obj) < 11)
   {
     print(sprintf("Insufficient data in: %s", symbol))
+    return(NULL)
+  }
+
+  if(any(obj < 0))
+  {
+    print(sprintf("Adjust error: %s", symbol))
     return(NULL)
   }
 
