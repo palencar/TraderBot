@@ -7,7 +7,7 @@ source("R/filters.R")
 
 #' @export
 chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time(), xres=1900, yres=720, dev="", path="charts", suffix=NULL,
-                         mode="operation", indicators=c("positions", "vol", "lri", "smaSD", "lriOrders", "meanPrice"), timeFrame="daily", smaPeriod = 400, lriPeriod = 30)
+                         mode="operation", indicators=c("positions", "alerts", "vol", "smaSD", "meanPrice"), timeFrame, smaPeriod = 400, lriPeriod = 30)
 {
   for(i in 1:length(Symbols))
   {
@@ -24,14 +24,6 @@ chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time()
     {
       chartName <- SymbolName
 
-      tf <- unlist(strsplit(SymbolName, "[._]"))[2]
-
-      if(is.na(tf) && timeFrame == "daily")
-        chartName <- paste0(SymbolName, ".1D")
-
-      if(is.na(tf) && timeFrame == "weekly")
-        chartName <- paste0(SymbolName, ".1W")
-
       if(is.null(suffix) == FALSE)
         imageName <- sprintf("%s/%s-%s.png", path, chartName, suffix)
       else
@@ -41,41 +33,33 @@ chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time()
       png(filename = imageName, width=xres, height=yres)
     }
 
+    smasd <- NULL
+
     if("smaSD" %in% indicators)
       smasd <- smaSD(Symbol, smaPeriod)
-    else
-      smasd <- NULL
+
+    vol <- NULL
 
     if("vol" %in% indicators)
       vol <- "addVo()"
-    else
-      vol <- NULL
 
-    if(timeFrame == "weekly")
-      Symbol <- to.weekly(Symbol)
-
-    if("lri" %in% indicators)
-      lri <- getLinRegIndicators(SymbolName, Symbol, lriPeriod)
-    else
-      lri <- NULL
-
-    if("lriOrders" %in% indicators)
-      lriOrders <- getLinRegOrders(SymbolName, Symbol, na.omit(SMA(linearRegressionIndicator(SymbolName, Symbol, n=lriPeriod), 10)))
-    else
-      lriOrders <- NULL
+    posit <- NULL
 
     if("positions" %in% indicators)
       posit <- getOrders(SymbolName, endDate, mode)
-    else
-      posit <- NULL
+
+    alerts <- NULL
+
+    if("alerts" %in% indicators)
+      alerts <- getAlertSignals(unlist(strsplit(SymbolName, "[._]"))[1], timeFrame)
+
+    mePrice <- NULL
 
     if("meanPrice" %in% indicators)
       mePrice <- getMeanPrice(Symbol, SymbolName)
-    else
-      mePrice <- NULL
 
     datePeriod <- sprintf("%s::%s", st, endDate)
-    taIndicators <- paste(c(smasd, vol, posit, lri, lriOrders, mePrice), collapse="; ")
+    taIndicators <- paste(c(smasd, vol, posit, alerts, mePrice), collapse="; ")
 
     chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)
 

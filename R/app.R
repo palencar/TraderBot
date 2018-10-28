@@ -34,7 +34,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                                 id = "form",
                                 selectizeInput('opSymbol', 'Symbols', choices = NULL, selected = NULL, multiple = FALSE),
                                 dateInput("opDate", "Date"),
-                                selectInput("opType", "Operation type", c("",  "C", "V")),
+                                selectInput("opType", "Operation type", c("",  "buy", "sell")),
                                 textInput("opSize", "Size", value = "100"),
                                 textInput("opPrice", "Price", ""),
                                 textInput("opCost", "Cost", ""),
@@ -133,6 +133,8 @@ server <- shinyServer(function(input, output, session)
 
     if(!is.null(symbol))
       chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame, mode = mode)
+
+    #rm(list = ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
 
   observeEvent(input$opSubmit, {
@@ -150,8 +152,9 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
-    alerts <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts))
-    alerts <- head(alerts[!duplicated(alerts[,c("symbol","timeframe")]), ][order(-datetime)], input$numAlerts)
+    alerts.table <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts))
+    alerts.table <- data.table(alerts.table, key=c("symbol", "timeframe"))
+    alerts <- data.table(alerts.table[!duplicated(alerts.table[,c("symbol","timeframe")])], key=c("symbol", "timeframe"))[order(-datetime)]
 
     numAlerts <- nrow(alerts)
     wallet <- getWallet()
@@ -193,9 +196,10 @@ server <- shinyServer(function(input, output, session)
       {
         local({
           my_i <- i
-
-          output[[paste0("alertsResults", my_i)]] <- renderTable({ alerts[my_i] })
-          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[my_i]$symbol), intervals = input$numIntervals, timeFrame = unique(alerts[my_i]$timeframe), mode = "simulation") })
+          drops <- c("symbol", "timeframe")
+          alerts.table[, !drops, with=FALSE]
+          output[[paste0("alertsResults", my_i)]] <- renderDataTable({alerts.table[alerts[my_i, c("symbol", "timeframe")], !drops, with=FALSE]}, options = list(lengthMenu = c(5, 10, 20), pageLength = 5))
+          output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[my_i]$symbol), intervals = input$numIntervals, timeFrame = unique(alerts[my_i]$timeframe), mode = "none") })
         })
       }
     }
@@ -236,7 +240,7 @@ server <- shinyServer(function(input, output, session)
 
   output$alerts <- renderUI({
     outputList <- lapply(1:input$numAlerts, function(i) {
-      tagList(tags$hr(), tableOutput(paste0("alertsResults", i)), plotOutput(paste0("alerts", i)))
+      tagList(tags$hr(), dataTableOutput(paste0("alertsResults", i)), plotOutput(paste0("alerts", i)))
     })
 
     do.call(tagList, outputList)

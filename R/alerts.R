@@ -3,7 +3,7 @@ library("config")
 library("htmltools")
 
 #' @export
-chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
+chartAlerts <- function(alerts = NULL, mode = "none")
 {
   if(is.null(alerts) || nrow(alerts) == 0)
     return(NULL)
@@ -21,11 +21,59 @@ chartAlerts <- function(alerts = NULL, parameters, mode = "simulation")
 
     if(!is.null(alert) && !is.null(symbol))
     {
-      chartSymbols(symbol, dev="png", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400), mode = mode)
+      chartSymbols(symbol, dev="png", xres = 1850, timeFrame=alert[i]$timeframe, smaPeriod = getParameters(alert$timeframe, "trade")$smaPeriod, mode = mode)
     }
 
     base::rm(list = base::ls(pattern = alert$symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
+}
+
+getAlertSignals <- function(symbol, timeFrame)
+{
+  alerts <- getAlerts(symbols = symbol)
+  alerts <- alerts[alerts$timeframe == timeFrame]
+
+  if(nrow(alerts) == 0)
+    return(NULL)
+
+  alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe", "datetime"))
+  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]
+  alerts <- alerts[,transform(.SD, adj.price={
+    op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
+    round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)
+  }), by=key(alerts)]
+
+  signals <- NULL
+
+  buy <- alerts[alerts$alert == "buy"]
+  if(nrow(buy) > 0)
+  {
+    if(timeFrame == "1D")
+      buy <- xts(buy$adj.price, order.by = as.Date(buy$datetime))
+    else
+      buy <- xts(buy$adj.price, order.by = as.POSIXct(buy$datetime))
+
+    objName <- paste("Buy", symbol, timeFrame, sep = "_")
+    signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'blue', type = 'p', lwd = 1, pch=19)", objName))
+
+    assign(objName, buy, .GlobalEnv)
+  }
+
+  sell <- alerts[alerts$alert == "sell"]
+  if(nrow(sell) > 0)
+  {
+    if(timeFrame == "1D")
+      sell <- xts(sell$adj.price, order.by = as.Date(sell$datetime))
+    else
+      sell <- xts(sell$adj.price, order.by = as.POSIXct(sell$datetime))
+
+    objName <- paste("Sell", symbol, timeFrame, sep = "_")
+    signals <- c(signals, sprintf("addTA(%s, on = 1, col = 'red', type = 'p', lwd = 1, pch=19)", objName))
+
+    assign(objName, sell, .GlobalEnv)
+  }
+
+  return(signals)
 }
 
 getAlertsResults <- function(alerts)
@@ -33,13 +81,13 @@ getAlertsResults <- function(alerts)
   if(nrow(alerts) == 0)
     return(alerts)
 
-  alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe"))
-  alerts <- alerts[!duplicated(alerts[,c("symbol","timeframe")])]
+  alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe", "datetime"))
+  #alerts <- alerts[!duplicated(alerts[,c("symbol","timeframe")])]
   alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]
   alerts <- alerts[,transform(.SD, adj.price={
     op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
     round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)
-  }) , by=key(alerts)]
+  }), by=key(alerts)]
 
   pr <- alerts$price
   lp <- alerts$last.close

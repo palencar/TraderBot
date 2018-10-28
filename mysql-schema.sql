@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.20, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.24, for Linux (x86_64)
 --
--- Host: #########    Database: traderbot
+-- Host: localhost    Database: traderbot
 -- ------------------------------------------------------
--- Server version	5.6.35-log
+-- Server version	5.7.24-0ubuntu0.18.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -76,7 +76,7 @@ DROP TABLE IF EXISTS `operations`;
 CREATE TABLE `operations` (
   `symbol` varchar(20) DEFAULT NULL,
   `date` date DEFAULT NULL,
-  `type` char(1) DEFAULT NULL,
+  `type` char(4) DEFAULT NULL,
   `size` int(11) DEFAULT NULL,
   `price` float DEFAULT NULL,
   `cost` float DEFAULT NULL
@@ -108,14 +108,10 @@ DROP TABLE IF EXISTS `stockprices`;
 CREATE TABLE `stockprices` (
   `symbol` varchar(12) DEFAULT NULL,
   `date` date DEFAULT NULL,
-  `previous_close` double DEFAULT NULL,
   `day_open` double DEFAULT NULL,
   `day_high` double DEFAULT NULL,
   `day_low` double DEFAULT NULL,
   `day_close` double DEFAULT NULL,
-  `day_change` double DEFAULT NULL,
-  `bid` float DEFAULT NULL,
-  `ask` float DEFAULT NULL,
   `volume` bigint(12) unsigned NOT NULL DEFAULT '0',
   UNIQUE KEY `stockindex` (`symbol`,`date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -143,4 +139,4 @@ CREATE TABLE `symbols` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-12-27 20:10:42
+-- Dump completed on 2018-10-27 20:45:59

@@ -33,7 +33,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   for(i in 1:minSamples)
   {
     parList[[i]] <- getParameters(timeFrame, "backtest")
-    operations[[i]] <- list()
+    operations[[i]] <- data.table()
   }
 
   startIdx <- min(rbindlist(parList)$smaPeriod)+500
@@ -46,8 +46,6 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
 
   for(i in startIdx:endIdx)
   {
-    forgetCache()
-
     if(any(as.Date(indexes[[i]]) >= adjustDates))
     {
       print(paste0("Adjusting ", symbol, " ", as.Date(indexes[[i]])))
@@ -63,7 +61,8 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
       if(is.null(get.symbol))
         stop("Failed to fetch data")
 
-      linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
+      if(is.null(filterBadData(get.symbol)))
+        next
     }
 
     print(paste0(Sys.time(), " : ", symbol, " : ", indexes[[i]]))
@@ -77,7 +76,16 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
       if(i <= parameters$smaPeriod)
         next
 
-      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, operations = operations[[j]], memoised = TRUE)
+      profit <- NULL
+
+      if(nrow(operations[[j]]) > 0)
+      {
+        openOps <- tail(operations[[j]], last(rle(operations[[j]]$decision)$lengths))
+
+        profit <- openResult(openOps, get.symbol, indexes[i])
+      }
+
+      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, profit = profit)
 
       if(is.null(tradeDecision))
         next
@@ -90,8 +98,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
         price <- tradeDecision$price
         decision <- tradeDecision$decision
 
-        len <- length(operations[[j]])
-        operations[[j]][[len+1]] <- data.frame(symbol, tradeDate=indexes[i], decision, price, stringsAsFactors = FALSE)
+        operations[[j]] <- rbind(operations[[j]], data.table(symbol, tradeDate=indexes[i], decision, price, stringsAsFactors = FALSE))
       }
     }
   }
@@ -99,7 +106,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   outputOp <- sprintf("result/%s%s.rds", symbol, ifelse(timeFrame == "1D", ".1D", ""))
 
   opFile <- NULL
-  if(file.exists(outputOp) && length(operations) > 0)
+  if(file.exists(outputOp))
   {
     if(!replaceFile)
       opFile <- readRDS(outputOp)
@@ -114,20 +121,13 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
     i <- i + 1
 
     lastDay <- last(indexes)
-    opDf <- rbindlist(operations[[i]])
 
-    result <- singleResult(opDf, lastDay)
+    result <- singleResult(operations[[i]], lastDay)
     totalDF <- rbind(result$closedDF, result$openDF)
 
     if(!is.null(totalDF))
     {
       opList[[i]]  <- cbind(parList[[i]], totalDF[order(open)])
-      #print(opList[[i]])
-
-      #opFile$parameters <- rbind(opFile$parameters, parameters)
-      #opFile$results    <- rbind(opFile$results, result$total)
-      #opFile$operations <- rbind(opFile$operations, rbindlist(opList))
-      #opFile <- rbind(opFile$operations, opList[[i]])
     }
   }
 

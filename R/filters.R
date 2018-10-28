@@ -121,6 +121,15 @@ filterBadData <- function(SymbolNames, dateLimit=NULL)
       next
     }
 
+    d <- diff(obj) == 0
+    d[1,] <- FALSE
+    rp <- mean(as.numeric(d))
+    if(rp > 0.15)
+    {
+      print(sprintf("Repeated prices: %f", rp))
+      next
+    }
+
     symbols <- c(symbols, symbol)
   }
 

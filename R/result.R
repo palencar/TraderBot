@@ -41,7 +41,22 @@ writeResult <- function(symbol, result, parameters = NULL)
   }
 }
 
-mAdjustOperations <- memoise(adjustOperations)
+openResult <- function(operations, symbol, lastTime)
+{
+  ops <- xts(operations$price, order.by = operations$tradeDate)
+  lastPr <- Cl(base::get(symbol)[lastTime])
+
+  adjustOp <- head(adjustOperations(symbolName = symbol, rbind(ops, lastPr)), -1)
+
+  profit <- NULL
+
+  if(unique(operations$decision) == "buy")
+    profit <- sum(as.numeric(lastPr)-adjustOp)/sum(adjustOp)
+  if(unique(operations$decision) == "sell")
+    profit <- sum(adjustOp-as.numeric(lastPr))/sum(adjustOp)
+
+  return(profit)
+}
 
 singleResult <- function(lines, lastDay = NULL)
 {
@@ -62,8 +77,8 @@ singleResult <- function(lines, lastDay = NULL)
     lastDay <- last(index(clObj))
 
   clObj <- clObj[paste0("/", lastDay)]
-  op = rbind(xts(lines$price, order.by = lines$tradeDate), last(clObj[as.character(max(index(rbind(getSplits.db(symbol), getDividends.db(symbol)))))]))
-  lines$price <- mAdjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
+  op = rbind(xts(lines$price, order.by = lines$tradeDate), last(clObj[as.character(index(rbind(getSplits.db(symbol), getDividends.db(symbol))))]))
+  lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
 
   for(n in order(lines$tradeDate))
   {
@@ -82,8 +97,8 @@ singleResult <- function(lines, lastDay = NULL)
     {
       pos <- rbindlist(positions)
 
-      buy_price <- pos$price * 100
-      sell_price <- as.integer(lines$price[n] * 100)
+      buy_price <- pos$price
+      sell_price <- as.numeric(lines$price[n])
 
       closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
                                              profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lines$tradeDate[n]))
@@ -102,8 +117,8 @@ singleResult <- function(lines, lastDay = NULL)
     {
       pos <- rbindlist(positions)
 
-      buy_price <- as.integer(lines$price[n] * 100)
-      sell_price <- as.integer(pos$price * 100)
+      buy_price <- as.numeric(lines$price[n])
+      sell_price <- pos$price
 
       closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
                                              profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lines$tradeDate[n]))
@@ -123,8 +138,8 @@ singleResult <- function(lines, lastDay = NULL)
 
   if(position == "long")
   {
-    buy_price <- pos$price * 100
-    sell_price <- as.numeric(tail(clObj, 1) * 100)
+    buy_price <- pos$price
+    sell_price <- as.numeric(tail(clObj, 1))
 
     openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
                          profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lastDay)
@@ -132,8 +147,8 @@ singleResult <- function(lines, lastDay = NULL)
 
   if(position == "short")
   {
-    buy_price <- as.numeric(tail(clObj, 1) * 100)
-    sell_price <- as.integer(pos$price * 100)
+    buy_price <- as.numeric(tail(clObj, 1))
+    sell_price <- pos$price
 
     openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
                          profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lastDay)
@@ -173,5 +188,3 @@ singleResult <- function(lines, lastDay = NULL)
 
   return(result)
 }
-
-singleResultM <- memoise(singleResult)

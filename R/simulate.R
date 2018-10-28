@@ -44,7 +44,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     if(length(timeIndex) == 0)
       next
 
-    operations <- list()
+    operations <- data.table()
 
     for(i in 1:length(timeIndex))
     {
@@ -61,11 +61,17 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
           getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
         else
           getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
-
-        linearRegressionIndicator(symbol, base::get(symbol)[paste0("/", adjustLimit)], refresh = TRUE, cache = "memory")
       }
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, operations = operations, verbose = verbose)
+      profit <- NULL
+
+      if(nrow(operations) > 0)
+      {
+        openOps <- tail(operations, last(rle(operations$decision)$lengths))
+        profit <- openResult(openOps, unique(openOps$symbol), tradeDate)
+      }
+
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, verbose = verbose)
 
       if(is.null(tradeDecision))
         next
@@ -87,22 +93,19 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
         print(paste0("DateTime: ", tradeDate))
 
-        i <- length(operations)
-        operations[[i+1]] <- data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE)
+        operations <- rbind(operations, data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE))
 
         addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
 
         if(chartAlerts)
-          chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
+          chartSymbols(symbol, endDate=tradeDate, timeFrame=timeFrame, dev="png", suffix=paste(tradeDate, decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
       }
 
-      if(chartAlerts && length(operations) > 0 && (i == length(timeIndex)))
-        chartSymbols(symbol, endDate=tradeDate, dev="png", suffix=paste(tradeDate, tradeDecision$decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
+      if(chartAlerts && nrow(operations) > 0 && (i == length(timeIndex)))
+        chartSymbols(symbol, endDate=tradeDate, timeFrame=timeFrame, dev="png", suffix=paste(tradeDate, tradeDecision$decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))
     }
 
-    opDf <- rbindlist(operations)
-
-    result <- singleResult(opDf, max(timeIndex))
+    result <- singleResult(operations, max(timeIndex))
 
     if(length(result) > 0)
     {

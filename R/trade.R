@@ -75,28 +75,12 @@ fPreventMinMax <- function(symbol, period)
   return(retValue)
 }
 
-mPreventMinMax <- memoise(fPreventMinMax)
-
-mFilterBadData <- memoise(filterBadData)
-
-forgetCache <- function()
-{
-  forget(mPreventMinMax)
-  forget(mFilterBadData)
-  forget(singleResultM)
-}
-
-trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, profit = NULL, verbose = FALSE, memoised = FALSE)
+trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, verbose = FALSE)
 {
   if(is.null(parameters))
     return(NULL)
 
-  if(memoised)
-    fData <- mFilterBadData(symbol, tradeDate)
-  else
-    fData <- filterBadData(symbol, tradeDate)
-
-  alertL <- filterLRI(symbol, tradeDate, 30)
+  fData <- filterBadData(symbol, tradeDate)
 
   obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
   seq <- xts(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), index(obj))
@@ -111,14 +95,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, profi
   dif <- as.double(na.omit(tail(seq-sma, 500)))
   sdp <- (last(seq)-last(sma))/sd(dif)
 
-  #sm <- smaSDdata(obj, 500, parameters$smaPeriod)
-  #dif <- sm$dif
-  #sma <- sm$mavg
-  #sdp <- last(sm$dif/sm$sd)
-
   if(is.na(sdp))
   {
-    warning(paste0("sdp: NA", symbol))
+    warning(paste0("sdp: NA ", symbol))
     return(NULL)
   }
 
@@ -135,10 +114,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, profi
 
   maxChange <- (lastValue-maxValue)/maxValue
   minChange <- (lastValue-minValue)/minValue
-  if(memoised)
-    pMinMax <- mPreventMinMax(symbol, period)
-  else
-    pMinMax <- fPreventMinMax(symbol, period)
+
+  pMinMax <- fPreventMinMax(symbol, period)
 
   cantBuy  <- unique(c(cantBuy, pMinMax$cantBuy))
   cantSell <- unique(c(cantSell, pMinMax$cantSell))
@@ -208,73 +185,56 @@ trade <- function(symbol, tradeDate, parameters = NULL, operations = NULL, profi
     cantSell <- sprintf("DO NOT SELL: %s | [%s] Min Change : [%f]", symbol, period, minChange)
   }
 
-  if(!is.null(alertL) && alertL != FALSE) #valor valido
+  if(is.null(lower) || is.na(lower))
   {
-    if(is.null(lower) || is.na(lower))
+    warning(paste("lower:", lower))
+  }
+  else if(sdp < lower)
+  {
+    if(is.null(cantBuy))
     {
-      warning(paste("lower:", lower))
-    }
-    if(alertL == "up" && sdp < lower) #reversao "para cima" e abaixo da banda inferior
-    {
-      if(is.null(cantBuy))
-      {
-        decision <- "buy"
-        reason <- sprintf("alertL == up && sdp < %1.1f -> buy", lower)
-      }
-    }
-
-    if(is.null(upper) || is.na(upper))
-    {
-      warning(paste("upper:", upper))
-    }
-    else if(alertL == "down" && sdp > upper) #reversao "para baixo" e acima da banda superior
-    {
-      if(is.null(cantSell))
-      {
-        decision <- "sell"
-        reason <- sprintf("alertL == down && sdp > %1.1f -> sell", upper)
-      }
+      decision <- "buy"
+      reason <- sprintf("sdp < %1.1f -> buy", lower)
     }
   }
 
-  pr <- profit
-  if(is.null(pr) && length(operations) > 0)
+  if(is.null(upper) || is.na(upper))
   {
-    opDf <- rbindlist(operations)
-
-    if(memoised)
-      result <- singleResultM(opDf, tradeDate)
-    else
-      result <- singleResult(opDf, tradeDate)
-
-    if(!is.null(result$openDF))
-      pr <- result$openMeanProfit
+    warning(paste("upper:", upper))
+  }
+  else if(sdp > upper)
+  {
+    if(is.null(cantSell))
+    {
+      decision <- "sell"
+      reason <- sprintf("sdp > %1.1f -> sell", upper)
+    }
   }
 
-  if(!is.null(pr))
+  if(!is.null(profit))
   {
-    if(is.null(cantSell) && !is.na(parameters$stopGain) && pr >= parameters$stopGain) #Stop gain
+    if(is.null(cantSell) && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
     {
       decision <- "sell"
-      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> sell", parameters$stopGain, pr, lastHi)
+      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> sell", parameters$stopGain, profit, lastHi)
     }
 
-    if(is.null(cantSell) && !is.na(parameters$stopLoss) && (1+pr) <= parameters$stopLoss) #Stop loss
+    if(is.null(cantSell) && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
     {
       decision <- "sell"
-      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> sell", parameters$stopLoss, pr, lastLo)
+      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> sell", parameters$stopLoss, profit, lastLo)
     }
 
-    if(is.null(cantBuy) && !is.na(parameters$stopGain) && pr >= parameters$stopGain) #Stop gain
+    if(is.null(cantBuy) && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
     {
       decision <- "buy"
-      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> buy", parameters$stopGain, pr, lastHi)
+      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> buy", parameters$stopGain, profit, lastHi)
     }
 
-    if(is.null(cantBuy) && !is.na(parameters$stopLoss) && (1+pr) <= parameters$stopLoss) #Stop loss
+    if(is.null(cantBuy) && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
     {
       decision <- "buy"
-      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> buy", parameters$stopLoss, pr, lastLo)
+      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> buy", parameters$stopLoss, profit, lastLo)
     }
   }
 

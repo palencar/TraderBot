@@ -3,42 +3,38 @@ source("R/result.R")
 source("R/alerts.R")
 source("R/dbInterface.R")
 
-computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, verbose = verbose)
+computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, operations, verbose)
 {
   alerts <- NULL
 
-  print(paste0("COMPUTING: ", symbol))
+  print(paste("COMPUTING:", symbol, collapse = " "))
 
   if(length(timeIndex) == 0)
     return(NULL)
 
   print(timeIndex)
 
-  #price <- meanPrice(symbol) #TODO openMeanProfit
-
-  linearRegressionIndicator(symbol, base::get(symbol))
-
   for(i in 1:length(timeIndex))
   {
     tradeDate <- timeIndex[i]
 
-    #tradeDecision <- trade(symbol, tradeDate, parameters = parameters, price = price, verbose = verbose)
-    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = NULL, verbose = verbose)
+    profit <- NULL
+
+    if(nrow(operations) > 0)
+      profit <- openResult(operations, symbol, tradeDate)
+
+    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, verbose = verbose)
 
     if(is.null(tradeDecision))
       next
-
-    print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason))
 
     tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
 
     if(tradeDecision$decision != "hold")
     {
+      print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason, collapse = " "))
+
       tradePrice <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
-
-      logLine <- paste(symbol, tradeDate, tradeDecision$decision, tradePrice, collapse = " ")
-
-      writeResult(symbol, logLine, "../stream")
 
       alert <- tradeDecision$decision
       date  <- tradeDate
@@ -46,6 +42,10 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, verbose = ve
 
       addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, tradeDecision$decision, tradePrice, timeFrame)
     }
+    #if(tradeDecision$decision == "hold")
+    #{
+    #  print(paste(symbol, tradeDate, tradeDecision$decision, collapse = " "))
+    #}
   }
 
   return(alerts)
@@ -77,6 +77,9 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
     endDate <- Sys.Date()
 
     sendAlerts <- FALSE
+    upIntraday <- FALSE
+
+    operations <- getOperations()
 
     for(symbolName in Symbols)
     {
@@ -91,9 +94,15 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
         else
           symbolDl <- updateDaily(symbolName)
 
+        if(!is.null(symbolDl))
+          upIntraday <- TRUE
+
         if(getAdjust && (!is.null(symbolId) || !is.null(symbolDl)))
           updateAdjust(symbolName)
       }
+
+      symbOp <- operations[operations$symbol == symbolName, ]
+      symbOp <- symbOp[last(symbOp$type) == "buy",] #Only long operations for now
 
       for(timeFrame in timeFrames)
       {
@@ -102,15 +111,10 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
         if(timeFrame == "1D")
           symbol <- getSymbolsDaily(symbolName, adjust = c("split", "dividend"))
         else
-          symbol <- getSymbolsIntraday(symbolName, timeFrame, adjust = c("split", "dividend"), updateLast = TRUE)
+          symbol <- getSymbolsIntraday(symbolName, timeFrame, adjust = c("split", "dividend"))
 
         if(is.null(symbol) || is.null(filterBadData(symbol)))
           next
-
-        lastLri <- index(xts::last(linearRegressionIndicator(symbol, base::get(symbol))))
-
-        if(length(lastLri) > 0 && any(adjustDates > as.Date(lastLri)))
-          linearRegressionIndicator(symbol, base::get(symbol), refresh = TRUE)
 
         lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
@@ -122,9 +126,17 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
         tradeDate <- lastSession
 
+        openOps <- data.table()
+
+        if(nrow(symbOp) > 0)
+        {
+          openOps <- tail(symbOp, last(rle(symbOp$type)$lengths))
+          openOps <- data.table(price=openOps$price, decision = openOps$type, tradeDate = as.Date(openOps$date))
+        }
+
         if(timeFrame == "1D")
         {
-          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters, verbose = verbose)
+          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters, openOps, verbose)
 
           if(!is.null(alert))
             sendAlerts <- TRUE
@@ -143,7 +155,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
           {
             indexes[[symbol]] <- max(newIdx)
 
-            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters, verbose = verbose)
+            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters, openOps, verbose)
 
             if(!is.null(alert))
               sendAlerts <- TRUE
@@ -154,20 +166,20 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
       }
     }
 
-    if(sendAlerts)
+    if(config$alert$type != "none" && sendAlerts)
     {
       alerts <- getAlerts()[order(-datetime)]
       alerts <- alerts[as.Date(alerts$datetime) >= Sys.Date() - 1, ]
-      alerts[!duplicated(alerts[,c("symbol","timeframe", "alert")]), ]
+      alerts <- alerts[!duplicated(alerts[,c("symbol","timeframe", "alert")]), ]
 
       if(nrow(alerts) > 0)
       {
-        chartAlerts(alerts, parameters)
+        chartAlerts(alerts)
         sendAlert(alerts)
       }
     }
 
-    if(openMarket == FALSE || dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
+    if(openMarket == FALSE || upIntraday == FALSE || dtime > stopdtime || (!is.null(lastSession) && lastSession < Sys.Date()))
     {
       if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
       {
@@ -187,10 +199,10 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
       startTime <- Sys.time()
 
-      if(minDiff < 60)
+      if(minDiff < 10)
       {
-        print(paste0("difftime (mins): ", minDiff, " waiting: ", 60 - minDiff))
-        Sys.sleep(3600 - (minDiff * 60))
+        print(paste0("difftime (mins): ", minDiff, " waiting: ", 10 - minDiff))
+        Sys.sleep(3600 - (minDiff * 10))
       }
     }
 

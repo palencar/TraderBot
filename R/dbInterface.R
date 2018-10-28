@@ -70,7 +70,7 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, updateLast = FALSE, filterPeriod = TRUE, filterVol = TRUE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, filterPeriod = TRUE, filterVol = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -93,8 +93,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
       lastIdx <- index(tail(obj, 1))
       lastIdx <- format(lastIdx, usetz = FALSE)
 
-      cmp <- ifelse(updateLast, ">=", ">")
-      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime %s '%s'", symbol, cmp, lastIdx)
+      queryStr <- sprintf("select datetime,open,high,low,close,volume from intraday where symbol = '%s' and datetime > '%s'", symbol, lastIdx)
 
       fr <- getQuery(queryStr)
       objQry <- xts(fr[,-1], as.POSIXct(strptime(fr[,1], '%Y-%m-%d %H:%M:%S'), tz='America/Sao_Paulo'))
@@ -119,8 +118,6 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
 
     if(is.null(nrow(obj)) || nrow(obj) == 0)
       next
-
-    obj <- obj[!duplicated(index(obj))]
 
     if(updateCache & updateFile)
       saveRDS(obj, name1M)
@@ -172,6 +169,10 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
 
     if(!is.null(adjust))
       obj <- adjustOHLC.db(obj, adjust = adjust, symbol.name = symbol)
+
+    if(format(as.Date(index(xts::last(obj)))) == Sys.Date() &&
+       format(Sys.time(), "%H:%M:%S", tz="America/Sao_Paulo") < "17:00:00")
+      obj <- head(obj, -1)
 
     if(filterVol && is.null(filterVolatility(obj, symbol)))
       next
@@ -290,6 +291,8 @@ loadLocalCSV <- function(symbol)
 
 getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode = "operation")
 {
+  fr <- NULL
+
   if(mode == "operation")
     fr <- getQuery(sprintf("SELECT * from operations where symbol = '%s' order by date", symbol))
   if(mode == "simulation")
@@ -301,18 +304,18 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
     fr <- getQuery(qryStr)
 
     fr$date <- as.character(fr$datetime)
-    fr$type <- ifelse(fr$alert == "buy", "C", "V")
+    fr$type <- fr$alert
 
     if(nrow(fr) > 0)
     {
       fr$size <- 100
       rl <- rle(fr$type)
-      if(rl$values[1] == "V")
+      if(rl$values[1] == "sell")
         fr <- tail(fr, nrow(fr)-rl$lengths[1])
     }
   }
 
-  if(nrow(fr) == 0)
+  if(is.null(fr) || nrow(fr) == 0)
   {
     return(NULL)
   }
@@ -328,7 +331,7 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
   i <- 1
   while(i <= nrow(fr))
   {
-    if(fr[i,]$type == 'C')
+    if(fr[i,]$type == "buy")
     {
       acSize <- acSize + fr[i,]$size
 
@@ -347,7 +350,7 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
         price <- fr[i,]$price
       }
     }
-    else if(fr[i,]$type == 'V')
+    else if(fr[i,]$type == "sell")
     {
       if(date != fr[i,]$date || price != fr[i,]$price)
       {
@@ -744,14 +747,14 @@ updateIntraday <- function(symbols = NULL)
     if(any(df$Volume == 0))
       warning(paste("Zero volume:", symbol, "[", index(df[df$Volume == 0, ]), "]", collapse=" "))
 
-    if(!is.null(df))
+    if(!is.null(df) && any(last(index(df)) > lastPrice(symbol)$datetime))
     {
       insertIntraday(symbol, df, lastIdx)
       symbolList <- c(symbolList, symbol)
     }
   }
 
-  return(symbolList)
+  return(unlist(symbolList))
 }
 
 getAssets <- memoise(function()
