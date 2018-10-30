@@ -19,11 +19,20 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, operations, 
     tradeDate <- timeIndex[i]
 
     profit <- NULL
+    type <- "none"
 
     if(nrow(operations) > 0)
-      profit <- openResult(operations, symbol, tradeDate)
+    {
+      if(last(operations$decision) == "buy")
+        type <- "long"
 
-    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, verbose = verbose)
+      if(last(operations$decision) == "sell")
+        type <- "short"
+
+      profit <- openResult(operations, symbol, tradeDate)
+    }
+
+    tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, type = type, verbose = verbose)
 
     if(is.null(tradeDecision))
       next

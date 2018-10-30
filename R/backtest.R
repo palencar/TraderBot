@@ -44,6 +44,8 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
 
   print(summary(rbindlist(parList)))
 
+  get.symbol <- symbol
+
   for(i in startIdx:endIdx)
   {
     if(any(as.Date(indexes[[i]]) >= adjustDates))
@@ -77,15 +79,22 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
         next
 
       profit <- NULL
+      type <- "none"
+      symbOp <- operations[[j]]
 
-      if(nrow(operations[[j]]) > 0)
+      if(nrow(symbOp) > 0 && data.table::last(symbOp)$stop == FALSE)
       {
-        openOps <- tail(operations[[j]], last(rle(operations[[j]]$decision)$lengths))
-
+        openOps <- tail(symbOp, min(last(rle(symbOp$stop)$lengths), last(rle(symbOp$decision)$lengths)))
         profit <- openResult(openOps, get.symbol, indexes[i])
+
+        if(last(openOps$decision) == "buy")
+          type <- "long"
+
+        if(last(openOps$decision) == "sell")
+          type <- "short"
       }
 
-      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, profit = profit)
+      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, profit = profit, type = type)
 
       if(is.null(tradeDecision))
         next
@@ -98,7 +107,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
         price <- tradeDecision$price
         decision <- tradeDecision$decision
 
-        operations[[j]] <- rbind(operations[[j]], data.table(symbol, tradeDate=indexes[i], decision, price, stringsAsFactors = FALSE))
+        operations[[j]] <- rbind(operations[[j]], data.table(symbol, tradeDate=indexes[i], decision, stop = tradeDecision$stop, price, reason = tradeDecision$reason, stringsAsFactors = FALSE))
       }
     }
   }

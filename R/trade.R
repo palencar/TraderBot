@@ -75,7 +75,7 @@ fPreventMinMax <- function(symbol, period)
   return(retValue)
 }
 
-trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, verbose = FALSE)
+trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "none", verbose = FALSE)
 {
   if(is.null(parameters))
     return(NULL)
@@ -211,30 +211,36 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, verbose =
     }
   }
 
+  isStop <- FALSE
+
   if(!is.null(profit))
   {
-    if(is.null(cantSell) && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
+    if(type == "long" && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
     {
+      isStop <- TRUE
       decision <- "sell"
-      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> sell", parameters$stopGain, profit, lastHi)
+      reason <- sprintf("Stop Gain [%.2f %.2f] -> sell", parameters$stopGain, profit)
     }
 
-    if(is.null(cantSell) && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
+    if(type == "short" && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
     {
+      isStop <- TRUE
+      decision <- "buy"
+      reason <- sprintf("Stop Loss [%.2f %.2f] -> buy", parameters$stopLoss, profit)
+    }
+
+    if(type == "short" && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
+    {
+      isStop <- TRUE
+      decision <- "buy"
+      reason <- sprintf("Stop Gain [%.2f %.2f] -> buy", parameters$stopGain, profit)
+    }
+
+    if(type == "long" && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
+    {
+      isStop <- TRUE
       decision <- "sell"
-      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> sell", parameters$stopLoss, profit, lastLo)
-    }
-
-    if(is.null(cantBuy) && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
-    {
-      decision <- "buy"
-      reason <- sprintf("Stop Gain [%.2f %2.f %.2f] -> buy", parameters$stopGain, profit, lastHi)
-    }
-
-    if(is.null(cantBuy) && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
-    {
-      decision <- "buy"
-      reason <- sprintf("Stop Loss [%.2f %2.f %.2f] -> buy", parameters$stopLoss, profit, lastLo)
+      reason <- sprintf("Stop Loss [%.2f %.2f] -> sell", parameters$stopLoss, profit)
     }
   }
 
@@ -251,8 +257,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, verbose =
   tradeDecision <- c()
 
   tradeDecision$decision <- decision
+  tradeDecision$stop <- isStop
   tradeDecision$reason <- reason
-  tradeDecision$price <- round(as.numeric(last(seq)), digits = 2)
+  tradeDecision$price <- lastValue
 
   return(tradeDecision)
 }

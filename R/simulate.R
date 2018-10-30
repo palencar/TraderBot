@@ -64,14 +64,21 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
       }
 
       profit <- NULL
+      type <- "none"
 
-      if(nrow(operations) > 0)
+      if(nrow(operations) > 0 && data.table::last(operations)$stop == FALSE)
       {
-        openOps <- tail(operations, last(rle(operations$decision)$lengths))
+        openOps <- tail(operations, min(last(rle(operations$stop)$lengths), last(rle(operations$decision)$lengths)))
         profit <- openResult(openOps, unique(openOps$symbol), tradeDate)
+
+        if(last(openOps$decision) == "buy")
+          type <- "long"
+
+        if(last(openOps$decision) == "sell")
+          type <- "short"
       }
 
-      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, verbose = verbose)
+      tradeDecision <- trade(symbol, tradeDate, parameters = parameters, profit = profit, type = type, verbose = verbose)
 
       if(is.null(tradeDecision))
         next
@@ -93,7 +100,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
         print(paste0("DateTime: ", tradeDate))
 
-        operations <- rbind(operations, data.frame(symbol, tradeDate, decision, price, stringsAsFactors = FALSE))
+        operations <- rbind(operations, data.frame(symbol, tradeDate, decision, stop = tradeDecision$stop, price, reason = tradeDecision$reason, stringsAsFactors = FALSE))
 
         addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
 
