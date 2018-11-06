@@ -215,7 +215,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
 
   if(!is.null(profit))
   {
-    if(type == "long" && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
+    if(type == "long" && !is.na(parameters$stopGain) && (1+profit) >= parameters$stopGain) #Stop gain
     {
       isStop <- TRUE
       decision <- "sell"
@@ -229,7 +229,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
       reason <- sprintf("Stop Loss [%.2f %.2f] -> buy", parameters$stopLoss, profit)
     }
 
-    if(type == "short" && !is.na(parameters$stopGain) && profit >= parameters$stopGain) #Stop gain
+    if(type == "short" && !is.na(parameters$stopGain) && (1+profit) >= parameters$stopGain) #Stop gain
     {
       isStop <- TRUE
       decision <- "buy"

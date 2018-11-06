@@ -105,10 +105,12 @@ singleResult <- function(lines, lastDay = NULL)
 
       positions <- list()
 
-      positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
-                                                     type=ifelse(lines[n]$decision == "buy", "long", "short"),
-                                                     price=as.numeric(lines$price[n]))
-      position <- "short"
+      if(lines[n,stop] == FALSE)
+        positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
+                                                       type=ifelse(lines[n]$decision == "buy", "long", "short"),
+                                                       price=as.numeric(lines$price[n]))
+
+      position <- ifelse(lines[n,stop], "none", "short")
 
       next
     }
@@ -125,10 +127,12 @@ singleResult <- function(lines, lastDay = NULL)
 
       positions <- list()
 
-      positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
-                                                     type=ifelse(lines[n]$decision == "buy", "long", "short"),
-                                                     price=as.numeric(lines$price[n]))
-      position <- "long"
+      if(lines[n,stop] == FALSE)
+        positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
+                                                       type=ifelse(lines[n]$decision == "buy", "long", "short"),
+                                                       price=as.numeric(lines$price[n]))
+
+      position <- ifelse(lines[n,stop], "none", "long")
 
       next
     }
