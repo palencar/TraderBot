@@ -175,6 +175,9 @@ singleResult <- function(lines, lastDay = NULL)
     closedDF <- closedDF[order(closedDF$riskReturnRatio),]
 
     result$closedDF <- closedDF
+
+    result$closedMeanProfit <- sum(closedDF$sell_price-closedDF$buy_price) /
+                                (sum(closedDF$buy_price[closedDF$type == "long"]) + sum(closedDF$sell_price[closedDF$type == "short"]))
   }
 
   if(nrow(openDF) > 0)
@@ -185,9 +188,8 @@ singleResult <- function(lines, lastDay = NULL)
 
     result$openDF <- openDF
 
-    result$openMeanProfit <- ifelse(unique(openDF$type) == "long",
-                                    sum(openDF$sell_price-openDF$buy_price)/sum(openDF$buy_price),
-                                    sum(openDF$sell_price-openDF$buy_price)/sum(openDF$sell_price))
+    result$openMeanProfit <- sum(openDF$sell_price-openDF$buy_price) /
+                              (sum(openDF$buy_price[openDF$type == "long"]) + sum(openDF$sell_price[openDF$type == "short"]))
   }
 
   return(result)

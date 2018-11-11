@@ -4,15 +4,12 @@ source("R/trade.R")
 source("R/result.R")
 
 #' @export
-computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile =  "tradeParameters.csv", verbose = FALSE, chartAlerts = FALSE)
+computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, timeFrame = "1D", parametersFile = config::get()$parameters, verbose = FALSE, chartAlerts = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
 
   resultDF <- NULL
-
-  config <- config::get()
-  assign("config", config, .GlobalEnv)
 
   parameters <- getParameters(timeFrame, "trade", parametersFile)
 

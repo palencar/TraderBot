@@ -5,6 +5,8 @@ library("RMySQL")
 library("DBI")
 library("config")
 
+getConfig <- memoise(config::get)
+
 #' @export
 getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToday=FALSE, FilterAge=NULL, filterVol = TRUE, env = .GlobalEnv)
 {
@@ -22,7 +24,7 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
     Symbols <- fr$symbol
   }
 
-  config <- config::get()
+  config <- getConfig()
 
   if(!is.null(FilterAge))
   {
@@ -467,7 +469,7 @@ getTradeDays <- function(symbols = NULL)
 
 getQuery <- function(queryStr = "")
 {
-  config <- config::get()
+  config <- getConfig()
 
   if(is.null(config$engine))
     return(NULL)

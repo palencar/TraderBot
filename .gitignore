@@ -2,5 +2,7 @@
 .Rhistory
 .RData
 db.sqlite
+custom-config.yml
+custom-parameters.csv
 mail.addr
 self

@@ -13,7 +13,7 @@ predictBest <- function(df = mMergeBacktest(), colName)
   df[which.max(predict(p)), colName, with=FALSE]
 }
 
-getParameters <- function(timeFrame, operation="trade", fileName = "tradeParameters.csv")
+getParameters <- function(timeFrame, operation="trade", fileName = config::get()$parameters)
 {
   if(operation == "trade")
     return(tdParameters(timeFrame, fileName))

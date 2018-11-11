@@ -1,23 +1,25 @@
 default:
   #SQLITE
-  engine:   "sqlite"
-  database: "db.sqlite"
+  #engine:   "sqlite"
+  #database: "db.sqlite"
   #MYSQL
   #engine:   "mysql"
   #host:     "db_hostname"
   #database: "db_name"
   #user:     "db_username"
   #password: "db_password"
-
+  
+  parameters: "tradeParameters.csv"
+  
   backtest:
     sma_period:
       min:  100
       max:  800
     upper_band:
       min:  1.0
-      max:  1.5
+      max:  2.0
     lower_band:
-      min:  -1.5
+      min:  -2.0
       max:  -1.0
     up_change:
       min:  0.0
@@ -30,10 +32,10 @@ default:
       max: 1.0
     stop_loss:
       min: 0.0
-      max: 1.0
+      max: 0.98
     stop_gain:
       min: 1.02
-      max: 5.00
+      max: 1.50
     bear_sell:
       min:  0.0
       max:  1.0
@@ -48,28 +50,26 @@ default:
       max:  1.0
 
   alert:
-    type:         "none"
-    target:       ""
-    #type:         "email"
-    #target:       "user@domain"
-    #type:         "s3"
-    #target:       "s3_bucket_name"
-    #baseurl:      "s3_bucket_url"
+    type:       "none"
+    target:     ""
+    #type:      "email"
+    #target:    "user@domain"
+    #type:      "s3"
+    #target:    "s3_bucket_name"
+    #baseurl:   "s3_bucket_url"
 
 desktop:
-  engine:   "mysql"
-  host:     "db_hostname"
-  database: "db_name"
-  user:     "db_username"
-  password: "db_password"
+  engine:       !expr config::get("engine", file = "custom-config.yml")
+  host:         !expr config::get("host", file = "custom-config.yml")
+  database:     !expr config::get("database", file = "custom-config.yml")
+  user:         !expr config::get("user", file = "custom-config.yml")
+  password:     !expr config::get("password", file = "custom-config.yml")
+  parameters:   !expr config::get("parameters", file = "custom-config.yml")
 
 aws:
-  engine:   "mysql"
-  host:     "db_hostname"
-  database: "db_name"
-  user:     "db_username"
-  password: "db_password"
-  alert:
-    type:         "s3"
-    target:       "s3_bucket_name"
-    baseurl:      "s3_bucket_url"
+  engine:       !expr config::get("engine", file = "custom-config.yml")
+  host:         !expr config::get("host", file = "custom-config.yml")
+  database:     !expr config::get("database", file = "custom-config.yml")
+  user:         !expr config::get("user", file = "custom-config.yml")
+  password:     !expr config::get("password", file = "custom-config.yml")
+  parameters:   !expr config::get("parameters", file = "custom-config.yml")
