@@ -60,6 +60,8 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, operations, 
   return(alerts)
 }
 
+mGetParameters <- memoise(getParameters)
+
 #' @export
 computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M", "10M", "15M", "30M", "1H", "1D"), updateData = TRUE, verbose = FALSE)
 {
@@ -73,9 +75,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
   indexes <- new.env(hash=T, parent=emptyenv())
 
-  mGetParameters <- memoise(getParameters)
-
-  config <- mGetParameters()
+  config <- config::get()
   assign("config", config, .GlobalEnv)
 
   while(TRUE)
