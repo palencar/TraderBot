@@ -409,7 +409,7 @@ addAlerts <- function(symbol, datetime, alert, price, timeframe)
 }
 
 #' @export
-getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"))
+getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), openOnly = TRUE)
 {
   qryStr <- paste0("select * from alerts",
                    ifelse(is.null(symbols), " ", paste0(" where symbol in ('", paste0(symbols, collapse = "', '"), "') ")),
@@ -418,7 +418,20 @@ getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"))
   alerts <- data.table(getQuery(qryStr), key=c("symbol","timeframe","alert"))
   if(!is.null(types))
     alerts <- alerts[alerts$alert %in% types,]
-  symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][,c("symbol","timeframe")]), c("symbol","timeframe","alert")]
+
+  if(openOnly)
+  {
+    symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, c("symbol","timeframe")]),  c("symbol","timeframe")]
+    alertList <- list()
+    for(i in 1:min(n, nrow(symbDf)))
+    {
+      al <- alerts[symbDf[i, ]][order(-datetime)]
+      alertList[[i]] <- head(al, rle(al$alert)$lengths[1])
+    }
+    return(rbindlist(alertList))
+  }
+
+  symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, c("symbol","timeframe","alert")]), c("symbol","timeframe","alert")]
 
   return(alerts[head(symbDf[!duplicated(symbDf),], n)])
 }

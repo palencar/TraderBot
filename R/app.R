@@ -133,8 +133,6 @@ server <- shinyServer(function(input, output, session)
 
     if(!is.null(symbol))
       chartSymbols(symbol, period = intervals, startDate = startDate, endDate = endDate, timeFrame = timeFrame, mode = mode)
-
-    #rm(list = ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
   }
 
   observeEvent(input$opSubmit, {
@@ -152,43 +150,19 @@ server <- shinyServer(function(input, output, session)
   })
 
   observe({
+    invalidateLater(300000, session)
+
     alerts.table <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts))
     alerts.table <- data.table(alerts.table, key=c("symbol", "timeframe"))
     alerts <- data.table(alerts.table[!duplicated(alerts.table[,c("symbol","timeframe")])], key=c("symbol", "timeframe"))[order(-datetime)]
 
     numAlerts <- nrow(alerts)
-    wallet <- getWallet()
-    numWallet <- length(wallet)
-    balance <- getBalance()
-    balance$open <- as.character.Date(balance$open)
-
-    updateSelectizeInput(session, "filterSymbol",
-                         label = "Symbols",
-                         choices = as.vector(unique(mMergeBacktest()$symbol)),
-                         selected = input$filterSymbol
-                         )
-
-    updateSelectizeInput(session, "symbolNames",
-                         label = "Symbols",
-                         choices = getSymbolNames(),
-                         selected = input$symbolNames
-                         )
 
     updateSelectizeInput(session, "symbolAlerts",
                          label = "Symbols",
                          choices = getSymbolNames(),
                          selected = input$symbolAlerts
     )
-
-    updateSelectizeInput(session, "opSymbol",
-                         label = "Symbols",
-                         choices = getSymbolNames(),
-                         selected = NULL,
-                         options = list(
-                           placeholder = 'Please select an option below',
-                           onInitialize = I('function() { this.setValue(""); }')
-                         )
-                         )
 
     if(numAlerts > 0)
     {
@@ -203,6 +177,15 @@ server <- shinyServer(function(input, output, session)
         })
       }
     }
+  })
+
+  observe({
+    invalidateLater(300000, session)
+
+    wallet <- getWallet()
+    numWallet <- length(wallet)
+    balance <- getBalance()
+    balance$open <- as.character.Date(balance$open)
 
     if(numWallet > 0)
     {
@@ -218,6 +201,36 @@ server <- shinyServer(function(input, output, session)
         })
       }
     }
+  })
+
+  observe({
+    updateSelectizeInput(session, "filterSymbol",
+                         label = "Symbols",
+                         choices = as.vector(unique(mMergeBacktest()$symbol)),
+                         selected = input$filterSymbol
+                         )
+  })
+
+  observe({
+    updateSelectizeInput(session, "opSymbol",
+                         label = "Symbols",
+                         choices = getSymbolNames(),
+                         selected = NULL,
+                         options = list(
+                           placeholder = 'Please select an option below',
+                           onInitialize = I('function() { this.setValue(""); }')
+                         )
+    )
+  })
+
+  observe({
+    invalidateLater(300000, session)
+
+    updateSelectizeInput(session, "symbolNames",
+                         label = "Symbols",
+                         choices = getSymbolNames(),
+                         selected = input$symbolNames
+                         )
 
     numCharts <- length(input$symbolNames)
 
