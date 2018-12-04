@@ -27,7 +27,7 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
     else
       symbol <- getSymbolsIntraday(symbol, timeFrame, filterVol = FALSE)
 
-    if(is.null(symbol) || is.null(filterBadData(symbol)))
+    if(is.null(symbol))
       next
 
     symbolIdx <- base::get(symbol)

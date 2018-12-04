@@ -124,7 +124,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
         else
           symbol <- getSymbolsIntraday(symbolName, timeFrame, adjust = c("split", "dividend"))
 
-        if(is.null(symbol) || is.null(filterBadData(symbol)))
+        if(is.null(symbol))
           next
 
         lastIdx <- as.Date(index(xts::last(base::get(symbol))))

@@ -77,15 +77,28 @@ fPreventMinMax <- function(symbol, period)
 
 trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "none", verbose = FALSE)
 {
+  cantBuy <- NULL
+  cantSell <- NULL
+
   if(is.null(parameters))
     return(NULL)
-
-  fData <- filterBadData(symbol, tradeDate)
 
   obj <- base::get(symbol)[sprintf("/%s", tradeDate)]
   seq <- xts(as.double((Hi(obj)+Lo(obj)+Cl(obj))/3), index(obj))
 
-  if(is.null(fData) || length(seq) < parameters$smaPeriod + 500)
+  d <- diff(tail(obj, 200)) == 0
+  d[1,] <- FALSE
+  rp <- mean(as.numeric(d))
+  if(rp > 0.15)
+  {
+    if(is.null(profit))
+      return(NULL)
+
+    cantBuy <- paste0("DO NOT BUY: Repeated prices ", rp, " > 0.15")
+    cantSell <- paste0("DO NOT SELL: Repeated prices ", rp, " > 0.15")
+  }
+
+  if(length(seq) < parameters$smaPeriod + 500)
     return(NULL)
 
   period <- tail(index(obj), 500)
@@ -93,16 +106,24 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
 
   sma <- SMA(seq, parameters$smaPeriod)
   dif <- as.double(na.omit(tail(seq-sma, 500)))
-  sdp <- (last(seq)-last(sma))/sd(dif)
+  sddf <- sd(dif)
+  sdp <- (last(seq)-last(sma))/sddf
+
+  sdsma <- round(sddf/last(sma), 3)
+  if(sdsma < 0.05)
+  {
+    if(is.null(profit))
+      return(NULL)
+
+    cantBuy <- paste0("DO NOT BUY: sd/sma : ", sdsma, " < 0.05")
+    cantSell <- paste0("DO NOT SELL: sd/sma : ", sdsma, " < 0.05")
+  }
 
   if(is.na(sdp))
   {
     warning(paste0("sdp: NA ", symbol))
     return(NULL)
   }
-
-  cantBuy <- NULL
-  cantSell <- NULL
 
   lastValue <- as.numeric(Cl(xts::last(obj)))
   lastHi <- as.numeric(Hi(xts::last(obj)))

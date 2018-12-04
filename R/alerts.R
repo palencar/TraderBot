@@ -37,7 +37,7 @@ getAlertSignals <- function(symbol, timeFrame)
     return(NULL)
 
   alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe", "datetime"))
-  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=key(alerts)]
+  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by="symbol"]
   alerts <- alerts[,transform(.SD, adj.price={
     op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
     round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)
@@ -82,7 +82,7 @@ getAlertsResults <- function(alerts)
     return(alerts)
 
   alerts <- data.table(alerts[order(datetime, decreasing = TRUE)], key=c("symbol", "timeframe", "datetime"))
-  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by="symbol"]
+  alerts <- alerts[,transform(.SD, last=lastPrice(symbol)), by=c("symbol", "timeframe")]
   alerts <- alerts[,transform(.SD, adj.price={
     op <- rbind(xts(price, order.by = as.POSIXct(datetime)), xts(last.close, order.by = as.POSIXct(last.datetime)))
     round(as.numeric(adjustOperations(symbol, op)[datetime]), digits = 2)

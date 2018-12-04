@@ -62,9 +62,6 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
 
       if(is.null(get.symbol))
         stop("Failed to fetch data")
-
-      if(is.null(filterBadData(get.symbol)))
-        next
     }
 
     print(paste0(Sys.time(), " : ", symbol, " : ", indexes[[i]]))

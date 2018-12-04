@@ -274,7 +274,13 @@ meanPrice <- function(SymbolName)
 
 lastTradingSession <- function()
 {
-  return(as.Date(getQuery("select max(date) from stockprices")[,1]))
+  if(exists("lastTradeSession") && base::get("lastTradeSession") == Sys.Date())
+    return(base::get("lastTradeSession"))
+
+  lts <- as.Date(getQuery("select max(date) from stockprices")[,1])
+  assign("lastTradeSession", lts, .GlobalEnv)
+
+  return(lts)
 }
 
 lastPrice <- function(symbol)
