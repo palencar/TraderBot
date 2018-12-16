@@ -98,8 +98,8 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         print(paste0("DateTime: ", tradeDate))
 
         operations <- rbind(operations, data.frame(symbol, tradeDate, decision, stop = tradeDecision$stop, price, reason = tradeDecision$reason, stringsAsFactors = FALSE))
-
-        addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, decision, price, timeFrame)
+        alert <- data.frame(symbol = unlist(strsplit(symbol, "[.]"))[1], date = tradeDate, alert = decision, price, timeFrame, stop = tradeDecision$stop)
+        addAlerts(alert)
 
         if(chartAlerts)
           chartSymbols(symbol, endDate=tradeDate, timeFrame=timeFrame, dev="png", suffix=paste(tradeDate, decision, sep="-"), mode = "simulation", xres = 1850, smaPeriod = ifelse(!is.null(parameters), parameters$smaPeriod, 400))

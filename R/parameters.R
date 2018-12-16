@@ -56,7 +56,7 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
 
   parNames <- c("smaPeriod", "lowerBand", "upperBand", "upChange", "downChange", "lowLimit", "stopGain", "stopLoss", "bullBuy", "bullSell", "bearSell", "bearBuy")
 
-  if(nrow(df) <= 20)
+  if(nrow(df) <= 200)
   {
     df <- data.frame(matrix(rep(0, 12*2), nrow=2))
     colnames(df) <- parNames

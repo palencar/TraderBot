@@ -47,7 +47,7 @@ getOrders <- function(name, endDate = Sys.time(), mode = "operation", adjusted =
     if(adjusted && nrow(xNew) > 1)
       xNew <- adjustOperations(unlist(strsplit(name, "[.]"))[1], xNew)
 
-    xt <- xts(rep(NA, length(index(symbol[period]))), order.by = index(symbol[period]))
+    xt <- xts(rep(NA, length(unique(index(symbol[period])))), order.by = unique(index(symbol[period])))
     xt[idx] <- xNew[idx]
     xNew <- xt
 

@@ -37,24 +37,16 @@ computeAlerts <- function(symbol, timeIndex, timeFrame, parameters, operations, 
     if(is.null(tradeDecision))
       next
 
-    tradeAlert <- sprintf("%s%s%s", symbol, tradeDecision$decision, tradeDecision$reason)
-
     if(tradeDecision$decision != "hold")
     {
       print(paste(symbol, tradeDate, tradeDecision$decision, tradeDecision$reason, collapse = " "))
 
-      tradePrice <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
+      price <- as.numeric(last(Cl(base::get(symbol)[paste0("/", tradeDate)])))
 
-      alert <- tradeDecision$decision
-      date  <- tradeDate
-      alerts <- unique(rbind(alerts, data.frame(symbol, date, alert)))
-
-      addAlerts(unlist(strsplit(symbol, "[.]"))[1], tradeDate, tradeDecision$decision, tradePrice, timeFrame)
+      alert <- data.frame(symbol = unlist(strsplit(symbol, "[.]"))[1], date = tradeDate, alert = tradeDecision$decision, price, timeFrame, stop = tradeDecision$stop)
+      alerts <- unique(rbind(alerts, alert))
+      addAlerts(alert)
     }
-    #if(tradeDecision$decision == "hold")
-    #{
-    #  print(paste(symbol, tradeDate, tradeDecision$decision, collapse = " "))
-    #}
   }
 
   return(alerts)

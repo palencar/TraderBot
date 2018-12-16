@@ -404,12 +404,10 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
 }
 
 #' @export
-addAlerts <- function(symbol, datetime, alert, price, timeframe)
+addAlerts <- function(alerts)
 {
-  alerts <- data.frame(symbol, timeframe, datetime, alert, price)
-
-  query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price) VALUES",
-                 paste(sprintf("('%s', '%s', '%s', '%s', %s)", alerts$symbol, alerts$timeframe, alerts$date, alerts$alert, alerts$price), collapse=', '))
+  query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price, stop) VALUES",
+                 paste(sprintf("('%s', '%s', '%s', '%s', %s, %s)", alerts$symbol, alerts$timeFrame, alerts$date, alerts$alert, alerts$price, ifelse(alerts$stop, "TRUE", "FALSE")), collapse=', '))
 
   getQuery(query)
 }
@@ -422,6 +420,9 @@ getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), openOnly
                    "order by datetime desc",
                    collapse = " ")
   alerts <- data.table(getQuery(qryStr), key=c("symbol","timeframe","alert"))
+  if(nrow(alerts) > 0)
+    alerts$stop <- ifelse(alerts$stop, TRUE, FALSE)
+
   if(!is.null(types))
     alerts <- alerts[alerts$alert %in% types,]
 
@@ -429,11 +430,13 @@ getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), openOnly
   {
     symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, c("symbol","timeframe")]),  c("symbol","timeframe")]
     alertList <- list()
-    for(i in 1:min(n, nrow(symbDf)))
-    {
-      al <- alerts[symbDf[i, ]][order(-datetime)]
-      alertList[[i]] <- head(al, rle(al$alert)$lengths[1])
-    }
+    len <- nrow(symbDf)
+    if(len > 0)
+      for(i in 1:min(n, len))
+      {
+        al <- alerts[symbDf[i, ]][order(-datetime)]
+        alertList[[i]] <- head(al, rle(al$alert)$lengths[1])
+      }
     return(rbindlist(alertList))
   }
 
