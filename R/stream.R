@@ -205,7 +205,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
       if(minDiff < 10)
       {
         print(paste0("difftime (mins): ", minDiff, " waiting: ", 10 - minDiff))
-        Sys.sleep(3600 - (minDiff * 10))
+        Sys.sleep(600 - (minDiff * 60))
       }
     }
 

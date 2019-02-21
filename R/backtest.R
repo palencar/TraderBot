@@ -105,6 +105,12 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
         decision <- tradeDecision$decision
 
         operations[[j]] <- rbind(operations[[j]], data.table(symbol, tradeDate=indexes[i], decision, stop = tradeDecision$stop, price, reason = tradeDecision$reason, stringsAsFactors = FALSE))
+
+        if(tradeDecision$stop)
+        {
+          result <- singleResult(operations[[j]], indexes[i])
+          print(cbind(parameters, rbind(result$closedDF, result$openDF)))
+        }
       }
     }
   }

@@ -28,19 +28,24 @@ fPreventMinMax <- function(symbol, period)
   loObj <- Lo(obj)
   tradeDate <- index(xts::last(obj))
 
-  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 6))))] > min(tail(loObj, 5)), 50)))
+  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 6))))], 50) > min(tail(loObj, 5)) * 0.99))
   {
-    cantBuy <- sprintf("DO NOT BUY: %s | [%s] min short term", symbol, tradeDate, index(obj[which.min(tail(loObj, 50))]))
+    cantBuy <- "short" #sprintf("DO NOT BUY: %s | [%s] min short term", symbol, tradeDate, index(obj[which.min(tail(loObj, 50))]))
   }
 
-  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 11))))] > min(tail(loObj, 10)), 200)))
+  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 11))))], 100) > min(tail(loObj, 10)) * 0.99))
   {
-    cantBuy <- sprintf("DO NOT BUY: %s | [%s] min mid term", symbol, tradeDate, index(obj[which.min(tail(loObj, 200))]))
+    cantBuy <- "mid" #sprintf("DO NOT BUY: %s | [%s] min mid term", symbol, tradeDate, index(obj[which.min(tail(loObj, 100))]))
   }
 
-  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 31))))] > min(tail(loObj, 30)), 600)))
+  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 21))))], 200) > min(tail(loObj, 20)) * 0.99))
   {
-    cantBuy <- sprintf("DO NOT BUY: %s | [%s] min long term", symbol, tradeDate, index(obj[which.min(tail(loObj, 600))]))
+    cantBuy <- "long" #sprintf("DO NOT BUY: %s | [%s] min mid term", symbol, tradeDate, index(obj[which.min(tail(loObj, 200))]))
+  }
+
+  if(is.null(cantBuy) && all(tail(loObj[paste0("/", index(first(tail(obj, 31))))], 300) > min(tail(loObj, 30)) * 0.99))
+  {
+    cantBuy <- "very long" #sprintf("DO NOT BUY: %s | [%s] min long term", symbol, tradeDate, index(obj[which.min(tail(loObj, 300))]))
   }
 
   #if(is.null(cantBuy) && min(tail(loObj, 300)) * 1.02 > as.numeric(loObj[tradeDate]))
@@ -48,19 +53,24 @@ fPreventMinMax <- function(symbol, period)
   #  cantBuy <- sprintf("DO NOT BUY: %s | [%s] [%s] near minimal [%s]", symbol, tradeDate, as.numeric(loObj[tradeDate]), min(tail(loObj, 300)))
   #}
 
-  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 6))))] < max(tail(hiObj, 5)), 50)))
+  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 6))))], 50) < max(tail(hiObj, 5)) * 1.01))
   {
-    cantSell <- sprintf("DO NOT SELL: %s | [%s] max short term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 50))]))
+    cantSell <- "short" #sprintf("DO NOT SELL: %s | [%s] max short term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 50))]))
   }
 
-  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 11))))] < max(tail(hiObj, 10)), 200)))
+  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 11))))], 100) < max(tail(hiObj, 10)) * 1.01))
   {
-    cantSell <- sprintf("DO NOT SELL: %s | [%s] max mid term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 200))]))
+    cantSell <- "mid" #sprintf("DO NOT SELL: %s | [%s] max mid term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 100))]))
   }
 
-  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 31))))] < max(tail(hiObj, 30)), 600)))
+  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 21))))], 200) < max(tail(hiObj, 20)) * 1.01))
   {
-    cantSell <- sprintf("DO NOT SELL: %s | [%s] max long term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 600))]))
+    cantSell <- "long" #sprintf("DO NOT SELL: %s | [%s] max mid term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 200))]))
+  }
+
+  if(is.null(cantSell) && all(tail(hiObj[paste0("/", index(first(tail(obj, 31))))], 300) < max(tail(hiObj, 30)) * 1.01))
+  {
+    cantSell <- "very long" #sprintf("DO NOT SELL: %s | [%s] max long term", symbol, tradeDate, index(obj[which.max(tail(hiObj, 300))]))
   }
 
   #if(is.null(cantSell) && max(tail(hiObj, 300)) * 0.98 < as.numeric(hiObj[tradeDate]))
@@ -89,13 +99,13 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   d <- diff(tail(obj, 200)) == 0
   d[1,] <- FALSE
   rp <- mean(as.numeric(d))
-  if(rp > 0.15)
+  if(type == "none" && rp > 0.15)
   {
-    if(is.null(profit))
-      return(NULL)
-
     cantBuy <- paste0("DO NOT BUY: ", symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
     cantSell <- paste0("DO NOT SELL: ", symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
+
+    if(is.null(profit))
+      return(NULL)
   }
 
   if(length(seq) < parameters$smaPeriod + 500)
@@ -110,7 +120,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   sdp <- (last(seq)-last(sma))/sddf
 
   sdsma <- round(sddf/last(sma), 3)
-  if(is.null(cantBuy) && is.null(cantSell) && sdsma < 0.05)
+  if(type == "none" && is.null(cantBuy) && is.null(cantSell) && sdsma < 0.05)
   {
     cantBuy <- paste0("DO NOT BUY: ", symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
     cantSell <- paste0("DO NOT SELL: ", symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
@@ -136,11 +146,6 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   maxChange <- (lastValue-maxValue)/maxValue
   minChange <- (lastValue-minValue)/minValue
 
-  pMinMax <- fPreventMinMax(symbol, period)
-
-  cantBuy  <- unique(c(cantBuy, pMinMax$cantBuy))
-  cantSell <- unique(c(cantSell, pMinMax$cantSell))
-
   high <- Hi(obj)
   maxValue <- as.numeric(high[which.max(high)])
   maxDate <- index(high[which.max(high)])
@@ -148,17 +153,17 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   lowAfter <- Lo(obj)[sprintf("%s/", maxDate)]
   minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
 
-  if(is.null(cantBuy) && !is.na(parameters$lowLimit) && (minAfter / maxValue) < parameters$lowLimit)
+  if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (minAfter / maxValue) < parameters$lowLimit)
   {
     cantBuy <- sprintf("DO NOT BUY: %s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxValue, (minAfter / maxValue))
   }
 
-  if(is.null(cantBuy) && !is.na(parameters$lowLimit) && (lastLo / maxValue) < parameters$lowLimit)
+  if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (lastLo / maxValue) < parameters$lowLimit)
   {
     cantBuy <- sprintf("DO NOT BUY: %s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastLo, maxDate, maxValue, (lastLo / maxValue))
   }
 
-  mBullBear <-fBullBear(seq, parameters$smaPeriod)
+  mBullBear <- fBullBear(seq, 80)
 
   bull  <- mBullBear$bull
   bear  <- mBullBear$bear
@@ -176,35 +181,37 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
     upper <- parameters$upperBand + (as.numeric(minChange))
   }
 
-  if(is.null(cantBuy) && !is.na(parameters$bullBuy) && as.numeric(bull) < parameters$bullBuy)
+  if(type != "short" && is.null(cantBuy) && !is.na(parameters$bullBuy) && as.numeric(bull) < parameters$bullBuy)
   {
     cantBuy <- sprintf("DO NOT BUY: %s | [%s] Bullish [%.2f] < [%.2f]", symbol, period, bull, parameters$bullBuy)
   }
 
-  if(is.null(cantSell) && !is.na(parameters$bullSell) && as.numeric(bull) > parameters$bullSell)
+  if(type != "long" && is.null(cantSell) && !is.na(parameters$bullSell) && as.numeric(bull) > parameters$bullSell)
   {
     cantSell <- sprintf("DO NOT SELL: %s | [%s] Bullish [%.2f] > [%.2f]", symbol, period, bull, parameters$bullSell)
   }
 
-  if(is.null(cantSell) && !is.na(parameters$bearSell) && as.numeric(bear) < parameters$bearSell)
+  if(type != "long" && is.null(cantSell) && !is.na(parameters$bearSell) && as.numeric(bear) < parameters$bearSell)
   {
     cantSell <- sprintf("DO NOT SELL: %s | [%s] Bearish [%.2f] < [%.2f]", symbol, period, bear, parameters$bearSell)
   }
 
-  if(is.null(cantBuy) && !is.na(parameters$bearBuy) && as.numeric(bear) > parameters$bearBuy)
+  if(type != "short" && is.null(cantBuy) && !is.na(parameters$bearBuy) && as.numeric(bear) > parameters$bearBuy)
   {
     cantBuy <- sprintf("DO NOT BUY: %s | [%s] Bearish [%.2f] > [%.2f]", symbol, period, bear, parameters$bearBuy)
   }
 
-  if(is.null(cantBuy) && !is.na(parameters$downChange) && as.numeric(maxChange) < parameters$downChange)
+  if(type != "short" && is.null(cantBuy) && !is.na(parameters$downChange) && as.numeric(maxChange) < parameters$downChange)
   {
     cantBuy <- sprintf("DO NOT BUY: %s | [%s] Max Change : [%f]", symbol, period, maxChange)
   }
 
-  if(is.null(cantSell) && !is.na(parameters$upChange) && as.numeric(minChange) > parameters$upChange)
+  if(type != "long" && is.null(cantSell) && !is.na(parameters$upChange) && as.numeric(minChange) > parameters$upChange)
   {
     cantSell <- sprintf("DO NOT SELL: %s | [%s] Min Change : [%f]", symbol, period, minChange)
   }
+
+  pMinMax <- fPreventMinMax(symbol, period)
 
   isStop <- FALSE
 
@@ -214,12 +221,12 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   }
   else if(sdp < lower)
   {
-    if(is.null(cantBuy))
+    if(type == "none" && is.null(cantBuy) && is.null(pMinMax$cantBuy))
     {
       decision <- "buy"
       reason <- sprintf("sdp < %1.1f -> buy", lower)
     }
-    if(type == "short")
+    if(type == "short" && is.null(cantBuy) && (is.null(pMinMax$cantBuy) || (pMinMax$cantBuy != "short" && pMinMax$cantBuy != "mid")))
     {
       decision <- "buy"
       isStop <- TRUE
@@ -233,12 +240,12 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   }
   else if(sdp > upper)
   {
-    if(is.null(cantSell))
+    if(type == "none" && is.null(cantSell) && is.null(pMinMax$cantSell))
     {
       decision <- "sell"
       reason <- sprintf("sdp > %1.1f -> sell", upper)
     }
-    if(type == "long")
+    if(type == "long" && is.null(cantSell) && (is.null(pMinMax$cantSell) || (pMinMax$cantSell != "short" && pMinMax$cantSell != "mid")))
     {
       decision <- "sell"
       isStop <- TRUE

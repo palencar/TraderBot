@@ -428,7 +428,7 @@ getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), openOnly
 
   if(openOnly)
   {
-    symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, c("symbol","timeframe")]),  c("symbol","timeframe")]
+    symbDf <- alerts[order(-datetime)][!stop & !duplicated(alerts[order(-datetime)][, c("symbol","timeframe")]),  c("symbol","timeframe")]
     alertList <- list()
     len <- nrow(symbDf)
     if(len > 0)

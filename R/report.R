@@ -32,10 +32,10 @@ mergeBacktest <- function(path = "result")
 
   dataTable <- rbindlist(oper, fill = TRUE)
 
-  if(nrow(dataTable) > 0)
-    dataTable$dProfit <- as.numeric(dataTable$profit_pp)/as.numeric(difftime(dataTable$last, dataTable$open), units = "days")
+  dataTable[, days := as.numeric(difftime(last, open, units = "days"))]
+  dataTable[, grade := ifelse((profit_pp - maxDrawdown) >= 0, (profit_pp - maxDrawdown)/ceiling(days), (profit_pp - maxDrawdown))]
 
-  return(dataTable)
+  return(dataTable[order(-grade)])
 }
 
 showPlot <- function(dataTable, xy, class = "state_timeframe")

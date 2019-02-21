@@ -6,10 +6,10 @@ mMergeBacktest <- memoise(mergeBacktest)
 predictBest <- function(df = mMergeBacktest(), colName)
 {
   df <- df[df$maxDrawdown != 0] #prune elements
-  df <- df[, c('riskReturnRatio', colName), with=FALSE]
-  df <- df[,list(riskReturnRatio=mean(riskReturnRatio)), by=colName]
+  df <- df[, c('grade', colName), with=FALSE]
+  df <- df[,list(grade=mean(grade)), by=colName]
 
-  p <- loess(formula(paste0("riskReturnRatio ~ ", colName)), df)
+  p <- loess(formula(paste0("grade ~ ", colName)), df)
   df[which.max(predict(p)), colName, with=FALSE]
 }
 

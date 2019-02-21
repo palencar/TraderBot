@@ -171,8 +171,7 @@ singleResult <- function(lines, lastDay = NULL)
   if(nrow(closedDF) > 0)
   {
     closedDF[, maxDrawdown := mapply(maxDrawdown, open, last, type)]
-    closedDF[, riskReturnRatio := profit_pp/maxDrawdown]
-    closedDF <- closedDF[order(closedDF$riskReturnRatio),]
+    closedDF <- closedDF[order(closedDF$profit_pp, decreasing = TRUE),]
 
     result$closedDF <- closedDF
 
@@ -183,8 +182,7 @@ singleResult <- function(lines, lastDay = NULL)
   if(nrow(openDF) > 0)
   {
     openDF[, maxDrawdown := mapply(maxDrawdown, open, last, type)]
-    openDF[, riskReturnRatio := profit_pp/maxDrawdown]
-    openDF <- openDF[order(openDF$riskReturnRatio),]
+    openDF <- openDF[order(openDF$profit_pp, decreasing = TRUE),]
 
     result$openDF <- openDF
 

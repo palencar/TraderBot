@@ -110,7 +110,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               sliderInput("bullSell",   "Bull Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearBuy",    "Bear Buy:",    min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("bearSell",   "Bear Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("profit",     "Profit:",      min = -10, max = 10, value = c(-10,10), step= 0.01)
+                              sliderInput("grade",      "Grade:",       min = -10, max = 10, value = c(-10,10), step= 0.01)
                             ),
                             mainPanel(
                               tableOutput("values"),
@@ -329,7 +329,7 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$bearSell   >= input$bearSell[1]   & dataTable$bearSell   <= input$bearSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
     dataTable <- dataTable[(dataTable$bullBuy    >= input$bullBuy[1]    & dataTable$bullBuy    <= input$bullBuy[2])    | (is.na(dataTable$bullBuy)  & is.na(dataTable$bullSell))]
     dataTable <- dataTable[(dataTable$bullSell   >= input$bullSell[1]   & dataTable$bullSell   <= input$bullSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
-    dataTable <- dataTable[(dataTable$profit_pp  >= input$profit[1]     & dataTable$profit_pp  <= input$profit[2])     | is.na(dataTable$profit_pp)]
+    dataTable <- dataTable[(dataTable$profit_pp  >= input$grade[1]      & dataTable$profit_pp  <= input$grade[2])      | is.na(dataTable$profit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
       dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
@@ -345,18 +345,18 @@ server <- shinyServer(function(input, output, session)
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
     {
-      grid.arrange(showPlot(tv, c("smaPeriod", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("lowerBand", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("upperBand", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("downChange", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("upChange", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("lowLimit", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("stopGain", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("stopLoss", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("bullBuy", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("bullSell", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("bearSell", "riskReturnRatio"), input$group),
-                   showPlot(tv, c("bearBuy", "riskReturnRatio"), input$group),
+      grid.arrange(showPlot(tv, c("smaPeriod", "grade"), input$group),
+                   showPlot(tv, c("lowerBand", "grade"), input$group),
+                   showPlot(tv, c("upperBand", "grade"), input$group),
+                   showPlot(tv, c("downChange", "grade"), input$group),
+                   showPlot(tv, c("upChange", "grade"), input$group),
+                   showPlot(tv, c("lowLimit", "grade"), input$group),
+                   showPlot(tv, c("stopGain", "grade"), input$group),
+                   showPlot(tv, c("stopLoss", "grade"), input$group),
+                   showPlot(tv, c("bullBuy", "grade"), input$group),
+                   showPlot(tv, c("bullSell", "grade"), input$group),
+                   showPlot(tv, c("bearSell", "grade"), input$group),
+                   showPlot(tv, c("bearBuy", "grade"), input$group),
                    nrow=4, ncol=3)
 
     }
