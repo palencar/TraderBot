@@ -101,21 +101,15 @@ ui <- shinyUI(navbarPage("TraderBot",
                               sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(0,1000), step = 5),
                               sliderInput("upperBand",  "Upper Band:",  min = 0, max =   2, value = c(0,2), step= 0.01),
                               sliderInput("lowerBand",  "Lower Band:",  min = -2, max =   0, value = c(-2,-0), step= 0.01),
-                              sliderInput("downChange", "Down Change:", min = -1, max =   0, value = c(-1,0), step= 0.01),
-                              sliderInput("upChange",   "Up Change:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("lowLimit",   "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("stopGain",   "Stop Gain:",   min =  1, max =   5, value = c(1,5), step= 0.01),
                               sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
-                              sliderInput("bullBuy",    "Bull Buy:",    min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("bullSell",   "Bull Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("bearBuy",    "Bear Buy:",    min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
-                              sliderInput("bearSell",   "Bear Sell:",   min =  0, max =   1, value = c(0.0,1.0), step= 0.01),
                               sliderInput("grade",      "Grade:",       min = -10, max = 10, value = c(-10,10), step= 0.01)
                             ),
                             mainPanel(
                               tableOutput("values"),
 
-                              plotOutput("parameters", height = "1600px"),
+                              plotOutput("parameters", height = "1200px"),
                               dataTableOutput("dataTable"))
                    )
 ))
@@ -320,15 +314,9 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod  <= input$smaPeriod[2])  | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand  <= input$upperBand[2])  | is.na(dataTable$upperBand)]
     dataTable <- dataTable[(dataTable$lowerBand  >= input$lowerBand[1]  & dataTable$lowerBand  <= input$lowerBand[2])  | is.na(dataTable$lowerBand)]
-    dataTable <- dataTable[(dataTable$downChange >= input$downChange[1] & dataTable$downChange <= input$downChange[2]) | is.na(dataTable$downChange)]
-    dataTable <- dataTable[(dataTable$upChange   >= input$upChange[1]   & dataTable$upChange   <= input$upChange[2])   | is.na(dataTable$upChange)]
     dataTable <- dataTable[(dataTable$lowLimit   >= input$lowLimit[1]   & dataTable$lowLimit   <= input$lowLimit[2])   | is.na(dataTable$lowLimit)]
     dataTable <- dataTable[(dataTable$stopGain   >= input$stopGain[1]   & dataTable$stopGain   <= input$stopGain[2])   | is.na(dataTable$stopGain)]
     dataTable <- dataTable[(dataTable$stopLoss   >= input$stopLoss[1]   & dataTable$stopLoss   <= input$stopLoss[2])   | is.na(dataTable$stopLoss)]
-    dataTable <- dataTable[(dataTable$bearBuy    >= input$bearBuy[1]    & dataTable$bearBuy    <= input$bearBuy[2])    | (is.na(dataTable$bullBuy)  & is.na(dataTable$bullSell))]
-    dataTable <- dataTable[(dataTable$bearSell   >= input$bearSell[1]   & dataTable$bearSell   <= input$bearSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
-    dataTable <- dataTable[(dataTable$bullBuy    >= input$bullBuy[1]    & dataTable$bullBuy    <= input$bullBuy[2])    | (is.na(dataTable$bullBuy)  & is.na(dataTable$bullSell))]
-    dataTable <- dataTable[(dataTable$bullSell   >= input$bullSell[1]   & dataTable$bullSell   <= input$bullSell[2])   | (is.na(dataTable$bearSell) & is.na(dataTable$bearBuy))]
     dataTable <- dataTable[(dataTable$profit_pp  >= input$grade[1]      & dataTable$profit_pp  <= input$grade[2])      | is.na(dataTable$profit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
@@ -345,20 +333,16 @@ server <- shinyServer(function(input, output, session)
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
     {
-      grid.arrange(showPlot(tv, c("smaPeriod", "grade"), input$group),
-                   showPlot(tv, c("lowerBand", "grade"), input$group),
-                   showPlot(tv, c("upperBand", "grade"), input$group),
-                   showPlot(tv, c("downChange", "grade"), input$group),
-                   showPlot(tv, c("upChange", "grade"), input$group),
-                   showPlot(tv, c("lowLimit", "grade"), input$group),
-                   showPlot(tv, c("stopGain", "grade"), input$group),
-                   showPlot(tv, c("stopLoss", "grade"), input$group),
-                   showPlot(tv, c("bullBuy", "grade"), input$group),
-                   showPlot(tv, c("bullSell", "grade"), input$group),
-                   showPlot(tv, c("bearSell", "grade"), input$group),
-                   showPlot(tv, c("bearBuy", "grade"), input$group),
-                   nrow=4, ncol=3)
-
+      grid.arrange(
+        showPlot(tv, c("smaPeriod", "grade"), input$group),
+        showPlot(tv, c("lowerBand", "grade"), input$group),
+        showPlot(tv, c("upperBand", "grade"), input$group),
+        showPlot(tv, c("lowLimit", "grade"), input$group),
+        showPlot(tv, c("highLimit", "grade"), input$group),
+        showPlot(tv, c("stopGain", "grade"), input$group),
+        showPlot(tv, c("stopLoss", "grade"), input$group),
+        ncol = 2
+      )
     }
   })
 

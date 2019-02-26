@@ -125,14 +125,19 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
   total <- rbind(resultDF[resultDF$state == "closed",], resultDF[resultDF$state == "open",])
 
-  buy_price=sum(total$buy_price)
-  sell_price=sum(total$sell_price)
-  profit=sell_price-buy_price
-  profit_pp=profit/buy_price
+  summary <- data.frame()
+
+  if(!is.null(total) > 0)
+  {
+    profit_t <- sum(total$sell_price-total$buy_price)
+    price_t <- sum(ifelse(total$type == "long", total$buy_price, total$sell_price))
+    profit_pp_m <- profit_t/price_t
+    summary <- data.frame(price_t, profit_t, profit_pp_m)
+  }
 
   finalResults <- list()
   finalResults$total   <- total
-  finalResults$summary <- data.frame(buy_price, sell_price, profit, profit_pp)
+  finalResults$summary <- summary
   finalResults$parameters <- parameters
 
   saveRDS(finalResults, paste0("datacache/simulate-", gsub(" ", "_", Sys.time()), ".rds"))
@@ -140,8 +145,11 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   print("Parameters")
   print(finalResults$parameters)
 
-  print("Total:")
-  print(finalResults$summary)
+  if(nrow(summary) > 0)
+  {
+    print("Total:")
+    print(finalResults$summary)
+  }
 
   if(!is.null(finalResults$total))
     return(sort(unique(finalResults$total$name)))

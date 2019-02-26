@@ -8,9 +8,9 @@ default:
   #database: "db_name"
   #user:     "db_username"
   #password: "db_password"
-  
+
   parameters: "tradeParameters.csv"
-  
+
   backtest:
     sma_period:
       min:  100
@@ -30,6 +30,9 @@ default:
     low_limit:
       min: 0.0
       max: 1.0
+    high_limit:
+      min: 1.0
+      max: 5.0
     stop_loss:
       min: 0.0
       max: 0.98
@@ -43,7 +46,7 @@ default:
       min:  0.0
       max:  1.0
     bull_sell:
-      min:  0.0
+      min:  0.2
       max:  1.0
     bull_buy:
       min:  0.0

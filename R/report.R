@@ -32,8 +32,11 @@ mergeBacktest <- function(path = "result")
 
   dataTable <- rbindlist(oper, fill = TRUE)
 
+  if(nrow(dataTable) == 0)
+    return(dataTable)
+
   dataTable[, days := as.numeric(difftime(last, open, units = "days"))]
-  dataTable[, grade := ifelse((profit_pp - maxDrawdown) >= 0, (profit_pp - maxDrawdown)/ceiling(days), (profit_pp - maxDrawdown))]
+  dataTable[, grade := (profit_pp - maxDrawdown)]
 
   return(dataTable[order(-grade)])
 }
@@ -59,7 +62,7 @@ showPlot <- function(dataTable, xy, class = "state_timeframe")
   }
 }
 
-showReport <- function(dataTable, path = "result")
+showReport <- function(dataTable)
 {
   dff <- NULL
   i <- 1
