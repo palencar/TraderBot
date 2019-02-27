@@ -121,11 +121,14 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
     if(is.null(nrow(obj)) || nrow(obj) == 0)
       next
 
-    if(updateCache & updateFile)
+    if(updateCache && updateFile && as.numeric(difftime(Sys.time(), index(xts::first(objQry)), units = "days")) > 7)
       saveRDS(obj, name1M)
 
     if(nrow(obj) <= 1)
       next
+
+    if(length(obj[paste(Sys.Date())]) > 0)
+      assign(paste(symbol, "id", sep = "."), obj[paste(Sys.Date())], .GlobalEnv)
 
     if(filterPeriod)
     {
@@ -193,25 +196,6 @@ getSymbolNames <- function()
   fr <- getQuery("SELECT distinct(symbol) FROM symbols")
 
   return(fr$symbol)
-}
-
-updateProbe <- function(Symbols, date)
-{
-  quotes <- getQuote(Symbols)
-  for(i in Symbols)
-  {
-    quote <- quotes[i,]
-
-    if(is.na(quote$Open) || is.na(quote$High) || is.na(quote$Low) || is.na(quote$Last))
-      next
-
-    symbol <- base::get(i)
-    symbol[date,1] <- quote$Open
-    symbol[date,2] <- quote$High
-    symbol[date,3] <- quote$Low
-    symbol[date,4] <- quote$Last
-    assign(i, symbol)
-  }
 }
 
 getQuoteDay <- function(SymbolName, Day, modes = 'yahoo')
@@ -529,19 +513,14 @@ insertOperations <- function(symbol, date, type, size, price, cost)
   getQuery(queryStr)
 }
 
-insertIntraday <- function(symbol, data, from = NULL)
+insertIntraday <- function(symbol, data)
 {
   if(nrow(data) == 0)
     return(NULL)
 
-  df <- data[paste0(from, "/")]
-
-  if(nrow(df) == 0)
-    return(NULL)
-
   queryStr <- paste("REPLACE INTO intraday (symbol, datetime, open, high, low, close, volume) VALUES ",
-                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(df), "%Y-%m-%d %H:%M:%S"),
-                                    df$Open, df$High, df$Low, df$Close, df$Volume), collapse=', '))
+                      paste(sprintf("('%s', '%s', %f, %f, %f, %f, %g)", symbol, format(index(data), "%Y-%m-%d %H:%M:%S"),
+                                    data$Open, data$High, data$Low, data$Close, data$Volume), collapse=', '))
 
   getQuery(queryStr)
 }
@@ -698,12 +677,23 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 
   for(symbol in symbols)
   {
-    symbol1M = getSymbolsIntraday(symbol, "1M", filterPeriod = FALSE, filterVol = FALSE, env = env)
+    obj <- NULL
 
-    if(is.null(symbol1M) || !exists(symbol1M, envir = env))
-      next
+    symbol1M <- NULL
 
-    obj <- base::get(symbol1M, envir = env)
+    if(exists(paste(symbol, "id", sep = ".")))
+      obj <- base::get(paste(symbol, "id", sep = "."))[paste0(min(tradeDates), "/", max(tradeDates))]
+
+    if(is.null(obj) || nrow(obj) == 0)
+    {
+      symbol1M = getSymbolsIntraday(symbol, "1M", filterPeriod = FALSE, filterVol = FALSE, env = env)
+
+      if(is.null(obj) && (is.null(symbol1M) || !exists(symbol1M, envir = env)))
+        next
+
+      obj <- base::get(symbol1M, envir = env)
+    }
+
     obj <- align.time(to.daily(obj)[paste0(min(tradeDates), "/", max(tradeDates))])
 
     if(nrow(obj) == 0)
@@ -713,7 +703,7 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 
     if(anyNA(as.numeric(obj)))
     {
-      warning(paste0("Bad Data: ", symbol1M, " ", paste(obj, collapse = " ")))
+      warning(paste0("Bad Data: ", symbol, " ", paste(obj, collapse = " ")))
       next
     }
 
@@ -748,18 +738,6 @@ updateIntraday <- function(symbols = NULL)
   {
     print(symbol)
 
-    lastIdx <- NULL
-
-    name1M <- paste0("datacache/", symbol, ".1M.rds")
-
-    if(file.exists(name1M))
-    {
-      obj <- readRDS(name1M)
-
-      lastIdx <- index(tail(obj, 1))
-      lastIdx <- format(lastIdx, usetz = FALSE)
-    }
-
     mins <- min(round(as.numeric(difftime(Sys.time(), lastPrice(symbol)$datetime, units = "mins"))), 500)
     df <- tryCatch(uolIntraday(symbol, mins),
                    error = function(err)
@@ -773,7 +751,7 @@ updateIntraday <- function(symbols = NULL)
 
     if(!is.null(df) && any(last(index(df)) > lastPrice(symbol)$datetime))
     {
-      insertIntraday(symbol, df, lastIdx)
+      insertIntraday(symbol, df)
       symbolList <- c(symbolList, symbol)
     }
   }

@@ -186,6 +186,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
     {
       if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
       {
+        lapply(getSymbolNames(), function(symbol) { getSymbolsIntraday(symbol, updateCache = TRUE) })
         updateDailyFromIntraday()
       }
       else
