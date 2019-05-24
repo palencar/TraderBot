@@ -128,7 +128,7 @@ getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adju
       next
 
     if(length(obj[paste(Sys.Date())]) > 0)
-      assign(paste(symbol, "id", sep = "."), obj[paste(Sys.Date())], .GlobalEnv)
+      assign(paste(symbol, "td", sep = "."), align.time(to.daily(obj[paste(Sys.Date())])), .GlobalEnv)
 
     if(filterPeriod)
     {
@@ -391,7 +391,7 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
 addAlerts <- function(alerts)
 {
   query <- paste("REPLACE INTO alerts (symbol, timeframe, datetime, alert, price, stop) VALUES",
-                 paste(sprintf("('%s', '%s', '%s', '%s', %s, %s)", alerts$symbol, alerts$timeFrame, alerts$date, alerts$alert, alerts$price, ifelse(alerts$stop, "TRUE", "FALSE")), collapse=', '))
+                 paste(sprintf("('%s', '%s', '%s', '%s', %s, %s)", alerts$symbol, alerts$timeFrame, alerts$date, alerts$alert, alerts$price, as.numeric(alerts$stop)), collapse=', '))
 
   getQuery(query)
 }
@@ -681,8 +681,8 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
 
     symbol1M <- NULL
 
-    if(exists(paste(symbol, "id", sep = ".")))
-      obj <- base::get(paste(symbol, "id", sep = "."))[paste0(min(tradeDates), "/", max(tradeDates))]
+    if(exists(paste(symbol, "td", sep = ".")))
+      obj <- align.time(to.daily(base::get(paste(symbol, "td", sep = "."))))[paste0(min(tradeDates), "/", max(tradeDates))]
 
     if(is.null(obj) || nrow(obj) == 0)
     {
@@ -691,10 +691,8 @@ updateDailyFromIntraday <- function(symbols = getSymbolNames(), tradeDates = Sys
       if(is.null(obj) && (is.null(symbol1M) || !exists(symbol1M, envir = env)))
         next
 
-      obj <- base::get(symbol1M, envir = env)
+      obj <- align.time(to.daily(base::get(symbol1M, envir = env))[paste0(min(tradeDates), "/", max(tradeDates))])
     }
-
-    obj <- align.time(to.daily(obj)[paste0(min(tradeDates), "/", max(tradeDates))])
 
     if(nrow(obj) == 0)
       next
@@ -738,7 +736,12 @@ updateIntraday <- function(symbols = NULL)
   {
     print(symbol)
 
-    mins <- min(round(as.numeric(difftime(Sys.time(), lastPrice(symbol)$datetime, units = "mins"))), 500)
+    lp <- lastPrice(symbol)
+
+    mins <- 500
+    if(nrow(lp) != 0)
+      mins <- min(round(as.numeric(difftime(Sys.time(), lp$datetime, units = "mins"))), 500)
+
     df <- tryCatch(uolIntraday(symbol, mins),
                    error = function(err)
                    {

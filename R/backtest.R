@@ -5,7 +5,7 @@ source("R/result.R")
 source("R/parameters.R")
 
 #' @export
-computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replaceFile = FALSE)
+computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replaceFile = FALSE, verbose = FALSE)
 {
   dir.create("result", showWarnings=FALSE)
   dir.create("datacache", showWarnings=FALSE)
@@ -61,7 +61,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
         get.symbol <- getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
 
       if(is.null(get.symbol))
-        stop("Failed to fetch data")
+        next
     }
 
     print(paste0(Sys.time(), " : ", symbol, " : ", indexes[[i]]))
@@ -91,7 +91,7 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
           type <- "short"
       }
 
-      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, profit = profit, type = type)
+      tradeDecision <- trade(symbol, indexes[i], parameters = parameters, profit = profit, type = type, verbose = verbose)
 
       if(is.null(tradeDecision))
         next
@@ -135,15 +135,15 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
     lastDay <- last(indexes)
 
     result <- singleResult(operations[[i]], lastDay)
-    totalDF <- rbind(result$closedDF, result$openDF)
 
-    if(!is.null(totalDF))
+    if(!is.null(result$closedDF) || !is.null(result$openDF))
     {
+      totalDF <- rbind(result$closedDF, result$openDF, fill=TRUE)
       opList[[i]]  <- cbind(parList[[i]], totalDF[order(open)])
     }
   }
 
-  opDF <- rbindlist(opList)
+  opDF <- rbindlist(opList, fill = TRUE)
   if(nrow(opDF) > 0)
     saveRDS(rbind(opFile, opDF), outputOp)
 

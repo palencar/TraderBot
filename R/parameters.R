@@ -41,7 +41,8 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
             df$lowerBand  >= bt$lower_band$min  & df$lowerBand  <= bt$lower_band$max &
             df$lowLimit   >= bt$low_limit$min   & df$lowLimit   <= bt$low_limit$max &
             df$highLimit  >= bt$high_limit$min  & df$highLimit  <= bt$high_limit$max &
-            df$stopGain   >= bt$stop_gain$min   & df$stopGain   <= bt$stop_gain$max &
+            df$stopGainLong  >= bt$stop_gain_long$min  & df$stopGainLong <= bt$stop_gain_long$max &
+            df$stopGainShort >= bt$stop_gain_short$min & df$stopGainShort <= bt$stop_gain_short$max &
             df$stopLoss   >= bt$stop_loss$min   & df$stopLoss   <= bt$stop_loss$max ]
   if(!is.null(timeFrame))
     df <- df[df$timeframe == timeFrame, ]
@@ -49,16 +50,16 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
     df <- df[df$state == state,]
   if(!is.null(type))
     df <- df[df$type == type,]
-  df <- df[sample(nrow(df), as.integer(0.2 * nrow(df)), TRUE),]
+  df <- df[sample(nrow(df), as.integer(0.3 * nrow(df)), TRUE),]
 
-  parNames <- c("smaPeriod", "lowerBand", "upperBand", "lowLimit", "highLimit", "stopGain", "stopLoss")
+  parNames <- c("smaPeriod", "lowerBand", "upperBand", "lowLimit", "highLimit", "stopGainLong", "stopGainShort", "stopLoss")
 
   if(nrow(df) <= 200)
   {
-    df <- data.frame(matrix(rep(0, 12*2), nrow=2))
+    df <- data.frame(matrix(rep(0, 8*2), nrow=2))
     colnames(df) <- parNames
-    df[1, parNames] <- c(bt$sma_period$min, bt$lower_band$min, bt$upper_band$min, bt$high_limit$min, bt$low_limit$min, bt$stop_gain$min, bt$stop_loss$min)
-    df[2, parNames] <- c(bt$sma_period$max, bt$lower_band$max, bt$lower_band$max, bt$high_limit$max, bt$low_limit$max, bt$stop_gain$max, bt$stop_loss$max)
+    df[1, parNames] <- c(bt$sma_period$min, bt$lower_band$min, bt$upper_band$min, bt$high_limit$min, bt$low_limit$min, bt$stop_gain_long$min, bt$stop_gain_short$min, bt$stop_loss$min)
+    df[2, parNames] <- c(bt$sma_period$max, bt$lower_band$max, bt$lower_band$max, bt$high_limit$max, bt$low_limit$max, bt$stop_gain_long$max, bt$stop_gain_short$max, bt$stop_loss$max)
     dF <- as.data.table(df)
   }
   else
@@ -86,8 +87,9 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
   lowLimit = randPar(bt$low_limit$min, bt$low_limit$max, dF$lowLimit, sd(df$lowLimit))
   highLimit = randPar(bt$high_limit$min, bt$high_limit$max, dF$highLimit, sd(df$highLimit))
   stopLoss = randPar(bt$stop_loss$min, bt$stop_loss$max, dF$stopLoss, sd(df$stopLoss))
-  stopGain = randPar(bt$stop_gain$min, bt$stop_gain$max, dF$stopGain, sd(df$stopGain))
+  stopGainLong  = randPar(bt$stop_gain_long$min,  bt$stop_gain_long$max,  dF$stopGainLong,  sd(df$stopGainLong))
+  stopGainShort = randPar(bt$stop_gain_short$min, bt$stop_gain_short$max, dF$stopGainShort, sd(df$stopGainShort))
 
-  data.frame(smaPeriod, upperBand, lowerBand, lowLimit, highLimit, stopLoss, stopGain)
+  data.frame(smaPeriod, upperBand, lowerBand, lowLimit, highLimit, stopLoss, stopGainLong, stopGainShort)
 }
 

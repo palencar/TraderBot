@@ -18,14 +18,14 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
   else
     AllSymbols <- Symbols
 
-  for(symbol in AllSymbols)
+  for(name in AllSymbols)
   {
-    adjustDates <- sort(unique(c(index(getDividends.db(symbol)), index(getSplits.db(symbol)))))
+    adjustDates <- sort(unique(c(index(getDividends.db(name)), index(getSplits.db(name)))))
 
     if(timeFrame == "1D")
-      symbol <- getSymbolsDaily(symbol, filterVol = FALSE)
+      symbol <- getSymbolsDaily(name, filterVol = FALSE)
     else
-      symbol <- getSymbolsIntraday(symbol, timeFrame, filterVol = FALSE)
+      symbol <- getSymbolsIntraday(name, timeFrame, filterVol = FALSE)
 
     if(is.null(symbol))
       next
@@ -55,10 +55,13 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
         adjustLimit <- min(adjustDates-1, max(timeIndex))
 
         if(timeFrame == "1D")
-          getSymbolsDaily(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, adjust = c("split", "dividend"))
+          symbol <- getSymbolsDaily(name, timeLimit = adjustLimit, adjust = c("split", "dividend"))
         else
-          getSymbolsIntraday(unlist(strsplit(symbol, "[.]"))[1], timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
+          symbol <- getSymbolsIntraday(name, timeLimit = adjustLimit, timeFrame, adjust = c("split", "dividend"))
       }
+
+      if(is.null(symbol))
+        next
 
       profit <- NULL
       type <- "none"
@@ -113,14 +116,14 @@ computeSimulation <- function(Symbols = NULL, startDate = NULL, endDate = NULL, 
 
     if(length(result) > 0)
     {
-      print(sprintf("[%s]", symbol))
+      print(paste0("[", name, ".", timeFrame, "]"))
       print(parameters)
       print(result)
 
-      resultDF <- rbind(resultDF, result$openDF, result$closedDF)
+      resultDF <- rbind(resultDF, result$openDF, result$closedDF, fill = TRUE)
     }
 
-    base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
+    base::rm(list = base::ls(pattern = name, envir = .GlobalEnv), envir = .GlobalEnv)
   }
 
   total <- rbind(resultDF[resultDF$state == "closed",], resultDF[resultDF$state == "open",])

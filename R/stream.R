@@ -121,51 +121,51 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
 
         lastIdx <- as.Date(index(xts::last(base::get(symbol))))
 
-        if(lastIdx < Sys.Date())
-          next
-
-        if(is.null(lastSession) || lastIdx > lastSession)
-          lastSession <- lastIdx
-
-        tradeDate <- lastSession
-
-        openOps <- data.table()
-
-        if(nrow(symbOp) > 0)
+        if(lastIdx == Sys.Date())
         {
-          openOps <- tail(symbOp, last(rle(symbOp$type)$lengths))
-          openOps <- data.table(price=openOps$price, decision = openOps$type, tradeDate = as.Date(openOps$date))
-        }
+          if(is.null(lastSession) || lastIdx > lastSession)
+            lastSession <- lastIdx
 
-        if(timeFrame == "1D")
-        {
-          alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters, openOps, verbose)
+          tradeDate <- lastSession
 
-          if(!is.null(alert))
-            sendAlerts <- TRUE
-        }
-        else
-        {
-          skipIdx <- indexes[[symbol]]
-          newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
+          openOps <- data.table()
 
-          if(!is.null(skipIdx))
+          if(nrow(symbOp) > 0)
           {
-            newIdx <- newIdx[newIdx > skipIdx]
+            openOps <- tail(symbOp, last(rle(symbOp$type)$lengths))
+            openOps <- data.table(price=openOps$price, decision = openOps$type, tradeDate = as.Date(openOps$date))
           }
 
-          if(length(newIdx) > 0)
+          if(timeFrame == "1D")
           {
-            indexes[[symbol]] <- max(newIdx)
-
-            alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters, openOps, verbose)
+            alert  <- computeAlerts(symbol, tradeDate, timeFrame, parameters, openOps, verbose)
 
             if(!is.null(alert))
               sendAlerts <- TRUE
           }
+          else
+          {
+            skipIdx <- indexes[[symbol]]
+            newIdx  <- index(base::get(symbol)[paste0(endDate, "/")])
+
+            if(!is.null(skipIdx))
+            {
+              newIdx <- newIdx[newIdx > skipIdx]
+            }
+
+            if(length(newIdx) > 0)
+            {
+              indexes[[symbol]] <- max(newIdx)
+
+              alert  <- computeAlerts(symbol, newIdx, timeFrame, parameters, openOps, verbose)
+
+              if(!is.null(alert))
+                sendAlerts <- TRUE
+            }
+          }
         }
 
-        base::rm(list = base::ls(pattern = symbol, envir = .GlobalEnv), envir = .GlobalEnv)
+        base::rm(list = unique(c(symbol, symbolName)), envir = .GlobalEnv)
       }
     }
 
@@ -186,8 +186,7 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
     {
       if(any(timeFrames %in% c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
       {
-        lapply(getSymbolNames(), function(symbol) { getSymbolsIntraday(symbol, updateCache = TRUE) })
-        updateDailyFromIntraday()
+        updateDailyFromIntraday(Symbols)
       }
       else
       {

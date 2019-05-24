@@ -29,6 +29,7 @@ singleResult <- function(lines, lastDay = NULL)
   positions <- list()
 
   position <- "none"
+  openReason <- NULL
 
   symbolName <- unique(lines$symbol)
   clObj <- Cl(base::get(symbolName))
@@ -38,8 +39,12 @@ singleResult <- function(lines, lastDay = NULL)
     lastDay <- last(index(clObj))
 
   clObj <- clObj[paste0("/", lastDay)]
-  op = rbind(xts(lines$price, order.by = lines$tradeDate), last(clObj[as.character(index(rbind(getSplits.db(symbol), getDividends.db(symbol))))]))
-  lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
+  idx <- last(clObj[as.character(index(rbind(getSplits.db(symbol), getDividends.db(symbol))))])
+  if(nrow(idx) > 0)
+  {
+    op = rbind(xts(lines$price, order.by = lines$tradeDate), idx)
+    lines$price <- adjustOperations(symbolName, op[!duplicated(index(op)), ])[lines$tradeDate]
+  }
 
   for(n in order(lines$tradeDate))
   {
@@ -50,6 +55,7 @@ singleResult <- function(lines, lastDay = NULL)
                                                      price=as.numeric(lines$price[n]))
 
       position <- ifelse(lines[n]$decision == "buy", "long", "short")
+      openReason <- lines$reason[n]
 
       next
     }
@@ -62,14 +68,20 @@ singleResult <- function(lines, lastDay = NULL)
       sell_price <- as.numeric(lines$price[n])
 
       closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
-                                             profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lines$tradeDate[n]))
+                                             profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lines$tradeDate[n],
+                                             openReason, closeReason = lines$reason[n]))
 
       positions <- list()
 
       if(lines[n,stop] == FALSE)
+      {
         positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
                                                        type=ifelse(lines[n]$decision == "buy", "long", "short"),
                                                        price=as.numeric(lines$price[n]))
+        lines$reason[n]
+      }
+      else
+        openReason <- NULL
 
       position <- ifelse(lines[n,stop], "none", "short")
 
@@ -84,14 +96,21 @@ singleResult <- function(lines, lastDay = NULL)
       sell_price <- pos$price
 
       closedDF <- rbind(closedDF, data.table(state = "closed", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
-                                             profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lines$tradeDate[n]))
+                                             profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lines$tradeDate[n],
+                                             openReason, closeReason = lines$reason[n]))
 
       positions <- list()
 
       if(lines[n,stop] == FALSE)
+      {
         positions[[length(positions)+1]] <- data.table(openDate=lines$tradeDate[n],
                                                        type=ifelse(lines[n]$decision == "buy", "long", "short"),
                                                        price=as.numeric(lines$price[n]))
+        openReason <- lines$reason[n]
+      }
+      else
+        openReason <- NULL
+
 
       position <- ifelse(lines[n,stop], "none", "long")
 
@@ -107,7 +126,7 @@ singleResult <- function(lines, lastDay = NULL)
     sell_price <- as.numeric(tail(clObj, 1))
 
     openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
-                         profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lastDay)
+                         profit_pp = ((sell_price - buy_price) / buy_price), open = pos$openDate, last = lastDay, openReason)
   }
 
   if(position == "short")
@@ -116,7 +135,7 @@ singleResult <- function(lines, lastDay = NULL)
     sell_price <- pos$price
 
     openDF <- data.table(state = "open", type = position, name = symbolName, buy_price, sell_price, profit = (sell_price - buy_price),
-                         profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lastDay)
+                         profit_pp = ((sell_price - buy_price) / sell_price), open = pos$openDate, last = lastDay, openReason)
   }
 
   maxDrawdown <- function(open, last, type)

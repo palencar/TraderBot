@@ -96,15 +96,16 @@ ui <- shinyUI(navbarPage("TraderBot",
                               checkboxInput('long', 'Long', TRUE),
                               checkboxInput('short', 'Short', TRUE),
                               selectInput("group", "Group by:", choices = c("State"="state", "Type"="type", "Time Frame"="timeframe", "State and Time Frame"="state_timeframe", "None" = "none")),
-                              selectizeInput("filterSymbol", "Symbols", choices = NULL, multiple = TRUE),
+                              selectizeInput("filterSymbol", "Symbols",   choices = NULL, multiple = TRUE),
                               selectizeInput("timeFrames", "Time Frames", choices = timeFrameChoices, selected = timeFrameChoices, multiple = TRUE),
-                              sliderInput("smaPeriod",  "Sma Period:",  min =100, max =1000, value = c(0,1000), step = 5),
-                              sliderInput("upperBand",  "Upper Band:",  min = 0, max =   2, value = c(0,2), step= 0.01),
-                              sliderInput("lowerBand",  "Lower Band:",  min = -2, max =   0, value = c(-2,-0), step= 0.01),
-                              sliderInput("lowLimit",   "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
-                              sliderInput("stopGain",   "Stop Gain:",   min =  1, max =   5, value = c(1,5), step= 0.01),
-                              sliderInput("stopLoss",   "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
-                              sliderInput("grade",      "Grade:",       min = -10, max = 10, value = c(-10,10), step= 0.01)
+                              sliderInput("smaPeriod",     "Sma Period:",  min =100, max =1000, value = c(0,1000), step = 5),
+                              sliderInput("upperBand",     "Upper Band:",  min = 1,  max = 2.5, value = c(1,2.5), step= 0.1),
+                              sliderInput("lowerBand",     "Lower Band:",  min = -2.5, max =-1, value = c(-2.5,-1), step= 0.01),
+                              sliderInput("lowLimit",      "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
+                              sliderInput("stopGainLong",  "Stop Gain Long:", min = 1, max = 5, value = c(1,5), step= 0.01),
+                              sliderInput("stopGainShort", "Stop Gain Short:", min = 1, max = 5, value = c(1,5), step= 0.01),
+                              sliderInput("stopLoss",      "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
+                              sliderInput("grade",         "Grade:",       min = -10, max = 10, value = c(-10,10), step= 0.01)
                             ),
                             mainPanel(
                               tableOutput("values"),
@@ -311,13 +312,14 @@ server <- shinyServer(function(input, output, session)
     if(!is.null(input$timeFrames) && !is.na(input$timeFrames))
       dataTable <- dataTable[(dataTable$timeframe  %in% input$timeFrames)]
 
-    dataTable <- dataTable[(dataTable$smaPeriod  >= input$smaPeriod[1]  & dataTable$smaPeriod  <= input$smaPeriod[2])  | is.na(dataTable$smaPeriod)]
-    dataTable <- dataTable[(dataTable$upperBand  >= input$upperBand[1]  & dataTable$upperBand  <= input$upperBand[2])  | is.na(dataTable$upperBand)]
-    dataTable <- dataTable[(dataTable$lowerBand  >= input$lowerBand[1]  & dataTable$lowerBand  <= input$lowerBand[2])  | is.na(dataTable$lowerBand)]
-    dataTable <- dataTable[(dataTable$lowLimit   >= input$lowLimit[1]   & dataTable$lowLimit   <= input$lowLimit[2])   | is.na(dataTable$lowLimit)]
-    dataTable <- dataTable[(dataTable$stopGain   >= input$stopGain[1]   & dataTable$stopGain   <= input$stopGain[2])   | is.na(dataTable$stopGain)]
-    dataTable <- dataTable[(dataTable$stopLoss   >= input$stopLoss[1]   & dataTable$stopLoss   <= input$stopLoss[2])   | is.na(dataTable$stopLoss)]
-    dataTable <- dataTable[(dataTable$profit_pp  >= input$grade[1]      & dataTable$profit_pp  <= input$grade[2])      | is.na(dataTable$profit_pp)]
+    dataTable <- dataTable[(dataTable$smaPeriod     >= input$smaPeriod[1]     & dataTable$smaPeriod     <= input$smaPeriod[2])      | is.na(dataTable$smaPeriod)]
+    dataTable <- dataTable[(dataTable$upperBand     >= input$upperBand[1]     & dataTable$upperBand     <= input$upperBand[2])      | is.na(dataTable$upperBand)]
+    dataTable <- dataTable[(dataTable$lowerBand     >= input$lowerBand[1]     & dataTable$lowerBand     <= input$lowerBand[2])      | is.na(dataTable$lowerBand)]
+    dataTable <- dataTable[(dataTable$lowLimit      >= input$lowLimit[1]      & dataTable$lowLimit      <= input$lowLimit[2])       | is.na(dataTable$lowLimit)]
+    dataTable <- dataTable[(dataTable$stopGainLong  >= input$stopGainLong[1]  & dataTable$stopGainLong  <= input$stopGainLong[2])   | is.na(dataTable$stopGainLong)]
+    dataTable <- dataTable[(dataTable$stopGainShort >= input$stopGainShort[1] & dataTable$stopGainShort <= input$stopGainShort[2])  | is.na(dataTable$stopGainShort)]
+    dataTable <- dataTable[(dataTable$stopLoss      >= input$stopLoss[1]      & dataTable$stopLoss      <= input$stopLoss[2])       | is.na(dataTable$stopLoss)]
+    dataTable <- dataTable[(dataTable$profit_pp     >= input$grade[1]         & dataTable$profit_pp     <= input$grade[2])          | is.na(dataTable$profit_pp)]
 
     if(!is.null(input$filterSymbol) && !is.null(intersect(input$filterSymbol, unique(dataTable$symbol))))
       dataTable <- dataTable[dataTable$symbol %in% input$filterSymbol]
@@ -339,7 +341,8 @@ server <- shinyServer(function(input, output, session)
         showPlot(tv, c("upperBand", "grade"), input$group),
         showPlot(tv, c("lowLimit", "grade"), input$group),
         showPlot(tv, c("highLimit", "grade"), input$group),
-        showPlot(tv, c("stopGain", "grade"), input$group),
+        showPlot(tv, c("stopGainLong", "grade"), input$group),
+        showPlot(tv, c("stopGainShort", "grade"), input$group),
         showPlot(tv, c("stopLoss", "grade"), input$group),
         ncol = 2
       )

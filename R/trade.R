@@ -17,8 +17,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   rp <- mean(as.numeric(d))
   if(type == "none" && rp > 0.15)
   {
-    cantBuy <- paste0("DO NOT BUY: ", symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
-    cantSell <- paste0("DO NOT SELL: ", symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
+    cantBuy <- paste0(symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
+    cantSell <- paste0(symbol, " | [", tradeDate, "] Repeated prices : ", rp, " > 0.15")
 
     if(is.null(profit))
       return(NULL)
@@ -38,8 +38,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   sdsma <- round(sddf/last(sma), 3)
   if(type == "none" && is.null(cantBuy) && is.null(cantSell) && sdsma < 0.05)
   {
-    cantBuy <- paste0("DO NOT BUY: ", symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
-    cantSell <- paste0("DO NOT SELL: ", symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
+    cantBuy <- paste0(symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
+    cantSell <- paste0(symbol, " | [", tradeDate, "] sd/sma : ", sdsma, " < 0.05")
 
     if(is.null(profit))
       return(NULL)
@@ -62,8 +62,8 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   maxChange <- (lastValue-maxValue)/maxValue
   minChange <- (lastValue-minValue)/minValue
 
-  high <- Hi(obj)
-  low <- Lo(obj)
+  high <- Hi(objPeriod)
+  low <- Lo(objPeriod)
 
   maxV <- as.numeric(high[which.max(high)])
   maxDate <- index(high[which.max(high)])
@@ -74,41 +74,29 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   minV <- as.numeric(low[which.min(low)])
   minDate <- index(low[which.min(low)])
 
-  highAfter <- low[sprintf("%s/", minDate)]
-  maxAfter <- as.numeric(highAfter[which.min(highAfter)])
+  highAfter <- low[sprintf("%s/", maxDate)]
+  maxAfter <- as.numeric(highAfter[which.max(highAfter)])
 
   if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (minAfter / maxV) < parameters$lowLimit)
-  {
-    cantBuy <- sprintf("DO NOT BUY: %s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxV, (minAfter / maxV))
-  }
+    cantBuy <- sprintf("%s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxV, (minAfter / maxV))
 
   if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (lastLo / maxV) < parameters$lowLimit)
-  {
-    cantBuy <- sprintf("DO NOT BUY: %s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastLo, maxDate, maxV, (lastLo / maxV))
-  }
+    cantBuy <- sprintf("%s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastLo, maxDate, maxV, (lastLo / maxV))
 
   if(type != "short" && is.null(cantSell) && !is.na(parameters$highLimit) && (maxAfter / minV) > parameters$highLimit)
-  {
-    cantSell <- sprintf("DO NOT SELL: %s | [%s] Max [%f] After / Min [%s][%f] : [%f]", symbol, period, maxAfter, minDate, minV, (maxAfter / minV))
-  }
+    cantSell <- sprintf("%s | [%s] Max [%f] After / Min [%s][%f] : [%f]", symbol, period, maxAfter, minDate, minV, (maxAfter / minV))
 
   if(type != "short" && is.null(cantSell) && !is.na(parameters$highLimit) && (lastHi / minV) > parameters$highLimit)
-  {
-    cantSell <- sprintf("DO NOT SELL: %s | [%s] Last [%f] / Min [%s][%f] : [%f]", symbol, period, lastHi, minDate, minV, (lastHi / minV))
-  }
+    cantSell <- sprintf("%s | [%s] Last [%f] / Min [%s][%f] : [%f]", symbol, period, lastHi, minDate, minV, (lastHi / minV))
 
   decision <- "hold"
   reason <- NULL
 
   if(!is.na(parameters$lowerBand))
-  {
     lower <- parameters$lowerBand + (as.numeric(maxChange))
-  }
 
   if(!is.na(parameters$upperBand))
-  {
     upper <- parameters$upperBand + (as.numeric(minChange))
-  }
 
   if(is.null(cantBuy) && all(tail(low[paste0("/", index(first(tail(obj, 6))))], 50) > min(tail(low, 5)) * 0.99))
     cantBuy <- "short"
@@ -153,7 +141,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
       decision <- "buy"
       reason <- sprintf("sdp < %1.1f -> buy", lower)
     }
-    if(type == "short" && (is.null(cantBuy) || (cantBuy != "short" && cantBuy != "mid")))
+    if(type == "short" && (is.null(cantBuy) || cantBuy == "long" || cantBuy == "very long"))
     {
       decision <- "buy"
       isStop <- TRUE
@@ -172,7 +160,7 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
       decision <- "sell"
       reason <- sprintf("sdp > %1.1f -> sell", upper)
     }
-    if(type == "long" && (is.null(cantSell) || (cantSell != "short" && cantSell != "mid")))
+    if(type == "long" && (is.null(cantSell) || cantSell == "long" || cantSell == "very long"))
     {
       decision <- "sell"
       isStop <- TRUE
@@ -182,11 +170,11 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
 
   if(!is.null(profit))
   {
-    if(type == "long" && !is.na(parameters$stopGain) && (1+profit) >= parameters$stopGain) #Stop gain
+    if(type == "long" && !is.na(parameters$stopGainLong) && (1+profit) >= parameters$stopGainLong) #Stop gain
     {
       isStop <- TRUE
       decision <- "sell"
-      reason <- sprintf("Stop Gain [%.2f %.2f] -> sell", parameters$stopGain, profit)
+      reason <- sprintf("Stop Gain [%.2f %.2f] -> sell", parameters$stopGainLong, profit)
     }
 
     if(type == "short" && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
@@ -196,11 +184,11 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
       reason <- sprintf("Stop Loss [%.2f %.2f] -> buy", parameters$stopLoss, profit)
     }
 
-    if(type == "short" && !is.na(parameters$stopGain) && (1+profit) >= parameters$stopGain) #Stop gain
+    if(type == "short" && !is.na(parameters$stopGainShort) && (1+profit) >= parameters$stopGainShort) #Stop gain
     {
       isStop <- TRUE
       decision <- "buy"
-      reason <- sprintf("Stop Gain [%.2f %.2f] -> buy", parameters$stopGain, profit)
+      reason <- sprintf("Stop Gain [%.2f %.2f] -> buy", parameters$stopGainShort, profit)
     }
 
     if(type == "long" && !is.na(parameters$stopLoss) && (1+profit) <= parameters$stopLoss) #Stop loss
@@ -212,14 +200,10 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   }
 
   if(verbose && !is.null(cantSell))
-  {
-    print(cantSell)
-  }
+    print(paste0("DO NOT SELL : ", cantSell))
 
   if(verbose && !is.null(cantBuy))
-  {
-    print(cantBuy)
-  }
+    print(paste0("DO NOT BUY : ", cantBuy))
 
   tradeDecision <- c()
 

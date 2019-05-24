@@ -4,6 +4,7 @@ CREATE TABLE `alerts` (
 ,  `datetime` datetime DEFAULT NULL
 ,  `alert` varchar(4) DEFAULT NULL
 ,  `price` double DEFAULT NULL
+,  `stop` integer DEFAULT NULL
 ,  UNIQUE (`symbol`,`timeframe`,`datetime`,`alert`)
 );
 CREATE TABLE `dividends` (
@@ -25,7 +26,7 @@ CREATE TABLE `intraday` (
 CREATE TABLE `operations` (
   `symbol` varchar(20) DEFAULT NULL
 ,  `date` date DEFAULT NULL
-,  `type` char(1) DEFAULT NULL
+,  `type` char(4) DEFAULT NULL
 ,  `size` integer DEFAULT NULL
 ,  `price` float DEFAULT NULL
 ,  `cost` float DEFAULT NULL
@@ -39,15 +40,11 @@ CREATE TABLE `splits` (
 CREATE TABLE `stockprices` (
   `symbol` varchar(12) DEFAULT NULL
 ,  `date` date DEFAULT NULL
-,  `previous_close` double DEFAULT NULL
 ,  `day_open` double DEFAULT NULL
 ,  `day_high` double DEFAULT NULL
 ,  `day_low` double DEFAULT NULL
 ,  `day_close` double DEFAULT NULL
-,  `day_change` double DEFAULT NULL
-,  `bid` float DEFAULT NULL
-,  `ask` float DEFAULT NULL
-,  `volume` integer NOT NULL DEFAULT '0'
+,  `volume` integer  NOT NULL DEFAULT '0'
 ,  UNIQUE (`symbol`,`date`)
 );
 CREATE TABLE `symbols` (
