@@ -31,10 +31,20 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
   for(symbol in symbols)
   {
     pos <- getPositions(symbol)
+    spl <- getSplits.db(symbol)
 
     for(p in pos)
     {
       state <- NULL
+
+      s <- spl
+      if(!is.na(p$end))
+        s <- s[index(s) <= p$end]
+
+      if(any(index(s) > p$start))
+        adj.size <- p$size / prod(s[index(s) > p$start])
+      else
+        adj.size <- p$size
 
       if(showOpen && is.na(p$closeVal))
       {
@@ -47,7 +57,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
         last <- lp$datetime
         price <- p$openVal * p$size
         size <- p$size
-        value <- as.numeric(lp$close) * size
+        value <- as.numeric(lp$close) * adj.size
         profit <- value - price
         state <- "open"
         oTotal <- oTotal + profit
@@ -59,7 +69,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
         last <- as.Date(p$end)
         price <- p$openVal * p$size
         size <- p$size
-        value <- p$closeVal * size
+        value <- p$closeVal * adj.size
         profit <- value - price
         state <- "closed"
         cTotal <- cTotal + profit
@@ -67,7 +77,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
 
       if(!is.null(state))
       {
-        df <- rbind(df, data.frame(symbol, open, last, state, size, price, value, profit, profit_perc=round((profit/price)*100, digits=2)))
+        df <- rbind(df, data.frame(symbol, open, last, state, size, price, value, profit, profit_perc=round((profit/price)*100, digits=2), adj.size))
       }
     }
   }
@@ -78,7 +88,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
   df <- as.data.table(df[order(df$last, df$open), ])
   df[, adj.price :={
     op <- rbind(xts(price/size, order.by = as.POSIXct(as.Date(open))), xts(as.numeric(value/size), order.by = as.POSIXct(last)))
-    round(as.numeric(adjustOperations(as.character(symbol), op)[as.POSIXct(open)])*size, digits = 2)
+    round(as.numeric(adjustOperations(as.character(symbol), op)[as.POSIXct(open)])*adj.size, digits = 2)
   } , by=symbol]
   df$adj.profit <- df$value-df$adj.price
   df$adj.profit_perc <- round((df$adj.profit*100)/df$adj.price, 2)

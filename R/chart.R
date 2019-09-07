@@ -61,6 +61,9 @@ chartSymbols <- function(Symbols, period=730, startDate=NULL, endDate=Sys.time()
     datePeriod <- sprintf("%s::%s", st, endDate)
     taIndicators <- paste(c(smasd, vol, posit, alerts, mePrice), collapse="; ")
 
+    if(timeFrame == "1W")
+      Symbol = to.weekly(Symbol)
+
     chartSeries(Symbol, name=SymbolName, subset=datePeriod, TA=taIndicators)
 
     if(dev == "png")

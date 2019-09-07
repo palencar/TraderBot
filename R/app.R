@@ -5,7 +5,7 @@ source("R/dbInterface.R")
 
 mMergeBacktest <- memoise(mergeBacktest, ~timeout(600))
 
-timeFrameChoices <- c("1D", "1H", "30M", "15M", "10M", "5M")
+timeFrameChoices <- c("1W", "1D", "1H", "30M", "15M", "10M", "5M")
 
 ui <- shinyUI(navbarPage("TraderBot",
 
@@ -121,7 +121,7 @@ server <- shinyServer(function(input, output, session)
 
   make_chart <- function(symbol, intervals = 730, startDate = NULL, endDate = Sys.time(), timeFrame, mode = "operation")
   {
-    if(timeFrame == "1D")
+    if(timeFrame == "1D" || timeFrame == "1W")
       symbol <- getSymbolsDaily(symbol, adjust = c("split", "dividend"))
     else
       symbol <- getSymbolsIntraday(symbol, timeFrame, adjust = c("split", "dividend"))
