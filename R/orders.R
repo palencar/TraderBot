@@ -23,7 +23,7 @@ getOrders <- function(name, endDate = Sys.time(), mode = "operation", adjusted =
 
   for(reg in pos)
   {
-    if(!is.na(reg$end))
+    if(!is.null(reg$end))
       ed <- reg$end
     else if(!is.null(endDate))
       ed <- endDate
@@ -40,7 +40,7 @@ getOrders <- function(name, endDate = Sys.time(), mode = "operation", adjusted =
 
     idx  <- unique(c(index(firstReg), index(lastReg)))
     xNew <- xts(rep(NA, length(idx)), order.by = idx)
-    xNew[time(lastReg)] <- ifelse(is.na(reg$closeVal) == FALSE, reg$closeVal, as.double(Cl(lastReg)))
+    xNew[time(lastReg)] <- ifelse(is.null(reg$closeVal) == FALSE, reg$closeVal, as.double(Cl(lastReg)))
     xNew[time(firstReg)] <- reg$openVal
     xNew <- rbind(xNew, Cl(symbol[index(symbol) > index(lastReg) & as.Date(index(symbol)) <= as.Date(endDate)]))
 

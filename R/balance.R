@@ -18,7 +18,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
     prices <- NULL
     for(symbol in symbols)
     {
-      upd <- tail(f.get.google.intraday(symbol, 60, "5d"), 1)
+      upd <- uolIntraday(symbol, mins = 1)
       obj <- xts(NA, order.by = Sys.time())
 
       if(nrow(upd) == 1)
@@ -38,7 +38,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
       state <- NULL
 
       s <- spl
-      if(!is.na(p$end))
+      if(!is.null(p$end))
         s <- s[index(s) <= p$end]
 
       if(any(index(s) > p$start))
@@ -46,7 +46,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
       else
         adj.size <- p$size
 
-      if(showOpen && is.na(p$closeVal))
+      if(showOpen && is.null(p$closeVal))
       {
         if(getPrices)
           lp <- data.frame(datetime=prices[symbol, "Time"], close=prices[symbol, "Price"])
@@ -63,7 +63,7 @@ getBalance <- function(symbols = NULL, showOpen = TRUE, showClosed = FALSE, getP
         oTotal <- oTotal + profit
       }
 
-      if(showClosed && !is.na(p$closeVal))
+      if(showClosed && !is.null(p$closeVal))
       {
         open <- as.Date(p$start)
         last <- as.Date(p$end)

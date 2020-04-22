@@ -144,10 +144,9 @@ computeBacktest <- function(Symbols, minSamples = 100, timeFrame = "1D", replace
   }
 
   opDF <- rbindlist(opList, fill = TRUE)
-  if(nrow(opDF) > 0)
-    saveRDS(rbind(opFile, opDF), outputOp)
-
   print(opDF)
+  if(nrow(opDF) > 0)
+    saveRDS(rbind(opFile, opDF, fill=TRUE), outputOp)
 
   }, error = function(e)
       print(paste0("Symbol ", symbol, " ", e)))

@@ -7,6 +7,24 @@ library("config")
 
 getConfig <- memoise(config::get)
 
+getSymbols.db <- function(symbols, timeFrame = "1D", adjust = c("split", "dividend"))
+{
+  if(timeFrame == "1D")
+    return(getSymbolsDaily(symbols, adjust = adjust));
+
+  if(timeFrame == "1W")
+  {
+    symbols <- getSymbolsDaily(symbols, adjust = adjust);
+    return(unlist(lapply(symbols, function(symbol) {
+      assign(paste(symbol, "1W", sep = "."), align.time(to.weekly(base::get(symbol))), .GlobalEnv)
+      paste(symbol, "1W", sep = ".")
+    })))
+  }
+
+  if(any(timeFrame == c("1M", "3M", "5M", "10M", "15M", "30M", "1H")))
+    return(getSymbolsIntraday(symbols, timeFrame, adjust = adjust))
+}
+
 #' @export
 getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToday=FALSE, FilterAge=NULL, filterVol = TRUE, env = .GlobalEnv)
 {
@@ -72,7 +90,7 @@ getSymbolsDaily <- function(Symbols, timeLimit = NULL, adjust = NULL, FilterToda
 }
 
 #' @export
-getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, filterPeriod = TRUE, filterVol = TRUE, env = .GlobalEnv)
+getSymbolsIntraday <- function(Symbols, timeFrame = "1H", timeLimit = NULL, adjust = NULL, updateCache = FALSE, filterPeriod = FALSE, filterVol = TRUE, env = .GlobalEnv)
 {
   symbolList <- NULL
 
@@ -243,7 +261,7 @@ meanPrice <- function(SymbolName)
 
   for(pos in positions)
   {
-    if(is.na(pos$end))
+    if(is.null(pos$end))
     {
       opValue <- opValue + (pos$openVal * pos$size)
       opSize <- opSize + pos$size
@@ -308,79 +326,58 @@ getPositions <- function(symbol = NULL, timeFrame = NULL, endDate = NULL, mode =
   }
 
   if(is.null(fr) || nrow(fr) == 0)
-  {
     return(NULL)
-  }
 
-  acValue <- 0
+  positions <- list()
   acSize <- 0
-  n <- 0
-  positions <- c()
-
-  date <- ''
-  price <- ''
-
   i <- 1
+  lastOp <- "none"
+
   while(i <= nrow(fr))
   {
-    if(fr[i,]$type == "buy")
-    {
+    position <- c()
+    closePosition <- FALSE
+
+    if(lastOp == "none" || lastOp == fr[i,]$type) {
+      position$start <- fr[i,]$date
+      position$openVal <- fr[i,]$price
+      position$size <- fr[i,]$size
       acSize <- acSize + fr[i,]$size
+    } else {
+      clSize <- fr[i,]$size
+      j <- 1
+      while(j <= length(positions) && clSize > 0L) {
+        if(is.null(positions[[j]]$end) && acSize >= clSize) {
 
-      if(date != fr[i,]$date || price != fr[i,]$price)
-      {
-        n <- n + 1
-        position <- c()
-        position$start <- fr[i,]$date
-        position$openVal <- fr[i,]$price
-        position$size <- fr[i,]$size
-        position$end <- NA
-        position$closeVal <- NA
-        positions[[n]] <- position
+          matchSize <- clSize == positions[[j]]$size
 
-        date <- fr[i,]$date
-        price <- fr[i,]$price
-      }
-    }
-    else if(fr[i,]$type == "sell")
-    {
-      if(date != fr[i,]$date || price != fr[i,]$price)
-      {
-        j <- 1
-        if(mode == "simulation")
-          vSize <- acSize
-        else
-          vSize <- fr[i,]$size
-        while(j <= length(positions) && j < i && acSize > 0)
-        {
-          position <- positions[[j]]
-          if(is.na(position$closeVal))
-          {
-            position$end <- fr[i,]$date
-            position$closeVal <- fr[i,]$price
-            positions[[j]] <- position
-            date <- fr[i,]$date
-            price <- fr[i,]$price
+          sbSize <- min(positions[[j]]$size, clSize)
+          clSize <- clSize - sbSize
+          acSize <- acSize - sbSize
 
-            if(fr[j,]$size >= vSize)
-            {
-              acSize <- acSize - fr[j,]$size
-              break
-            }
-            else
-            {
-              acSize <- acSize - fr[j,]$size
-              vSize <- vSize - fr[j,]$size
-              j <- j + 1
-            }
+          if(matchSize == FALSE && (clSize == 0 && acSize > 0)) {
+            positions <- c(positions[1:j], positions[j:length(positions)])
+            positions[[j]]$size <- sbSize
+            positions[[j+1]]$size <- positions[[j+1]]$size - sbSize
           }
-          else
-          {
-            j <- j + 1
-          }
+
+          positions[[j]]$end <- fr[i,]$date
+          positions[[j]]$closeVal <- fr[i,]$price
         }
+        j <- j + 1
       }
+
+      if(acSize == 0)
+        closePosition <- TRUE
     }
+
+    positions[[length(positions) + 1]] <- position
+
+    if(closePosition)
+      lastOp <- "none"
+    else if(!is.null(position))
+      lastOp <- fr[i,]$type
+
     i <- i + 1
   }
 
@@ -397,31 +394,20 @@ addAlerts <- function(alerts)
 }
 
 #' @export
-getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), openOnly = TRUE)
+getAlerts <- function(n = 50, symbols = NULL, types = c("buy", "sell"), single = c("symbol","timeframe"), openOnly = TRUE)
 {
   qryStr <- paste0("select * from alerts",
                    ifelse(is.null(symbols), " ", paste0(" where symbol in ('", paste0(symbols, collapse = "', '"), "') ")),
                    "order by datetime desc",
                    collapse = " ")
   alerts <- data.table(getQuery(qryStr), key=c("symbol","timeframe","alert"))
-  if(nrow(alerts) > 0)
-    alerts$stop <- ifelse(alerts$stop, TRUE, FALSE)
 
   if(!is.null(types))
     alerts <- alerts[alerts$alert %in% types,]
 
   if(openOnly)
   {
-    symbDf <- alerts[order(-datetime)][!stop & !duplicated(alerts[order(-datetime)][, c("symbol","timeframe")]),  c("symbol","timeframe")]
-    alertList <- list()
-    len <- nrow(symbDf)
-    if(len > 0)
-      for(i in 1:min(n, len))
-      {
-        al <- alerts[symbDf[i, ]][order(-datetime)]
-        alertList[[i]] <- head(al, rle(al$alert)$lengths[1])
-      }
-    return(rbindlist(alertList))
+    return(head(alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, single, with=FALSE])], n))
   }
 
   symbDf <- alerts[order(-datetime)][!duplicated(alerts[order(-datetime)][, c("symbol","timeframe","alert")]), c("symbol","timeframe","alert")]
@@ -448,7 +434,7 @@ getWallet <- function(showClosed = FALSE)
 
     for(pos in positions)
     {
-      if(is.na(pos$end))
+      if(is.null(pos$end))
       {
         symbols <- c(symbols, i)
       }
@@ -635,7 +621,7 @@ saveSymbolsIntraday <- function(symbols)
 {
   for(symbol in symbols)
   {
-    df <- f.get.google.intraday(symbol, 60, "15d")
+    df <- uolIntraday(symbol, mins = 500)
 
     if(!is.null(df))
       insertIntraday(symbol, df)
@@ -798,44 +784,4 @@ uolIntraday <- function(symbol, mins = 500)
   df <- na.omit(df[df$Volume > 0])
 
   xts(df[, c('Open', 'High', 'Low', 'Close', 'Volume')], order.by = df$datetime)
-}
-
-#
-# Adapted from
-# https://github.com/frederickpelchat/quantitative-finance/blob/master/intraday-data.R
-#
-f.get.google.intraday <- function(symbol, freq, period) {
-  base.url <- 'http://finance.google.com/finance/getprices?'
-  options.url <- paste('i=', freq, '&p=', period, '&f=d,o,h,l,c,v&df=cpct&q=', symbol, sep = '')
-  full.url <- paste(base.url, options.url, sep = '')
-
-  data <- tryCatch({
-    na.omit(read.csv(full.url, header = FALSE, skip = 7, stringsAsFactors = FALSE))
-  }, error = function(err)
-  {
-    #print(err)
-    return(NULL)
-  })
-
-  if(is.null(data))
-    return(data.frame())
-
-  starting.times.idx <- which(substring(data$V1, 1, 1) == 'a')
-  ending.seconds.idx <- c(starting.times.idx[-1] - 1, nrow(data))
-  r.str.idx.use <- paste(starting.times.idx, ':', ending.seconds.idx, sep = '')
-
-  starting.times <- as.numeric(substring(data[starting.times.idx, 1], 2))
-
-  data[starting.times.idx, 1] <- 0
-  clean.idx <- do.call(c, lapply(seq(1, length(r.str.idx.use)),
-                                 function(i) {
-                                   starting.times[i] + freq * as.numeric(data[eval(parse(text = r.str.idx.use[i])), 1])
-                                 })
-  )
-  data.xts <- xts(data[,-1], as.POSIXct(clean.idx, origin = '1970-01-01', tz = 'America/Sao_Paulo'))
-
-  indexTZ(data.xts) <- 'America/Sao_Paulo'
-  colnames(data.xts) <- c('Open', 'High', 'Low', 'Close', 'Volume')
-
-  data.xts
 }

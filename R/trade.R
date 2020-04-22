@@ -65,30 +65,6 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   high <- Hi(objPeriod)
   low <- Lo(objPeriod)
 
-  maxV <- as.numeric(high[which.max(high)])
-  maxDate <- index(high[which.max(high)])
-
-  lowAfter <- low[sprintf("%s/", maxDate)]
-  minAfter <- as.numeric(lowAfter[which.min(lowAfter)])
-
-  minV <- as.numeric(low[which.min(low)])
-  minDate <- index(low[which.min(low)])
-
-  highAfter <- low[sprintf("%s/", maxDate)]
-  maxAfter <- as.numeric(highAfter[which.max(highAfter)])
-
-  if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (minAfter / maxV) < parameters$lowLimit)
-    cantBuy <- sprintf("%s | [%s] Min [%f] After / Max [%s][%f] : [%f]", symbol, period, minAfter, maxDate, maxV, (minAfter / maxV))
-
-  if(type != "short" && is.null(cantBuy) && !is.na(parameters$lowLimit) && (lastLo / maxV) < parameters$lowLimit)
-    cantBuy <- sprintf("%s | [%s] Last [%f] / Max [%s][%f] : [%f]", symbol, period, lastLo, maxDate, maxV, (lastLo / maxV))
-
-  if(type != "short" && is.null(cantSell) && !is.na(parameters$highLimit) && (maxAfter / minV) > parameters$highLimit)
-    cantSell <- sprintf("%s | [%s] Max [%f] After / Min [%s][%f] : [%f]", symbol, period, maxAfter, minDate, minV, (maxAfter / minV))
-
-  if(type != "short" && is.null(cantSell) && !is.na(parameters$highLimit) && (lastHi / minV) > parameters$highLimit)
-    cantSell <- sprintf("%s | [%s] Last [%f] / Min [%s][%f] : [%f]", symbol, period, lastHi, minDate, minV, (lastHi / minV))
-
   decision <- "hold"
   reason <- NULL
 
@@ -125,8 +101,9 @@ trade <- function(symbol, tradeDate, parameters = NULL, profit = NULL, type = "n
   if(is.null(cantSell) && all(tail(high[paste0("/", index(first(tail(obj, 31))))], 300) < max(tail(high, 30)) * 1.01))
     cantSell <- "very long"
 
-  if(is.null(cantSell) && which.max(tail(high, 500))/500 >= 0.9)
+  if(is.null(cantSell) && which.max(tail(high, 500))/500 >= 0.9) {
     cantSell <- "very long"
+  }
 
   isStop <- FALSE
 

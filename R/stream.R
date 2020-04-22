@@ -165,7 +165,11 @@ computeStream <- function(Symbols = NULL, openMarket = TRUE, timeFrames = c("5M"
           }
         }
 
-        base::rm(list = unique(c(symbol, symbolName)), envir = .GlobalEnv)
+        if(exists(symbol))
+          base::rm(list = symbol, envir = .GlobalEnv)
+
+        if(exists(symbolName))
+          base::rm(list = symbolName, envir = .GlobalEnv)
       }
     }
 

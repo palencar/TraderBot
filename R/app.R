@@ -98,12 +98,11 @@ ui <- shinyUI(navbarPage("TraderBot",
                               selectInput("group", "Group by:", choices = c("State"="state", "Type"="type", "Time Frame"="timeframe", "State and Time Frame"="state_timeframe", "None" = "none")),
                               selectizeInput("filterSymbol", "Symbols",   choices = NULL, multiple = TRUE),
                               selectizeInput("timeFrames", "Time Frames", choices = timeFrameChoices, selected = timeFrameChoices, multiple = TRUE),
-                              sliderInput("smaPeriod",     "Sma Period:",  min =100, max =1000, value = c(0,1000), step = 5),
+                              sliderInput("smaPeriod",     "Sma Period:",  min =100, max = 800, value = c(0,800), step = 5),
                               sliderInput("upperBand",     "Upper Band:",  min = 1,  max = 2.5, value = c(1,2.5), step= 0.1),
                               sliderInput("lowerBand",     "Lower Band:",  min = -2.5, max =-1, value = c(-2.5,-1), step= 0.01),
-                              sliderInput("lowLimit",      "Low Limit:",   min =  0, max =   1, value = c(0,1), step= 0.01),
-                              sliderInput("stopGainLong",  "Stop Gain Long:", min = 1, max = 5, value = c(1,5), step= 0.01),
-                              sliderInput("stopGainShort", "Stop Gain Short:", min = 1, max = 5, value = c(1,5), step= 0.01),
+                              sliderInput("stopGainLong",  "Stop Gain Long:", min = 1, max = 2, value = c(1,2), step= 0.01),
+                              sliderInput("stopGainShort", "Stop Gain Short:", min = 1, max = 1.5, value = c(1,1.5), step= 0.01),
                               sliderInput("stopLoss",      "Stop Loss:",   min =  0, max =   1, value = c(0,1), step= 0.01),
                               sliderInput("grade",         "Grade:",       min = -10, max = 10, value = c(-10,10), step= 0.01)
                             ),
@@ -111,7 +110,7 @@ ui <- shinyUI(navbarPage("TraderBot",
                               tableOutput("values"),
 
                               plotOutput("parameters", height = "1200px"),
-                              dataTableOutput("dataTable"))
+                              DT::dataTableOutput("dataTable"))
                    )
 ))
 
@@ -153,12 +152,13 @@ server <- shinyServer(function(input, output, session)
                          selected = input$symbolAlerts
     )
 
-    alerts.table <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts))
+    single = c("symbol")
+    alerts.table <- getAlertsResults(getAlerts(input$numAlerts, input$symbolAlerts, input$typeAlerts, single))
     alerts.table <- data.table(alerts.table, key=c("symbol", "timeframe"))
 
     if(nrow(alerts.table) > 0)
     {
-      alerts <- data.table(alerts.table[!duplicated(alerts.table[,c("symbol","timeframe")])], key=c("symbol", "timeframe"))[order(-datetime)]
+      alerts <- data.table(alerts.table[!duplicated(alerts.table[, single, with=FALSE])], key=c("symbol", "timeframe"))[order(-datetime)]
 
       for(i in 1:nrow(alerts))
       {
@@ -167,7 +167,7 @@ server <- shinyServer(function(input, output, session)
           drops <- c("symbol", "timeframe")
           alerts.table[, !drops, with=FALSE]
 
-          output[[paste0("alertsResults", my_i)]] <- renderDataTable({alerts.table[alerts[my_i, c("symbol", "timeframe")], !drops, with=FALSE]}, options = list(lengthMenu = c(5, 10, 20), pageLength = 5))
+          output[[paste0("alertsResults", my_i)]] <- DT::renderDataTable({alerts.table[alerts[my_i, c("symbol", "timeframe")], !drops, with=FALSE]}, options = list(lengthMenu = c(5, 10, 20), pageLength = 5))
           output[[paste0("alerts", my_i)]] <- renderPlot({ make_chart(unique(alerts[my_i]$symbol), intervals = as.integer(input$numIntervals), timeFrame = unique(alerts[my_i]$timeframe), mode = "none") })
         })
       }
@@ -249,7 +249,7 @@ server <- shinyServer(function(input, output, session)
   output$alerts <- renderUI({
     outputList <- lapply(1:input$numAlerts, function(i) {
       list(
-          dataTableOutput(paste0("alertsResults", i)),
+          DT::dataTableOutput(paste0("alertsResults", i)),
           plotOutput(paste0("alerts", i))
       )
     })
@@ -315,7 +315,6 @@ server <- shinyServer(function(input, output, session)
     dataTable <- dataTable[(dataTable$smaPeriod     >= input$smaPeriod[1]     & dataTable$smaPeriod     <= input$smaPeriod[2])      | is.na(dataTable$smaPeriod)]
     dataTable <- dataTable[(dataTable$upperBand     >= input$upperBand[1]     & dataTable$upperBand     <= input$upperBand[2])      | is.na(dataTable$upperBand)]
     dataTable <- dataTable[(dataTable$lowerBand     >= input$lowerBand[1]     & dataTable$lowerBand     <= input$lowerBand[2])      | is.na(dataTable$lowerBand)]
-    dataTable <- dataTable[(dataTable$lowLimit      >= input$lowLimit[1]      & dataTable$lowLimit      <= input$lowLimit[2])       | is.na(dataTable$lowLimit)]
     dataTable <- dataTable[(dataTable$stopGainLong  >= input$stopGainLong[1]  & dataTable$stopGainLong  <= input$stopGainLong[2])   | is.na(dataTable$stopGainLong)]
     dataTable <- dataTable[(dataTable$stopGainShort >= input$stopGainShort[1] & dataTable$stopGainShort <= input$stopGainShort[2])  | is.na(dataTable$stopGainShort)]
     dataTable <- dataTable[(dataTable$stopLoss      >= input$stopLoss[1]      & dataTable$stopLoss      <= input$stopLoss[2])       | is.na(dataTable$stopLoss)]
@@ -339,8 +338,6 @@ server <- shinyServer(function(input, output, session)
         showPlot(tv, c("smaPeriod", "grade"), input$group),
         showPlot(tv, c("lowerBand", "grade"), input$group),
         showPlot(tv, c("upperBand", "grade"), input$group),
-        showPlot(tv, c("lowLimit", "grade"), input$group),
-        showPlot(tv, c("highLimit", "grade"), input$group),
         showPlot(tv, c("stopGainLong", "grade"), input$group),
         showPlot(tv, c("stopGainShort", "grade"), input$group),
         showPlot(tv, c("stopLoss", "grade"), input$group),
@@ -349,7 +346,7 @@ server <- shinyServer(function(input, output, session)
     }
   })
 
-  output$dataTable <- renderDataTable({
+  output$dataTable <- DT::renderDataTable({
     tv <- tableValues()
     if(!is.null(tv) && nrow(tv) > 0)
       showReport(tv)

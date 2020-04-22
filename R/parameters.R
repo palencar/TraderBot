@@ -39,8 +39,6 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
   df <- df[ df$smaPeriod  >= bt$sma_period$min  & df$smaPeriod  <= bt$sma_period$max &
             df$upperBand  >= bt$upper_band$min  & df$upperBand  <= bt$upper_band$max &
             df$lowerBand  >= bt$lower_band$min  & df$lowerBand  <= bt$lower_band$max &
-            df$lowLimit   >= bt$low_limit$min   & df$lowLimit   <= bt$low_limit$max &
-            df$highLimit  >= bt$high_limit$min  & df$highLimit  <= bt$high_limit$max &
             df$stopGainLong  >= bt$stop_gain_long$min  & df$stopGainLong <= bt$stop_gain_long$max &
             df$stopGainShort >= bt$stop_gain_short$min & df$stopGainShort <= bt$stop_gain_short$max &
             df$stopLoss   >= bt$stop_loss$min   & df$stopLoss   <= bt$stop_loss$max ]
@@ -52,7 +50,7 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
     df <- df[df$type == type,]
   df <- df[sample(nrow(df), as.integer(0.3 * nrow(df)), TRUE),]
 
-  parNames <- c("smaPeriod", "lowerBand", "upperBand", "lowLimit", "highLimit", "stopGainLong", "stopGainShort", "stopLoss")
+  parNames <- c("smaPeriod", "lowerBand", "upperBand", "stopGainLong", "stopGainShort", "stopLoss")
 
   if(nrow(df) <= 200)
   {
@@ -84,12 +82,10 @@ btParameters <- function(timeFrame = NULL, state = NULL, type = NULL)
   smaPeriod = round(randPar(bt$sma_period$min, bt$sma_period$max, dF$smaPeriod, sd(df$smaPeriod)))
   upperBand = randPar(bt$upper_band$min, bt$upper_band$max, dF$upperBand, sd(df$upperBand))
   lowerBand = randPar(bt$lower_band$min, bt$lower_band$max, dF$lowerBand, sd(df$lowerBand))
-  lowLimit = randPar(bt$low_limit$min, bt$low_limit$max, dF$lowLimit, sd(df$lowLimit))
-  highLimit = randPar(bt$high_limit$min, bt$high_limit$max, dF$highLimit, sd(df$highLimit))
   stopLoss = randPar(bt$stop_loss$min, bt$stop_loss$max, dF$stopLoss, sd(df$stopLoss))
   stopGainLong  = randPar(bt$stop_gain_long$min,  bt$stop_gain_long$max,  dF$stopGainLong,  sd(df$stopGainLong))
   stopGainShort = randPar(bt$stop_gain_short$min, bt$stop_gain_short$max, dF$stopGainShort, sd(df$stopGainShort))
 
-  data.frame(smaPeriod, upperBand, lowerBand, lowLimit, highLimit, stopLoss, stopGainLong, stopGainShort)
+  data.frame(smaPeriod, upperBand, lowerBand, stopLoss, stopGainLong, stopGainShort)
 }
 
